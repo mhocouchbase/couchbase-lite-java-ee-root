@@ -1,0 +1,356 @@
+//
+// build.gradle
+//
+// Copyright (c) 2017, 2018, 2019 Couchbase, Inc All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+import org.gradle.internal.os.OperatingSystem;
+import org.apache.tools.ant.filters.ReplaceTokens
+
+// The Module-level Build File
+buildscript {
+    ext.kotlin_version = '1.3.41'
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.8.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'cpp'
+apply plugin: 'java-library'
+apply plugin: 'java-library-distribution'
+apply plugin: 'kotlin'
+apply plugin: 'maven-publish'
+
+ext {
+    PROJECT_DIR = "${projectDir}"
+    ROOT_DIR = "${PROJECT_DIR}/.."
+    
+    CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
+    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
+    CBL_CORE_BUILD_DIR = "${CBL_CORE_DIR}/build_cmake"
+    CBL_NATIVE_BUILD_DIR = "${PROJECT_DIR}/build/native"
+
+    ETC_DIR = "${CBL_JAVA_DIR}/etc"
+    REPORTS_DIR = "${CBL_JAVA_DIR}/reports"
+
+    CBL_NATIVE_LIBRARIES = []
+    JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
+}
+
+def cblVersion = file("${ROOT_DIR}/version.txt").text.trim()
+
+// -PbuildNumber=123
+def buildNum = (!hasProperty("buildNumber")) ? "0" : buildNumber
+
+def buildCommit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim() +
+    (('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) ? "" : "+")
+
+group = 'com.couchbase.lite'
+
+// Copy the version template into the source, inserting build info
+task generateCBLVersion(type: Copy) {
+    from("${CBL_JAVA_DIR}/templates/CBLVersion.java") {
+        filter(
+            ReplaceTokens,
+            tokens: [VERSION: cblVersion, VARIANT: 'CE', TYPE: 'debug', BUILD: buildNum, COMMIT: buildCommit])
+    }
+    into "${CBL_JAVA_DIR}/src/main/java/com/couchbase/lite/internal/core"
+}
+generateCBLVersion.outputs.upToDateWhen { false }
+compileJava.dependsOn generateCBLVersion
+
+java {
+    version = cblVersion
+
+    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility JavaVersion.VERSION_1_8
+
+    sourceSets {
+        main {
+            java.srcDirs = [
+                "src/shared/main/java",                             // Shared EE only code between java android
+                "${CBL_JAVA_DIR}/src/main/java",                    // Shared code between java CE and EE
+                "${CBL_JAVA_DIR}/src/shared/main/java"              // Shared code between Java and Android
+            ]
+            resources.srcDirs = [CBL_NATIVE_BUILD_DIR]              // Native Libraries
+        }
+        test {
+            java.srcDirs = [
+                "src/shared/test/java",                             // Shared EE only tests between Java and Android
+                "${CBL_JAVA_DIR}/src/test/java",                    // Shared tests between java CE and EE
+                "${CBL_JAVA_DIR}/src/shared/test/java",             // Shared tests between Java and Android
+            ]
+            resources.srcDirs = [
+                "${CBL_JAVA_DIR}/src/shared/test/assets",           // Shared test assets between Java and Android
+                "${CBL_CORE_DIR}/C/tests/data"                      // lite-core test assets
+            ]
+        }
+    }
+}
+
+test {
+    exclude '**/ReplicatorWithSyncGateway*'
+}
+
+repositories {
+    google()
+    jcenter()
+}
+
+dependencies {
+    compileOnly 'com.android.support:support-annotations:28.0.0'
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.9.1'
+
+    implementation 'org.json:json:20180813'
+
+    testCompileOnly 'com.android.support:support-annotations:28.0.0'
+
+    testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+    testImplementation 'junit:junit:4.12'
+
+}
+
+// ----------------------------------------------------------------
+// Native Build
+// ----------------------------------------------------------------
+
+// For generating JNI headers:
+compileJava.options.compilerArgs += ["-h", "${CBL_JAVA_DIR}/src/shared/main/cpp"]
+
+// UTF-8
+compileJava.options.encoding = "UTF-8"
+compileTestJava.options.encoding = "UTF-8"
+
+
+// Native Components:
+model {
+    platforms {
+        osx {
+            architecture "x86_64"
+            operatingSystem "osx"
+        }
+        linux {
+            architecture "x86_64"
+            operatingSystem "linux"
+        }
+        windows {
+            architecture "x86_64"
+            operatingSystem "windows"
+        }
+    }
+    
+    toolChains {
+        visualCpp(VisualCpp)
+        clang(Clang)
+    }
+
+    repositories {
+        libs(PrebuiltLibraries) {
+            liteCore {
+                headers.srcDir "${CBL_CORE_DIR}/C/include"
+                headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/API"
+                headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/Fleece/Support"
+                binaries.withType(SharedLibraryBinary) {
+                    def os = targetPlatform.operatingSystem
+                    if (os.macOsX) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib")
+                    } else if (os.linux) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so")
+                    } else if (os.windows) {
+                        sharedLibraryFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll")
+                        sharedLibraryLinkFile = file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.lib")
+                    }
+                }
+            }
+            mbedCrypto {
+                headers.srcDir "${CBL_CORE_DIR}/vendor/mbedtls/include"
+                binaries.withType(StaticLibraryBinary) {
+                    def os = targetPlatform.operatingSystem
+                    if (os.macOsX) {
+                        staticLibraryFile = file("${CBL_CORE_BUILD_DIR}/macos/vendor/mbedtls/library/libmbedcrypto.a")
+                    }
+                }
+            }
+        }
+    }
+    components {
+        LiteCoreJNI(NativeLibrarySpec) {
+            if (OperatingSystem.current().isMacOsX()) targetPlatform "osx"
+            if (OperatingSystem.current().isLinux()) targetPlatform "linux"
+            if (OperatingSystem.current().isWindows()) targetPlatform "windows"
+            sources {
+                cpp {
+                    source {
+                        srcDir "${CBL_JAVA_DIR}/src/shared/main/cpp"
+                        include "**/*.cc"
+                    }
+                    lib library: 'liteCore', linkage: 'shared'
+
+                    if (OperatingSystem.current().isMacOsX()) {
+                        lib library: 'mbedCrypto', linkage: 'static'
+                    } else {
+                        lib library: 'mbedCrypto', linkage: 'api'
+                    }
+                }
+            }
+
+            binaries.withType(StaticLibraryBinarySpec) {
+                buildable = false
+            }
+
+            binaries.withType(SharedLibraryBinarySpec) { binary ->
+                setupJNILibraryBuildTasks(binary.sharedLibraryFile, targetPlatform)
+            }
+
+            binaries.all {
+                if (targetPlatform.operatingSystem.macOsX) {
+                    cppCompiler.args '-I', "${JAVA_HOME}/include"
+                    cppCompiler.args '-I', "${JAVA_HOME}/include/darwin"
+                    cppCompiler.args '-std=c++11'
+                    cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
+                    linker.args '-stdlib=libc++'
+                } else if (targetPlatform.operatingSystem.linux) {
+                    cppCompiler.args '-I', "${JAVA_HOME}/include"
+                    cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
+                    cppCompiler.args '-std=c++11'
+                    cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
+                    linker.args '-stdlib=libc++'
+                } else if (targetPlatform.operatingSystem.windows) {
+                    cppCompiler.args '-I${JAVA_HOME}/include'
+                    cppCompiler.args '-I${JAVA_HOME}/include/win32'
+                    cppCompiler.args 'DCOUCHBASE_ENTERPRISE'
+                }
+            }
+        }
+    }
+}
+
+def setupJNILibraryBuildTasks(library, platform) {
+    tasks.whenTaskAdded { task ->
+        if (task.name == "LiteCoreJNISharedLibrary") {
+            task.dependsOn(compileJava)
+            createCopyNativeLibraryTask(library, platform)
+        }
+    }
+}
+
+def createCopyNativeLibraryTask(library, targetPlatform) {
+    if (CBL_NATIVE_LIBRARIES.contains(library)) return
+
+    CBL_NATIVE_LIBRARIES.add(library)
+
+    def os = targetPlatform.operatingSystem
+    if (os.macOsX) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/macos/libLiteCore.dylib"))
+    } else if (os.linux) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/linux/libLiteCore.so"))
+    } else if (os.windows) {
+        CBL_NATIVE_LIBRARIES.add(file("${CBL_CORE_BUILD_DIR}/x64/RelWithDebInfo/LiteCore.dll"))
+    }
+
+    def libPath = getNativeLibraryResourcePath(targetPlatform)
+    def task = tasks.create("copyNativeLibraries", Copy) {
+        from CBL_NATIVE_LIBRARIES
+        into "${CBL_NATIVE_BUILD_DIR}/libs/${libPath}"
+    }
+
+    processResources.dependsOn(task)
+    task.dependsOn(LiteCoreJNISharedLibrary)
+}
+
+def getNativeLibraryResourcePath(platform) {
+    def os = ""
+    if (platform.operatingSystem.isMacOsX()) 
+        os = "osx";
+    else if (platform.operatingSystem.isWindows()) 
+        os = "windows"
+    else if (platform.operatingSystem.isLinux()) 
+        os = "linux"
+    else
+        os = platform.operatingSystem.name
+    return "${os}/x86_64"
+}
+
+// ----------------------------------------------------------------
+// Static analysis
+// ----------------------------------------------------------------
+
+apply plugin: 'checkstyle'
+checkstyle {
+    toolVersion = "8.18"
+    showViolations true
+    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
+    configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
+}
+
+task checkstyle(type: Checkstyle) {
+    description 'Checkstyle'
+    group 'verification'
+
+    source sourceSets.main.java.srcDirs
+    include '**/*.java'
+    classpath = files()
+
+    checkstyleTest.enabled = false
+    reports {
+        xml {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/checkstyle.xml"))
+        }
+        html {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/checkstyle.html"))
+        }
+    }
+}
+
+apply plugin: 'pmd'
+pmd { toolVersion "5.8.1" }
+task pmd(type: Pmd) {
+    description 'PMD'
+    group 'verification'
+
+    ruleSetFiles = files("${ETC_DIR}/pmd/pmd.xml")
+
+    source = sourceSets.main.java.srcDirs
+    include '**/*.java'
+
+    pmdTest.enabled = false
+
+    reports {
+        xml {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/pmd.xml"))
+        }
+        html {
+            enabled = true
+            setDestination(file("${REPORTS_DIR}/pmd.html"))
+        }
+    }
+}
+
+task smoketest(dependsOn: ['checkstyle', 'pmd'])
+task unitTest(dependsOn: ['smoketest', 'test'])
+task buildCI(dependsOn: ['checkstyle', 'pmd', 'test'])
+
