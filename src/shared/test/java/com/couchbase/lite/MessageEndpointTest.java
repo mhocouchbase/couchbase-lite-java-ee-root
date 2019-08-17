@@ -389,12 +389,9 @@ public class MessageEndpointTest extends BaseTest {
             Report.log(LogLevel.ERROR, "OtherDB is unexpectedly closed, in tearDown");
         }
         else {
-            if (otherDB != null) {
-                try { otherDB.close(); }
-                catch (CouchbaseLiteException e) {
-                    Report.log(LogLevel.ERROR, "Failed closing DB: " + OTHER_DATABASE_NAME, e);
-                }
-                otherDB = null;
+            try { closeDatabase(otherDB); }
+            catch (CouchbaseLiteException e) {
+                Report.log(LogLevel.ERROR, "Failed closing DB: " + OTHER_DATABASE_NAME, e);
             }
 
             try { deleteDatabase(OTHER_DATABASE_NAME); }
