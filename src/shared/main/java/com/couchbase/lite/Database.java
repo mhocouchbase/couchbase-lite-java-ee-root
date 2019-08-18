@@ -20,6 +20,7 @@ import android.support.annotation.NonNull;
 
 import java.io.File;
 
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.utils.Preconditions;

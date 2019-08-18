@@ -18,6 +18,7 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.replicator.CBLWebSocket;
+import com.couchbase.lite.internal.replicator.MessageSocketFactory;
 
 
 public final class Replicator extends AbstractReplicator {

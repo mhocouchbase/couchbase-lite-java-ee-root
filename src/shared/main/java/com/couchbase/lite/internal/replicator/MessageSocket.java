@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite;
+package com.couchbase.lite.internal.replicator;
 
 import android.support.annotation.NonNull;
 
@@ -22,13 +22,21 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import com.couchbase.lite.CouchbaseLite;
+import com.couchbase.lite.Message;
+import com.couchbase.lite.MessageEndpoint;
+import com.couchbase.lite.MessageEndpointConnection;
+import com.couchbase.lite.MessagingError;
+import com.couchbase.lite.ProtocolType;
+import com.couchbase.lite.ReplicatorConnection;
+import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
 
 
 /* Internal MessageSocket for MessageEndpoint replication. */
-class MessageSocket extends C4Socket implements ReplicatorConnection {
+public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // ---------------------------------------------------------------------------------------------
     // Variables
     // ---------------------------------------------------------------------------------------------
@@ -46,14 +54,14 @@ class MessageSocket extends C4Socket implements ReplicatorConnection {
     // constructor
     // ---------------------------------------------------------------------------------------------
 
-    MessageSocket(long handle, MessageEndpoint endpoint, Map<String, Object> unused) {
+    public MessageSocket(long handle, MessageEndpoint endpoint, Map<String, Object> unused) {
         this(endpoint.getDelegate().createConnection(endpoint), endpoint.getProtocolType(), true);
 
         // ??? Ikk: set superclass fields.
         setHandle(handle);
     }
 
-    MessageSocket(MessageEndpointConnection connection, ProtocolType protocolType) {
+    public MessageSocket(MessageEndpointConnection connection, ProtocolType protocolType) {
         this(connection, protocolType, true);
 
         C4Socket.SOCKET_FACTORY.put(this, MessageSocket.class);

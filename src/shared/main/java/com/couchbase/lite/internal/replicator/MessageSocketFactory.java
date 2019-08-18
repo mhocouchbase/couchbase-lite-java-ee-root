@@ -14,16 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite;
+package com.couchbase.lite.internal.replicator;
 
 import java.util.Map;
 
+import com.couchbase.lite.MessageEndpoint;
+import com.couchbase.lite.MessagingCompletion;
+import com.couchbase.lite.MessagingError;
+import com.couchbase.lite.Replicator;
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.fleece.FLValue;
 
 
 /* Internal MessageSocket factory class. */
-class MessageSocketFactory {
+public class MessageSocketFactory {
     // This method is called by reflection.  Don't change its name.
     @SuppressWarnings("MethodName")
     public static void socket_open(
