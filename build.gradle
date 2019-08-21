@@ -237,8 +237,8 @@ model {
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
-                    cppCompiler.args '-I${JAVA_HOME}/include'
-                    cppCompiler.args '-I${JAVA_HOME}/include/win32'
+                    cppCompiler.args "-I${JAVA_HOME}/include"
+                    cppCompiler.args "-I${JAVA_HOME}/include/win32"
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                 }
             }
