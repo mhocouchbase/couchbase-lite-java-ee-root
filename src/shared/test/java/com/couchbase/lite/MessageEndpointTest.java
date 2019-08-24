@@ -821,29 +821,21 @@ public class MessageEndpointTest extends BaseTest {
         replicator1.start();
         replicator2.start();
 
-        Report.log(LogLevel.INFO, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 1");
-
         idleLatch1.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
         idleLatch2.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
 
         listener.closeAll();
 
-        Report.log(LogLevel.INFO, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 2");
-
         // wait for replicators to stop
         stopLatch1.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
         stopLatch2.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
 
-        Report.log(LogLevel.INFO, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 3");
         replicator1.removeChangeListener(token1);
         replicator2.removeChangeListener(token2);
 
-        Report.log(LogLevel.INFO, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 4");
         // wait for all notifications to come it
         assertTrue(closeWait1.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
         assertTrue(closeWait2.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
-
-        Report.log(LogLevel.INFO, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> 5");
     }
 
     @Test
