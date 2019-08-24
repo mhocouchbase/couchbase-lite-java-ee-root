@@ -461,13 +461,14 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
      * #10
      * 1. Test that returning a document with a wrong document ID should be OK,
      *    however, here should be a warning message logged about this
+     *    Resolved document is mutable.
      */
     @Test
-    fun testConflictResolverWrongDocID() {
+    fun testConflictResolverWrongDocIdMutable() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // the document that the resolver will return: it has a wrong ID
-        val doc2 = MutableDocument("hooey")
+        val doc2 = MutableDocument(DOC3)
         doc2.setString(KEY3, VAL3)
 
         var replicator: Replicator? = null
@@ -485,6 +486,40 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
 
         val doc1 = db.getDocument(DOC1)
         assertEquals(doc2.count(), doc1.count())
+        assertEquals(VAL3, doc1.getString(KEY3))
+    }
+
+    /**
+     * #10
+     * 1. Test that returning a document with a wrong document ID should be OK,
+     *    however, here should be a warning message logged about this
+     *    Resolved document is not mutable.
+     */
+    @Test
+    fun testConflictResolverWrongDocIdImmutable() {
+        makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
+
+        // the document that the resolver will return: it has a wrong ID
+        val doc = MutableDocument(DOC3)
+        doc.setString(KEY3, VAL3)
+        db.save(doc)
+        val doc3 = db.getDocument(DOC3)
+
+        var replicator: Replicator? = null
+        var token: ListenerToken? = null
+        val errors = mutableListOf<CouchbaseLiteException?>()
+        run(pullConfig(TestConflictResolver { doc3 }), 0, null, false, false) { r: Replicator ->
+            replicator = r
+            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+                docRepl.documents[0].error?.let { errors.add(it) }
+            }
+        }
+        replicator?.removeChangeListener(token!!)
+
+        assertEquals(0, errors.size)
+
+        val doc1 = db.getDocument(DOC1)
+        assertEquals(doc3.count(), doc1.count())
         assertEquals(VAL3, doc1.getString(KEY3))
     }
 
