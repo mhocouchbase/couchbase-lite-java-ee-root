@@ -21,9 +21,7 @@ import org.junit.Test;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.utils.Report;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 
 public class EncryptionKeyTest extends BaseTest {
@@ -35,23 +33,11 @@ public class EncryptionKeyTest extends BaseTest {
         Report.log(LogLevel.INFO, "key -> " + bytesToHex(key.getKey()));
     }
 
-    @Test
-    public void testInvalidKey() {
-        try {
-            new EncryptionKey((byte[]) null);
-            fail();
-        }
-        catch (IllegalArgumentException e) {
-            assertEquals("key cannot be null.", e.getMessage());
-        }
-        try {
-            new EncryptionKey("a".getBytes());
-            fail();
-        }
-        catch (IllegalArgumentException e) {
-            assertEquals("Key size is invalid. Key must be a 256-bit (32-byte) key.", e.getMessage());
-        }
-    }
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullKey() { new EncryptionKey((byte[]) null); }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testShortKey() { new EncryptionKey("abc".getBytes()); }
 
     private String bytesToHex(byte[] in) {
         final StringBuilder builder = new StringBuilder();
@@ -60,5 +46,4 @@ public class EncryptionKeyTest extends BaseTest {
         }
         return builder.toString();
     }
-
 }

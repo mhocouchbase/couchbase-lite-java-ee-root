@@ -26,6 +26,7 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.core.C4Key;
 import com.couchbase.lite.utils.IOUtils;
 import com.couchbase.lite.utils.Report;
 
@@ -292,6 +293,62 @@ public class DatabaseEncryptionTest extends BaseTest {
     @Test
     public void testEncryptedBlobs() throws CouchbaseLiteException, IOException {
         testEncryptedBlobs("letmein");
+    }
+
+    @Test
+    public void testLegacyKeyGeneration() throws CouchbaseLiteException {
+        final String dbName = "Cream";
+        final String pwd = "you rode upon a steamer to the violence of the sun";
+        final String docId = "Disraeli Gears";
+
+        DatabaseConfiguration config = new DatabaseConfiguration();
+        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setEncryptionKey(new EncryptionKey(pwd));
+        Database db = new Database(dbName, config);
+        final MutableDocument mDoc = new MutableDocument(docId);
+        mDoc.setString("guitar", "Eric");
+        mDoc.setString("bass", "Jack");
+        mDoc.setString("drums", "Ginger");
+        db.save(mDoc);
+        db.close();
+
+        config = new DatabaseConfiguration();
+        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
+        db = new Database(dbName, config);
+        Document doc2 = db.getDocument(docId);
+        assertEquals("Eric", doc2.getString("guitar"));
+        assertEquals("Jack", doc2.getString("bass"));
+        assertEquals("Ginger", doc2.getString("drums"));
+        db.delete();
+    }
+
+    @Test
+    public void testCoreKeyGeneration() throws CouchbaseLiteException {
+        final String dbName = "Cream";
+        final String pwd = "you rode upon a steamer to the violence of the sun";
+        final String docId = "Disraeli Gears";
+
+        DatabaseConfiguration config = new DatabaseConfiguration();
+        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
+        Database db = new Database(dbName, config);
+        final MutableDocument mDoc = new MutableDocument(docId);
+        mDoc.setString("guitar", "Eric");
+        mDoc.setString("bass", "Jack");
+        mDoc.setString("drums", "Ginger");
+        db.save(mDoc);
+        db.close();
+
+        config = new DatabaseConfiguration();
+        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
+        db = new Database(dbName, config);
+        Document doc2 = db.getDocument(docId);
+        assertEquals("Eric", doc2.getString("guitar"));
+        assertEquals("Jack", doc2.getString("bass"));
+        assertEquals("Ginger", doc2.getString("drums"));
+        db.delete();
     }
 
     @Test

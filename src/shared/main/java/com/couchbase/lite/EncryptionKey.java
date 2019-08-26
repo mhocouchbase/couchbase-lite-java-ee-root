@@ -18,12 +18,9 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import java.nio.charset.StandardCharsets;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Key;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -33,10 +30,7 @@ import com.couchbase.lite.internal.core.C4Key;
  * It should be stored either in the Keychain, or in the user's memory (hopefully not a sticky note.)
  */
 public final class EncryptionKey {
-    private static final String DEFAULT_PBKDF2_KEY_SALT = "Salty McNaCl";
-    private static final int DEFAULT_PBKDF2_KEY_ROUNDS = 64000; // Same as what SQLCipher uses
-
-    private byte[] key;
+    private final byte[] key;
 
     /**
      * Initializes the encryption key with a raw AES-128 key 16 bytes in length.
@@ -45,35 +39,35 @@ public final class EncryptionKey {
      *
      * @param key The raw AES-128 key data.
      */
-    // !!! FIXME: This method stores a mutable array as private data
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     public EncryptionKey(@NonNull byte[] key) {
-        if (key == null) { throw new IllegalArgumentException("key cannot be null."); }
+        Preconditions.checkArgNotNull(key, "key");
         if (key.length != C4Constants.EncryptionKeySize.AES256) {
             throw new IllegalArgumentException("Key size is invalid. Key must be a 256-bit (32-byte) key.");
         }
-        this.key = key;
+        this.key = new byte[C4Constants.EncryptionKeySize.AES256];
+        System.arraycopy(key, 0, this.key, 0, C4Constants.EncryptionKeySize.AES256);
     }
 
     /**
-     * Initializes the encryption key with the given password string. The password string will be
-     * internally converted to a raw AES-128 key using 64,000 rounds of PBKDF2 hashing.
+     * Initializes the encryption key from the given password string.
+     * The password string will be internally converted to a raw AES-128 key using 64,000 rounds of PBKDF2 hashing.
      *
      * @param password The password string.
      */
-    public EncryptionKey(String password) {
-        this(password == null
-            ? null
-            : C4Key.pbkdf2(
-                password,
-                DEFAULT_PBKDF2_KEY_SALT.getBytes(StandardCharsets.UTF_8),
-                DEFAULT_PBKDF2_KEY_ROUNDS,
-                C4Constants.EncryptionKeySize.AES256));
+    public EncryptionKey(@NonNull String password) {
+        Preconditions.checkArgNotNull(password, "password");
+
+        // This is wrong; can't change the API.
+        final byte[] key;
+        try { key = C4Key.getPbkdf2Key(password); }
+        catch (CouchbaseLiteException e) { throw new IllegalArgumentException(e.getMessage(), e); }
+
+        this.key = key;
     }
 
-    // !!! FIXME: This method returns a writeable copy of its private data
-    @SuppressFBWarnings("EI_EXPOSE_REP")
     byte[] getKey() {
+        final byte[] key = new byte[this.key.length];
+        System.arraycopy(this.key, 0, key, 0, key.length);
         return key;
     }
 }
