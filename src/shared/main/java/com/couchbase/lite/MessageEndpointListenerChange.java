@@ -34,7 +34,7 @@ public class MessageEndpointListenerChange {
     }
 
     /**
-     * Return connecton
+     * Return connection
      *
      * @return
      */

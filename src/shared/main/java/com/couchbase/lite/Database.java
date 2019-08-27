@@ -33,7 +33,7 @@ public final class Database extends AbstractDatabase {
     /**
      * Make a copy of a database in a new location.
      *
-     * @param path   path to the exisiting db filee
+     * @param path   path to the existing db file
      * @param name   the name of the new DB
      * @param config a config with the new location
      * @throws CouchbaseLiteException on copy failure

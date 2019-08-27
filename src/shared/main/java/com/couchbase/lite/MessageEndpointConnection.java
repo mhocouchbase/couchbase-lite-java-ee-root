@@ -22,7 +22,7 @@ import android.support.annotation.NonNull;
 /**
  * <b>ENTERPRISE EDITION API</b><br/></br>
  * <p>
- * The interface implemented by the application using a custom transporation
+ * The interface implemented by the application using a custom transportation
  * method to exchange replication data between peers.
  */
 public interface MessageEndpointConnection {

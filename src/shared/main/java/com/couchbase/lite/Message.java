@@ -52,7 +52,7 @@ public class Message {
      *
      * @return the data
      */
-    // !!! FIXME: This method returns a writeable copy of its private data
+    // !!! FIXME: This method returns a writable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @NonNull
     public byte[] toData() { return this.data; }
