@@ -19,13 +19,7 @@ package com.couchbase.lite;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -732,51 +726,59 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
 
     @Test
     public void testDocumentReplicationEvent() throws Exception {
-        final List<ReplicatedDocument> docs = new ArrayList<>();
-        MutableDocument doc1 = new MutableDocument("doc1");
+        final MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
         doc1.setString("pattern", "Hobbes");
         save(doc1);
 
-        MutableDocument doc2 = new MutableDocument("doc2");
+        final MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "Striped");
         save(doc2);
 
+        // returns
+        final Map<String, ReplicatedDocument> docs = new HashMap<>();
+        final boolean[] isPush = new boolean[1];
+
         // Push:
-        ReplicatorConfiguration config = makeConfig(true, false, false);
-        repl = new Replicator(config);
+        repl = new Replicator(makeConfig(true, false, false));
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken replicationListenerToken = repl.addDocumentReplicationListener(update -> {
-            assertTrue(update.isPush());
-            docs.addAll(update.getDocuments());
+            isPush[0] = update.isPush();
+            for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch.countDown();
         });
 
         run(repl, 0, null);
 
-        boolean ret = latch.await(timeout, TimeUnit.SECONDS);
-        assertTrue(ret);
+        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
+
+        assertTrue(isPush[0]);
 
         // Check if getting two document replication events:
         assertEquals("wrong size: ", docs.size(), 2);
-        assertEquals("wrong doc @0: ", "doc1", docs.get(0).getID());
-        assertNull("wrong error @0: ", docs.get(0).getError());
-        assertFalse(
-            "missing DocumentFlagsDeleted @0: ",
-            docs.get(0).flags().contains(DocumentFlag.DocumentFlagsDeleted));
-        assertFalse(
-            "missing DocumentFlagsAccessRemoved @0: ",
-            docs.get(0).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
 
-        assertEquals("wrong doc @1: ", "doc2", docs.get(1).getID());
-        assertNull("wrong error @1: ", docs.get(1).getError());
+        final ReplicatedDocument rDoc1 = docs.get("doc1");
+        assertNotNull("missing doc1: ", rDoc1);
+        assertNull("wrong error for doc1: ", rDoc1.getError());
+        final EnumSet<DocumentFlag> rDoc1Flags = rDoc1.flags();
         assertFalse(
-            "missing DocumentFlagsDeleted @1: ",
-            docs.get(1).flags().contains(DocumentFlag.DocumentFlagsDeleted));
+            "missing DocumentFlagsDeleted for doc1: ",
+            rDoc1Flags.contains(DocumentFlag.DocumentFlagsDeleted));
         assertFalse(
-            "missing DocumentFlagsAccessRemoved @1: ",
-            docs.get(1).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+            "missing DocumentFlagsAccessRemoved for doc1: ",
+            rDoc1Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
+
+        final ReplicatedDocument rDoc2 = docs.get("doc2");
+        assertNotNull("missing doc2: ", rDoc2);
+        assertNull("wrong error for doc2: ", rDoc2.getError());
+        final EnumSet<DocumentFlag> rDoc2Flags = rDoc1.flags();
+        assertFalse(
+            "missing DocumentFlagsDeleted for doc2: ",
+            rDoc2Flags.contains(DocumentFlag.DocumentFlagsDeleted));
+        assertFalse(
+            "missing DocumentFlagsAccessRemoved for doc2: ",
+            rDoc2Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
 
         // Add another doc:
         MutableDocument doc3 = new MutableDocument("doc3");
@@ -787,19 +789,21 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         // Run the replicator again:
         run(repl, 0, null);
 
-        ret = latch.await(timeout, TimeUnit.SECONDS);
-        assertTrue(ret);
+        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
 
         // Check if getting a new document replication event:
         assertEquals("wrong size: ", docs.size(), 3);
-        assertEquals("wrong doc @3: ", "doc3", docs.get(2).getID());
-        assertNull("wrong error @0: ", docs.get(2).getError());
+
+        final ReplicatedDocument rDoc3 = docs.get("doc1");
+        assertNotNull("missing doc3: ", rDoc3);
+        assertNull("wrong error for doc3: ", rDoc3.getError());
+        final EnumSet<DocumentFlag> rDoc3Flags = rDoc1.flags();
         assertFalse(
-            "missing DocumentFlagsDeleted @2: ",
-            docs.get(2).flags().contains(DocumentFlag.DocumentFlagsDeleted));
+            "missing DocumentFlagsDeleted for doc3: ",
+            rDoc3Flags.contains(DocumentFlag.DocumentFlagsDeleted));
         assertFalse(
-            "missing DocumentFlagsAccessRemoved @2: ",
-            docs.get(2).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+            "missing DocumentFlagsAccessRemoved for doc3: ",
+            rDoc3Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
 
         // Add another doc:
         MutableDocument doc4 = new MutableDocument("doc4");
@@ -813,8 +817,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         // Run the replicator again:
         run(repl, 0, null);
 
-        ret = latch.await(timeout, TimeUnit.SECONDS);
-        assertTrue(ret);
+        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
 
         // Should not getting a new document replication event:
         assertEquals(docs.size(), 3);
