@@ -118,6 +118,7 @@ public class MessageEndpointListener {
                     options,
                     statusListener,
                     this);
+                replicator.start();
                 status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.CONNECTING);
             }
             catch (LiteCoreException e) {
