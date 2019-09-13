@@ -214,9 +214,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
                 assertEquals(document.getContent(), new Dictionary());
             }
 
-            if (docId.equals("doc2")) { return false; }
-            else if (docId.equals("doc3") && isDeleted) { return false; }
-            else { return true; }
+            return !docId.equals("doc2") && !(docId.equals("doc3") && isDeleted);
         });
 
         // Create replicator"
