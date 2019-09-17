@@ -32,14 +32,12 @@ public final class Replicator extends AbstractReplicator {
     }
 
     @Override
-    void initSocketFactory(Object socketFactoryContext) {
-        C4Socket.SOCKET_FACTORY.put(
-            socketFactoryContext,
-            (config.getTarget() instanceof MessageEndpoint) ? MessageSocketFactory.class : CBLWebSocket.class);
+    protected Class<?> getSocketFactory() {
+        return (config.getTarget() instanceof MessageEndpoint) ? MessageSocketFactory.class : CBLWebSocket.class;
     }
 
     @Override
-    int framing() {
+    protected int framing() {
         final Object target = config.getTarget();
         return (target instanceof MessageEndpoint
             && ((MessageEndpoint) target).getProtocolType() == ProtocolType.BYTE_STREAM)
@@ -48,7 +46,7 @@ public final class Replicator extends AbstractReplicator {
     }
 
     @Override
-    String schema() {
+    protected String schema() {
         // put something in the address so it's not illegal
         return (!(config.getTarget() instanceof MessageEndpoint)) ? null : "x-msg-endpt";
     }
