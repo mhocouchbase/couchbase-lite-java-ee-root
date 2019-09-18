@@ -18,6 +18,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br/></br>
@@ -26,16 +28,16 @@ import android.support.annotation.NonNull;
  */
 public class MessageEndpoint implements Endpoint {
     // Unique ID required for calculating remote checkpoint id
-    private String uid;
+    private final String uid;
 
     // Any object identifying the connecting peer
-    private Object target;
+    private final Object target;
 
     // Protocol type of transmission
-    private ProtocolType protocolType;
+    private final ProtocolType protocolType;
 
     // Delegate
-    private MessageEndpointDelegate delegate;
+    private final MessageEndpointDelegate delegate;
 
     /**
      * Initializes a CBLMessageEndpoint object.
@@ -50,9 +52,9 @@ public class MessageEndpoint implements Endpoint {
         Object target,
         @NonNull ProtocolType protocolType,
         @NonNull MessageEndpointDelegate delegate) {
-        if (uid == null) { throw new IllegalArgumentException("uid cannot be null."); }
-        if (protocolType == null) { throw new IllegalArgumentException("protocolType cannot be null."); }
-        if (delegate == null) { throw new IllegalArgumentException("delegate cannot be null."); }
+        Preconditions.checkArgNotNull(uid, "uid");
+        Preconditions.checkArgNotNull(protocolType, "protocolType");
+        Preconditions.checkArgNotNull(delegate, "delegate");
 
         this.uid = uid;
         this.target = target;

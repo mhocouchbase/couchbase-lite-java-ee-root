@@ -34,6 +34,7 @@ import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.replicator.MessageSocket;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -71,14 +72,14 @@ public class MessageEndpointListener {
     private final MessageEndpointListenerConfiguration config;
 
     public MessageEndpointListener(@NonNull MessageEndpointListenerConfiguration config) {
-        if (config == null) { throw new IllegalArgumentException("config cannot be null."); }
+        Preconditions.checkArgNotNull(config, "config");
         this.config = config;
     }
 
     /**
      * The active connections from peers.
      *
-     * @return
+     * @return a list of active connections
      */
     List<MessageEndpointConnection> getConnections() {
         synchronized (lock) { return new ArrayList<>(replicators.values()); }
@@ -87,10 +88,10 @@ public class MessageEndpointListener {
     /**
      * Accept a new connection.
      *
-     * @param connection
+     * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
-        if (connection == null) { throw new IllegalArgumentException("connection cannot be null."); }
+        Preconditions.checkArgNotNull(connection, "connection");
 
         final MessageSocket socket = new MessageSocket(connection, config.getProtocolType());
 
@@ -136,10 +137,10 @@ public class MessageEndpointListener {
     /**
      * Close the given connection.
      *
-     * @param connection
+     * @param connection the connection to be closed
      */
     public void close(@NonNull MessageEndpointConnection connection) {
-        if (connection == null) { throw new IllegalArgumentException("connection cannot be null."); }
+        Preconditions.checkArgNotNull(connection, "connection");
 
         synchronized (lock) {
             for (Map.Entry<C4Replicator, MessageEndpointConnection> entry : replicators.entrySet()) {
@@ -163,8 +164,8 @@ public class MessageEndpointListener {
     /**
      * Add a change listener.
      *
-     * @param listener
-     * @return
+     * @param listener the listener
+     * @return listener identifier
      */
     @NonNull
     public ListenerToken addChangeListener(@NonNull MessageEndpointListenerChangeListener listener) {
@@ -174,23 +175,23 @@ public class MessageEndpointListener {
     /**
      * Add a change listener with the given dispatch queue.
      *
-     * @param queue
-     * @param listener
-     * @return
+     * @param queue the executor on which the listener will run
+     * @param listener the listener
+     * @return listener identifier
      */
     @NonNull
     public ListenerToken addChangeListener(Executor queue, @NonNull MessageEndpointListenerChangeListener listener) {
-        if (listener == null) { throw new IllegalArgumentException("listener cannot be null."); }
+        Preconditions.checkArgNotNull(listener, "listener");
         return changeNotifier.addChangeListener(queue, listener);
     }
 
     /**
      * Remove a change listener.
      *
-     * @param token
+     * @param token identifier for the listener to be removed
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        if (token == null) { throw new IllegalArgumentException("token cannot be null."); }
+        Preconditions.checkArgNotNull(token, "token");
         changeNotifier.removeChangeListener(token);
     }
 

@@ -32,7 +32,7 @@ public class MessageEndpointTest extends BaseTest {
     private static final long SHORT_DELAY_MS = 100;
     private static final String OTHER_DATABASE_NAME = "otherdb";
     private static final List<String> ACTIVITY_NAMES
-            = Collections.unmodifiableList(Arrays.asList("stopped", "offline", "connecting", "idle", "busy"));
+        = Collections.unmodifiableList(Arrays.asList("stopped", "offline", "connecting", "idle", "busy"));
 
     enum MockConnectionLifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
 
@@ -162,7 +162,9 @@ public class MessageEndpointTest extends BaseTest {
         protected abstract boolean isClient();
 
         @Override
-        public void open(@NonNull final ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
+        public void open(
+            @NonNull final ReplicatorConnection connection,
+            @NonNull final MessagingCompletion completion) {
             queue.submit(() -> {
                 this.error = null;
                 this.isClosing = false;
@@ -211,7 +213,7 @@ public class MessageEndpointTest extends BaseTest {
                     if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.CLOSE)) {
                         this.error = errorLogic.createError();
                     }
-                    remoteConnection.disconnect(this.error, () -> completion.complete());
+                    remoteConnection.disconnect(this.error, completion::complete);
                 }
             });
         }
@@ -304,7 +306,7 @@ public class MessageEndpointTest extends BaseTest {
 
         public MockServerConnection(Database database, ProtocolType protocolType) {
             this(new MessageEndpointListener(
-                    new MessageEndpointListenerConfiguration(database, protocolType)), protocolType);
+                new MessageEndpointListenerConfiguration(database, protocolType)), protocolType);
         }
 
         @Override
@@ -344,28 +346,25 @@ public class MessageEndpointTest extends BaseTest {
         super.setUp();
 
         otherDB = openDB(OTHER_DATABASE_NAME);
-        assertTrue(otherDB.isOpen());
         assertNotNull(otherDB);
+        assertTrue(otherDB.isOpen());
     }
 
     @After
     public void tearDown() {
         if (!otherDB.isOpen()) {
             Report.log(LogLevel.ERROR, "OtherDB is unexpectedly closed, in tearDown");
-        }
-        else {
-            try { closeDatabase(otherDB); }
-            catch (CouchbaseLiteException e) {
-                Report.log(LogLevel.ERROR, "Failed closing DB: " + OTHER_DATABASE_NAME, e);
-            }
-
-            try { deleteDatabase(OTHER_DATABASE_NAME); }
-            catch (CouchbaseLiteException e) {
-                Report.log(LogLevel.ERROR, "Failed deleting DB: " + OTHER_DATABASE_NAME, e);
-            }
+            return;
         }
 
-        super.tearDown();
+        try {
+            closeDatabase(otherDB);
+            deleteDatabase(OTHER_DATABASE_NAME);
+        }
+        catch (CouchbaseLiteException e) {
+            throw new RuntimeException("Failed closing and deleting db: " + OTHER_DATABASE_NAME, e);
+        }
+        finally { super.tearDown(); }
 
         try { Thread.sleep(SHORT_DELAY_MS); } catch (InterruptedException ignore) { }
     }
@@ -384,9 +383,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -408,9 +407,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -432,9 +431,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -456,9 +455,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -480,9 +479,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, db.getCount());
@@ -504,9 +503,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, db.getCount());
@@ -528,9 +527,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
         run(config, 0, null);
 
         assertEquals(2, db.getCount());
@@ -552,9 +551,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
         run(config, 0, null);
 
         assertEquals(2, db.getCount());
@@ -576,9 +575,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -604,9 +603,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -632,11 +631,11 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config = makeConfig(
-                AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-                true,
-                endpoint);
+            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            true,
+            endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -662,9 +661,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -709,16 +708,16 @@ public class MessageEndpointTest extends BaseTest {
     @Test
     public void testP2PPassiveClose() throws Exception {
         MessageEndpointListener listener = new MessageEndpointListener(
-                new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
+            new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
         ReplicatorConfiguration config = new ReplicatorConfiguration(
-                db,
-                new MessageEndpoint(
-                        "p2ptest1",
-                        serverConnection,
-                        ProtocolType.MESSAGE_STREAM,
-                        new MockConnectionFactory(null)));
+            db,
+            new MessageEndpoint(
+                "p2ptest1",
+                serverConnection,
+                ProtocolType.MESSAGE_STREAM,
+                new MockConnectionFactory(null)));
         config.setContinuous(true);
 
         Replicator replicator = new Replicator(config);
@@ -759,17 +758,17 @@ public class MessageEndpointTest extends BaseTest {
         db.save(doc);
 
         final MessageEndpointListener listener = new MessageEndpointListener(
-                new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
+            new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
         final MockServerConnection serverConnection1 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
         final ReplicatorConfiguration config1 = new ReplicatorConfiguration(db, new MessageEndpoint(
-                "p2ptest1", serverConnection1, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
+            "p2ptest1", serverConnection1, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
         config1.setContinuous(true);
         final Replicator replicator1 = new Replicator(config1);
 
         final MockServerConnection serverConnection2 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
         final ReplicatorConfiguration config2 = new ReplicatorConfiguration(db, new MessageEndpoint(
-                "p2ptest2", serverConnection2, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
+            "p2ptest2", serverConnection2, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
         config2.setContinuous(true);
         final Replicator replicator2 = new Replicator(config2);
 
@@ -842,11 +841,11 @@ public class MessageEndpointTest extends BaseTest {
     public void testP2PChangeListener() throws Exception {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
-                new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
+            new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
         ReplicatorConfiguration config = new ReplicatorConfiguration(db, new MessageEndpoint(
-                "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
+            "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
         config.setContinuous(true);
 
         listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
@@ -861,11 +860,11 @@ public class MessageEndpointTest extends BaseTest {
     public void testRemoveChangeListener() throws Exception {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
-                new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
+            new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
         ReplicatorConfiguration config = new ReplicatorConfiguration(db, new MessageEndpoint(
-                "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
+            "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
         config.setContinuous(true);
 
         ListenerToken token = listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
@@ -893,9 +892,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
         run(config, 0, null);
 
@@ -921,9 +920,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
         run(config, 0, null);
 
@@ -953,9 +952,9 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
-                = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
+            = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-                = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
         run(config, 0, null);
 
@@ -973,55 +972,73 @@ public class MessageEndpointTest extends BaseTest {
     }
 
     private ReplicatorConfiguration makeConfig(
-            ReplicatorConfiguration.ReplicatorType type,
-            boolean continuous,
-            Endpoint target) {
+        ReplicatorConfiguration.ReplicatorType type,
+        boolean continuous,
+        Endpoint target) {
         ReplicatorConfiguration config = new ReplicatorConfiguration(db, target);
         config.setReplicatorType(type);
         config.setContinuous(continuous);
         return config;
     }
 
-    private void run(ReplicatorConfiguration config, final int code, final String domain) throws InterruptedException {
+    private void run(ReplicatorConfiguration config, final int code, final String domain) {
         run(config, code, domain, false);
     }
 
-    private void run(ReplicatorConfiguration config, final int code, final String domain, final boolean reset)
-            throws InterruptedException {
+    private void run(ReplicatorConfiguration config, final int code, final String domain, final boolean reset) {
         repl = new Replicator(config);
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = repl.addChangeListener(executor, change -> {
-            // Verify change status:
-            verifyChangeStatus(change, code, domain);
 
-            // Stop continuous replicator:
-            Replicator.Status status = change.getStatus();
-            boolean isContinuous = repl.getConfig().isContinuous();
-            if (isContinuous
-                    && (status.getActivityLevel() == Replicator.ActivityLevel.IDLE)
-                    && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
-                repl.stop();
-            }
+        final AssertionError[] fail = new AssertionError[1];
+        ListenerToken token = repl.addChangeListener(
+            executor,
+            change -> {
+                // Verify change status:
+                 try { verifyChangeStatus(change, code, domain); }
+                 catch (AssertionError e) { fail[0] = e; }
 
-            if (status.getActivityLevel() == Replicator.ActivityLevel.STOPPED) { latch.countDown(); }
-        });
+                // Stop continuous replicator:
+                Replicator.Status status = change.getStatus();
+                switch (status.getActivityLevel()) {
+                    case IDLE:
+                        if (repl.getConfig().isContinuous()
+                            && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
+                            repl.stop();
+                        }
+                        break;
+                    case STOPPED:
+                        latch.countDown();
+                        break;
+                }
+            });
 
         if (reset) { repl.resetCheckpoint(); }
 
         repl.start();
-        boolean success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
+
+        boolean success = false;
+        try { success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
+        catch (InterruptedException ignore) { }
+
         repl.removeChangeListener(token);
+
+        if (fail[0] != null) { throw fail[0]; }
+
         assertTrue(success);
     }
 
     private void verifyChangeStatus(ReplicatorChange change, int code, String domain) {
         Replicator.Status status = change.getStatus();
         CouchbaseLiteException error = status.getError();
-        String activity = ACTIVITY_NAMES.get(status.getActivityLevel().getValue());
         long completed = status.getProgress().getCompleted();
         long total = status.getProgress().getTotal();
-        Report.log(LogLevel.INFO, "ReplicatorChangeListener.changed() status: " + activity +
-                "(" + completed + "/" + total + "), lastError: " + error);
+        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
+
+        String activity = ACTIVITY_NAMES.get(level.getValue());
+
+        Report.log(
+            LogLevel.INFO,
+            "ReplicatorChangeListener.changed(): " + activity + "(" + completed + "/" + total + "), error: " + error);
 
         if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
 
@@ -1036,16 +1053,17 @@ public class MessageEndpointTest extends BaseTest {
     }
 
     private ReplicatorConfiguration createFailureP2PConfiguration(
-            ProtocolType protocolType,
-            MockConnectionLifecycleLocation location,
-            boolean recoverable) {
+        ProtocolType protocolType,
+        MockConnectionLifecycleLocation location,
+        boolean recoverable) {
         TestErrorLogic errorLocation = TestErrorLogic.failWhen(location);
         if (recoverable) { errorLocation.withRecoverableException(); }
         else { errorLocation.withPermanentException(); }
 
         MockServerConnection server = new MockServerConnection(otherDB, protocolType);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(db, new MessageEndpoint(
-                "p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)));
+        ReplicatorConfiguration config = new ReplicatorConfiguration(
+            db,
+            new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)));
         config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
         return config;
     }
@@ -1061,7 +1079,7 @@ public class MessageEndpointTest extends BaseTest {
         Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
 
         ReplicatorConfiguration config
-                = createFailureP2PConfiguration(ProtocolType.BYTE_STREAM, location, recoverable);
+            = createFailureP2PConfiguration(ProtocolType.BYTE_STREAM, location, recoverable);
         run(config, expectedCode, expectedDomain);
 
         Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");

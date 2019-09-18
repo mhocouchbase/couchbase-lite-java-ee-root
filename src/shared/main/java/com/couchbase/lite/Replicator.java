@@ -17,24 +17,16 @@
 package com.couchbase.lite;
 
 import com.couchbase.lite.internal.core.C4Socket;
-import com.couchbase.lite.internal.replicator.CBLWebSocket;
-import com.couchbase.lite.internal.replicator.MessageSocketFactory;
+import com.couchbase.lite.internal.replicator.MessageSocket;
 
 
 public final class Replicator extends AbstractReplicator {
     /**
      * Initializes a replicator with the given configuration.
      *
-     * @param config
+     * @param config the configuration
      */
-    public Replicator(ReplicatorConfiguration config) {
-        super(config);
-    }
-
-    @Override
-    protected Class<?> getSocketFactory() {
-        return (config.getTarget() instanceof MessageEndpoint) ? MessageSocketFactory.class : CBLWebSocket.class;
-    }
+    public Replicator(ReplicatorConfiguration config) { super(config); }
 
     @Override
     protected int framing() {
@@ -49,5 +41,11 @@ public final class Replicator extends AbstractReplicator {
     protected String schema() {
         // put something in the address so it's not illegal
         return (!(config.getTarget() instanceof MessageEndpoint)) ? null : "x-msg-endpt";
+    }
+
+    @Override
+    protected C4Socket createCustomSocket(long handle, String s, String n, int p, String f, byte[] o) {
+        final Endpoint endpoint = config.getTarget();
+        return (!(endpoint instanceof MessageEndpoint)) ? null : new MessageSocket(handle, (MessageEndpoint) endpoint);
     }
 }
