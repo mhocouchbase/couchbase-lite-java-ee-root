@@ -17,7 +17,6 @@
 package com.couchbase.lite;
 
 import com.couchbase.lite.internal.core.C4Socket;
-import com.couchbase.lite.internal.replicator.MessageSocket;
 
 
 public final class Replicator extends AbstractReplicator {
@@ -41,11 +40,5 @@ public final class Replicator extends AbstractReplicator {
     protected String schema() {
         // put something in the address so it's not illegal
         return (!(config.getTarget() instanceof MessageEndpoint)) ? null : "x-msg-endpt";
-    }
-
-    @Override
-    protected C4Socket createCustomSocket(long handle, String s, String n, int p, String f, byte[] o) {
-        final Endpoint endpoint = config.getTarget();
-        return (!(endpoint instanceof MessageEndpoint)) ? null : new MessageSocket(handle, (MessageEndpoint) endpoint);
     }
 }
