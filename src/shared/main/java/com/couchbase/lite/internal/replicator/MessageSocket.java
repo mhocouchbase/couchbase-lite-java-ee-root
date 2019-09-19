@@ -47,8 +47,8 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     private final Executor finalizer = CouchbaseLite.getExecutionService().getSerialExecutor();
 
-    private final ProtocolType protocolType;
     private final MessageEndpointConnection connection;
+    private final ProtocolType protocolType;
 
     private boolean sendResponseStatus;
     private boolean closed;
@@ -58,39 +58,24 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // ---------------------------------------------------------------------------------------------
 
     public MessageSocket(long handle, MessageEndpoint endpoint) {
-        this(
-            handle,
-            endpoint.getDelegate().createConnection(endpoint),
-            endpoint.getProtocolType(),
-            true);
+        super(handle);
+        this.connection = endpoint.getDelegate().createConnection(endpoint);
+        this.protocolType = endpoint.getProtocolType();
+        this.sendResponseStatus = true;
     }
 
     public MessageSocket(MessageEndpointConnection connection, ProtocolType protocolType) {
-        this(0, connection, protocolType, true);
-
-        // Ugg: set superclass field.
-        // We need the "this" pointer, so can't do it in the constructor.
-        setHandle(
-            C4Socket.fromNative(
-                this,
-                "x-msg-conn",
-                "",
-                0,
-                "/" + Integer.toHexString(connection.hashCode()),
-                (protocolType != ProtocolType.BYTE_STREAM)
-                    ? C4Socket.NO_FRAMING
-                    : C4Socket.WEB_SOCKET_CLIENT_FRAMING));
-    }
-
-    private MessageSocket(
-        long handle,
-        MessageEndpointConnection connection,
-        ProtocolType protocolType,
-        boolean sendResponseStatus) {
-        super(handle);
+        super(
+            "x-msg-conn",
+            "",
+            0,
+            "/" + Integer.toHexString(connection.hashCode()),
+            (protocolType != ProtocolType.BYTE_STREAM)
+                ? C4Socket.NO_FRAMING
+                : C4Socket.WEB_SOCKET_CLIENT_FRAMING);
         this.connection = connection;
         this.protocolType = protocolType;
-        this.sendResponseStatus = sendResponseStatus;
+        this.sendResponseStatus = true;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -100,7 +85,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     @Override
     public void close(final MessagingError error) {
         synchronized (this) {
-            if (handle == 0L || closed) { return; }
+            if (released() || closed) { return; }
 
             if (protocolType == ProtocolType.BYTE_STREAM) {
                 connection.close(error == null ? null : error.getError(), () -> connectionClosed(error));
@@ -108,10 +93,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
             }
 
             if (protocolType == ProtocolType.MESSAGE_STREAM) {
-                closeRequested(
-                    handle,
-                    getStatusCode(error),
-                    error == null ? "" : error.getError().getMessage());
+                closeRequested(getStatusCode(error), error == null ? "" : error.getError().getMessage());
             }
         }
     }
@@ -121,8 +103,8 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         synchronized (this) {
             Preconditions.checkArgNotNull(message, "message");
 
-            if (handle == 0L || closed) { return; }
-            received(handle, message.toData());
+            if (released() || closed) { return; }
+            received(message.toData());
         }
     }
 
@@ -181,17 +163,17 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     void connectionOpened() {
         synchronized (this) {
-            if (handle == 0L) { return; }
+            if (released()) { return; }
 
             if (sendResponseStatus) { connectionGotResponse(200, null); }
 
-            opened(handle);
+            opened();
         }
     }
 
     void connectionClosed(MessagingError error) {
         synchronized (this) {
-            if (handle == 0L || closed) { return; }
+            if (released() || closed) { return; }
 
             closed = true;
 
@@ -199,7 +181,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
             final int code = error != null ? getStatusCode(error) : 0;
             final String message = error != null ? error.getError().getMessage() : "";
 
-            try { finalizer.execute(() -> closed(handle, domain, code, message)); }
+            try { finalizer.execute(() -> closed(domain, code, message)); }
             catch (RejectedExecutionException e) {
                 Log.e(LogDomain.NETWORK, "Message socket cannot be closed", e);
             }
@@ -212,14 +194,14 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     private void messageSent(int byteCount) {
         synchronized (this) {
-            if (handle == 0L || closed) { return; }
+            if (released() || closed) { return; }
             completedWrite(byteCount);
         }
     }
 
     private void connectionGotResponse(int httpStatus, Map headers) {
-        if (handle == 0L) { return; }
-        gotHTTPResponse(handle, httpStatus, null);
+        if (released()) { return; }
+        gotHTTPResponse(httpStatus, null);
         sendResponseStatus = false;
     }
 
