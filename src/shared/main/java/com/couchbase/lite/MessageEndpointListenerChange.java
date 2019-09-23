@@ -36,20 +36,16 @@ public class MessageEndpointListenerChange {
     /**
      * Return connection
      *
-     * @return
+     * @return the connection
      */
     @NonNull
-    public MessageEndpointConnection getConnection() {
-        return connection;
-    }
+    public MessageEndpointConnection getConnection() { return connection; }
 
     /**
      * Return replicator status
      *
-     * @return
+     * @return status
      */
     @NonNull
-    public Replicator.Status getStatus() {
-        return status;
-    }
+    public Replicator.Status getStatus() { return status; }
 }
