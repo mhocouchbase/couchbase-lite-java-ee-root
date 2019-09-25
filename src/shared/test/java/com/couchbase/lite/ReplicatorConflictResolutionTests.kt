@@ -1022,8 +1022,6 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        Database.log.console.level = LogLevel.VERBOSE
-
         val pullConfig1 = pullConfig(TestConflictResolver { conflict ->
             latch1.countDown()
             latch2.await(10, TimeUnit.SECONDS)
