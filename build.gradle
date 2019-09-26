@@ -357,6 +357,8 @@ project.afterEvaluate {
 
             findbugs.toolVersion = "3.0.1"
 
+            findbugsTest.enabled = false
+
             effort = "max"
             reportLevel = "medium"
             ignoreFailures = false
