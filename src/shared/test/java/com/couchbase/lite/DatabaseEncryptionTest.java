@@ -53,11 +53,11 @@ public class DatabaseEncryptionTest extends BaseTest {
         }
 
         // database exist, delete it
-        if (Database.exists("seekrit", getDir())) {
+        if (Database.exists("seekrit", getDbDir())) {
             // sometimes, db is still in used, wait for a while. Maximum 3 sec
             for (int i = 0; i < 10; i++) {
                 try {
-                    Database.delete("seekrit", getDir());
+                    Database.delete("seekrit", getDbDir());
                     break;
                 }
                 catch (CouchbaseLiteException e) {
@@ -252,7 +252,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     public void testCopyEncryptedDatabase() throws CouchbaseLiteException {
         final String dbName = "seekritDB";
         final String dbPass = "letmein";
-        final File dbDir = getDir();
+        final File dbDir = getDbDir();
 
         // Create encrypted database:
         DatabaseConfiguration config = new DatabaseConfiguration();
@@ -302,7 +302,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         final String docId = "Disraeli Gears";
 
         DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         config.setEncryptionKey(new EncryptionKey(pwd));
         Database db = new Database(dbName, config);
         final MutableDocument mDoc = new MutableDocument(docId);
@@ -313,7 +313,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         db.close();
 
         config = new DatabaseConfiguration();
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         config.setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
         db = new Database(dbName, config);
         Document doc2 = db.getDocument(docId);
@@ -330,7 +330,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         final String docId = "Disraeli Gears";
 
         DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
         Database db = new Database(dbName, config);
         final MutableDocument mDoc = new MutableDocument(docId);
@@ -341,7 +341,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         db.close();
 
         config = new DatabaseConfiguration();
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
         db = new Database(dbName, config);
         Document doc2 = db.getDocument(docId);
@@ -445,14 +445,14 @@ public class DatabaseEncryptionTest extends BaseTest {
     private Database openSeekritByKey(EncryptionKey key) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
         if (key != null) { config.setEncryptionKey(key); }
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         return new Database("seekrit", config);
     }
 
     private Database openSeekrit(String password) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
         if (password != null) { config.setEncryptionKey(new EncryptionKey(password)); }
-        config.setDirectory(this.getDir().getAbsolutePath());
+        config.setDirectory(this.getDbDir().getAbsolutePath());
         return new Database("seekrit", config);
     }
 
