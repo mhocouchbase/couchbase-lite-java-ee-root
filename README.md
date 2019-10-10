@@ -18,7 +18,7 @@ $ git clone https://github.com/couchbaselabs/couchbase-lite-core-EE.git
 
 #### 1.2 Create version.text
 
-At the root of your working space, create version.text file that contains the version number of the library that you want to build.
+At the root of your working space, create version.text file.
 
 ```
 $ echo "2.7.0" > version.text
@@ -41,8 +41,6 @@ $ touch local.properties
 
 #### 2.1 Option 1: Build couchbase-lite-core
 
-From couchbase-lite-java-ee directory, execute the followings:
-
 **MacOS / Linux**
 
 ```
@@ -51,15 +49,10 @@ $ ../couchbase-lite-java/scripts/build_litecore.sh -e EE
 
 **Windows**
 
-Assuming that the Visual Studio 2019 with C++ development libraries was installed.
-
 ```
 $ ..\couchbase-lite-java\scripts\build_litecore.bat 2019 EE
 ```
-
-**Note:**
-
-The script will build LiteCore shared library and mbedcrypto static library and put them at ../couchbase-lite-java/lite-core directory. 
+** Assuming that the Visual Studio 2019 with C++ development libraries was installed.
 
 #### 2.2 Option 2: Download couchbase-lite-core
 
@@ -83,11 +76,6 @@ $ ../couchbase-lite-java/scripts/fetch_litecore.sh -n http://nexus.build.couchba
 $ ..\couchbase-lite-java\scripts\fetch_litecore.ps1 http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore EE
 ```
 
-**Note:**
-
-The script will download couchbase-lite-core shared library and put it at ../couchbase-lite-java/lite-core directory.
-
-
 ##### 2.2.2 Build mbedcrypto required by couchbase-lie-java's JNI
 
 **MacOS / Linux**
@@ -103,10 +91,6 @@ Assuming that the Visual Studio 2019 with C++ development libraries was installe
 ```
 $ ..\couchbase-lite-java\scripts\build_litecore.bat 2019 EE mbedcrypto
 ```
-
-**Note:**
-
-The script will build mbedcrypto static library and put it at ../couchbase-lite-java/lite-core directory.
 
 ### 3. Build couchbase-lite-java
 
