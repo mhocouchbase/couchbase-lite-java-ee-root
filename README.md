@@ -13,6 +13,7 @@ This repo contains code common to all Couchbase Lite Java Enterprise Products
 $ git clone https://github.com/couchbase/couchbase-lite-java.git
 $ git clone https://github.com/couchbaselabs/couchbase-lite-java-ee.git
 $ git clone https://github.com/couchbase/couchbase-lite-core.git
+$ cd couchbase-lite-core && git submodule update --init --recursive && cd ..
 $ git clone https://github.com/couchbaselabs/couchbase-lite-core-EE.git
 ```
 
