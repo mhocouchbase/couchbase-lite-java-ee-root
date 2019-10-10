@@ -56,7 +56,7 @@ $ ..\couchbase-lite-java\scripts\build_litecore.bat 2019 EE
 
 #### 2.2 Option 2: Download couchbase-lite-core
 
-##### 2.2.1 Download LiteCore
+#### 2.2.1 Download LiteCore
 
 **MacOS**
 
@@ -76,7 +76,7 @@ $ ../couchbase-lite-java/scripts/fetch_litecore.sh -n http://nexus.build.couchba
 $ ..\couchbase-lite-java\scripts\fetch_litecore.ps1 http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore EE
 ```
 
-##### 2.2.2 Build mbedcrypto required by couchbase-lie-java's JNI
+#### 2.2.2 Build mbedcrypto required by couchbase-lie-java's JNI
 
 **MacOS / Linux**
 
