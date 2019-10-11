@@ -49,7 +49,9 @@ public class MessageEndpointListener {
         @Override
         public void statusChanged(C4Replicator repl, C4ReplicatorStatus status, Object context) {
             try { dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status)); }
-            catch (RejectedExecutionException ignored) { }
+            catch (RejectedExecutionException e) {
+                throw new IllegalStateException("Execution rejected in status change: notification: " + dispatcher, e);
+            }
         }
 
         @Override
@@ -175,7 +177,7 @@ public class MessageEndpointListener {
     /**
      * Add a change listener with the given dispatch queue.
      *
-     * @param queue the executor on which the listener will run
+     * @param queue    the executor on which the listener will run
      * @param listener the listener
      * @return listener identifier
      */

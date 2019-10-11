@@ -23,7 +23,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
 import com.couchbase.lite.CouchbaseLite;
-import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.Message;
 import com.couchbase.lite.MessageEndpoint;
 import com.couchbase.lite.MessageEndpointConnection;
@@ -34,7 +33,6 @@ import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
-import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
@@ -183,7 +181,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
             try { finalizer.execute(() -> closed(domain, code, message)); }
             catch (RejectedExecutionException e) {
-                Log.e(LogDomain.NETWORK, "Message socket cannot be closed", e);
+                throw new IllegalStateException("Execution rejected in close connection: " + finalizer, e);
             }
         }
     }
