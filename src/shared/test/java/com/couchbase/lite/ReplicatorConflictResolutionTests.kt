@@ -451,6 +451,7 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
         repl1.start()
         repl2.start()
 
+        // ??? 30s seems like a long time but this test fails, occasionally, at 10s
         assertTrue(latch.await(30, TimeUnit.SECONDS))
 
         repl1.removeChangeListener(token1)
