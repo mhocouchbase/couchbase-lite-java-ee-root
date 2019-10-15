@@ -41,3 +41,6 @@ captures/
 # OSX
 .DS_Store
 
+# Test DB directory
+CBLTestDb
+
