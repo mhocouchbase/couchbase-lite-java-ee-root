@@ -162,7 +162,7 @@ public class PredictiveQueryTest extends BaseTest {
     }
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
         Database.prediction.unregisterModel(AggregateModel.NAME);
         Database.prediction.unregisterModel(TextModel.NAME);

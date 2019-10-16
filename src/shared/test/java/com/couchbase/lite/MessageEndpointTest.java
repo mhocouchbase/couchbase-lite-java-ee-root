@@ -342,7 +342,7 @@ public class MessageEndpointTest extends BaseTest {
     private Replicator repl;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
         otherDB = openDB(OTHER_DATABASE_NAME);
