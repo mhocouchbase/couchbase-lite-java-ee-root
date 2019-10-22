@@ -105,7 +105,10 @@ java {
                 "${CBL_JAVA_DIR}/src/main/java",                    // Shared code between java CE and EE
                 "${CBL_JAVA_DIR}/src/shared/main/java"              // Shared code between Java and Android
             ]
-            resources.srcDirs = [CBL_NATIVE_DIR]                    // Native Libraries
+            resources.srcDirs = [
+                "${CBL_JAVA_DIR}/src/main/resources",               // Resource files
+                CBL_NATIVE_DIR                                      // Native Libraries
+            ]                    
         }
         test {
             java.srcDirs = [
