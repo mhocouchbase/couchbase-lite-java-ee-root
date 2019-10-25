@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 
 import com.couchbase.lite.internal.core.C4DocumentEnded;
 import com.couchbase.lite.internal.core.C4Replicator;
@@ -48,10 +47,7 @@ public class MessageEndpointListener {
 
         @Override
         public void statusChanged(C4Replicator repl, C4ReplicatorStatus status, Object context) {
-            try { dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status)); }
-            catch (RejectedExecutionException e) {
-                throw new IllegalStateException("Execution rejected in status change: notification: " + dispatcher, e);
-            }
+            dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
 
         @Override

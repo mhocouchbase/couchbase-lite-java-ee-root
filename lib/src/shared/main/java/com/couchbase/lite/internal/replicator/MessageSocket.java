@@ -20,7 +20,6 @@ import android.support.annotation.NonNull;
 
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.RejectedExecutionException;
 
 import com.couchbase.lite.CouchbaseLite;
 import com.couchbase.lite.Message;
@@ -179,10 +178,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
             final int code = error != null ? getStatusCode(error) : 0;
             final String message = error != null ? error.getError().getMessage() : "";
 
-            try { finalizer.execute(() -> closed(domain, code, message)); }
-            catch (RejectedExecutionException e) {
-                throw new IllegalStateException("Execution rejected in close connection: " + finalizer, e);
-            }
+            finalizer.execute(() -> closed(domain, code, message));
         }
     }
 
