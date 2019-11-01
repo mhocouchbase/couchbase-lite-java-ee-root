@@ -17,6 +17,7 @@ package com.couchbase.lite
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -726,21 +727,36 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
      * 1. Test that the ConflictResolution.default behaves correct.
      * 2. We should already have tests for this already.
      * Case: delete and generation
+     *
      */
     @Test
     fun testConflictResolutionDefault6() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val localDocRevId = db.getDocument(DOC1).revisionID
-        val remoteDocRevId = otherDB.getDocument(DOC1).revisionID
+        val localDoc = db.getDocument(DOC1)
+        val localDocRevId = localDoc.revisionID
+        val remoteDoc = otherDB.getDocument(DOC1)
+        val remoteDocRevId = remoteDoc.revisionID
 
         run(pullConfig(), 0, null)
 
-        val resolvedDoc = otherDB.c4Database.get(DOC1, false)
+        val resolvedDoc = db.c4Database.get(DOC1, false)
         assertFalse(resolvedDoc.deleted())
-        assertEquals(
-                if (localDocRevId.compareTo(remoteDocRevId) > 0) localDocRevId else remoteDocRevId,
-                resolvedDoc.revID)
+
+        // This test is somewhat brittle.  There are two possibilities:
+        //  -- The remote wins: In this case, the local document has never been seen elsewhere and it is ok
+        //     simply to delete it and replace it with the remote. The local doc will have the remote's rev id
+        //  -- The local wins: In this case, we use the contents of the local doc but we have to create a new
+        //     revision id for it.  The new doc will have a revision id that is neither the id of the remote
+        //     nor the id of the local.
+        if (remoteDocRevId.compareTo(localDocRevId) > 0) {
+            assertEquals(remoteDoc, db.getDocument(DOC1))
+            assertEquals(remoteDocRevId, resolvedDoc.revID)
+        } else {
+            assertEquals(localDoc, db.getDocument(DOC1))
+            assertNotEquals(localDocRevId, resolvedDoc.revID)
+            assertNotEquals(remoteDocRevId, resolvedDoc.revID)
+        }
     }
 
     /**
