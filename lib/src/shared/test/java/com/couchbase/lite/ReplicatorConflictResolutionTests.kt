@@ -746,14 +746,15 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
         // This test is somewhat brittle.  There are two possibilities:
         //  -- The remote wins: In this case, the local document has never been seen elsewhere and it is ok
         //     simply to delete it and replace it with the remote. The local doc will have the remote's rev id
+        if (remoteDocRevId.compareTo(localDocRevId) > 0) {
+            assertEquals(remoteDoc.toMap(), db.getDocument(DOC1).toMap())
+            assertEquals(remoteDocRevId, resolvedDoc.revID)
+        }
         //  -- The local wins: In this case, we use the contents of the local doc but we have to create a new
         //     revision id for it.  The new doc will have a revision id that is neither the id of the remote
         //     nor the id of the local.
-        if (remoteDocRevId.compareTo(localDocRevId) > 0) {
-            assertEquals(remoteDoc, db.getDocument(DOC1))
-            assertEquals(remoteDocRevId, resolvedDoc.revID)
-        } else {
-            assertEquals(localDoc, db.getDocument(DOC1))
+        else {
+            assertEquals(localDoc.toMap(), db.getDocument(DOC1).toMap())
             assertNotEquals(localDocRevId, resolvedDoc.revID)
             assertNotEquals(remoteDocRevId, resolvedDoc.revID)
         }
