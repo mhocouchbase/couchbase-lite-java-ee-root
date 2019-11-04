@@ -1190,6 +1190,41 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
         assertTrue(val3.contains(VAL4))
     }
 
+    /**
+     * CBL-511:
+     *
+     * Test the scenario that can cause to resolve a conflict of two deleted documents as follows:
+     * 1. The resolver returned the remote document which is a deleted document.
+     * 2. Right before the resolver saved the resolved document, the local document was deleted.
+     * 3. As a result, another conflict happened when the replicator saved the resolved document.
+     * The conflict was between two deleted document, one is from the resolver and another one is
+     * from the local deletion.
+     * 4. The conflict resolver was called with null value of both local and remote doc.
+     *
+     * Expected behavior:
+     * two conflicted deleted documents shouldn't be treat as conflict. The replicator
+     * should be able to resolve this scenario without calling the conflict resolver.
+     */
+    @Test
+    fun testConflictResolverShouldNotGetBothDeletedLocalAndDeletedRemote() {
+        makeConflict(DOC1, hashMapOf(KEY1 to VAL1), null)
+
+        assertEquals(1, db.count)
+
+        var localDoc: Document? = null
+        var remoteDoc: Document? = null
+        val pullConfig = pullConfig(TestConflictResolver { conflict ->
+            localDoc = conflict.localDocument
+            remoteDoc = conflict.remoteDocument
+            db.delete(db.getDocument(DOC1))
+            conflict.remoteDocument
+        })
+
+        run(pullConfig, 0, null)
+        assert(localDoc != null || remoteDoc != null)
+        assertEquals(0, db.count)
+    }
+
     private fun pushConfig() = makeConfig(true, false, null)
     private fun pullConfig(resolver: ConflictResolver? = null) = makeConfig(false, true, resolver)
     private fun makeConfig(push: Boolean, pull: Boolean, resolver: ConflictResolver?) = makeConfig(push, pull, false, db, DatabaseEndpoint(otherDB), resolver)
