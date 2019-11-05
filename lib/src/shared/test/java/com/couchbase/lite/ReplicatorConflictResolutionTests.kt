@@ -1225,10 +1225,6 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
         assertEquals(0, db.count)
     }
 
-    private fun pushConfig() = makeConfig(true, false, null)
-    private fun pullConfig(resolver: ConflictResolver? = null) = makeConfig(false, true, resolver)
-    private fun makeConfig(push: Boolean, pull: Boolean, resolver: ConflictResolver?) = makeConfig(push, pull, false, db, DatabaseEndpoint(otherDB), resolver)
-
     private fun makeConflict(docId: String, localData: Map<String, Any>?, remoteData: Map<String, Any>?) {
         val doc = MutableDocument(docId)
         db.save(doc)
