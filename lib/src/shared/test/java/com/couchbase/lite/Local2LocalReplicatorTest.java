@@ -19,7 +19,14 @@ package com.couchbase.lite;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -33,10 +40,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
-public class Local2LocalReplicatorTest extends BaseReplicatorTest {
+public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test
     public void testPullRemovedDocWithFilter() throws Exception {
@@ -534,16 +540,12 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         String strAnotherDB = "anotherDB";
         Database anotherDB = openDB(strAnotherDB);
         try {
-            InputStream is = getAsset("image.jpg");
-            try {
+            try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
                 doc1.setBlob("image.jpg", blob);
                 anotherDB.save(doc1);
-            }
-            finally {
-                is.close();
             }
             assertEquals(1, anotherDB.getCount());
 
@@ -572,16 +574,12 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         Database anotherDB = openDB(strAnotherDB);
         try {
 
-            InputStream is = getAsset("image.jpg");
-            try {
+            try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
                 doc1.setBlob("image.jpg", blob);
                 otherDB.save(doc1);
-            }
-            finally {
-                is.close();
             }
             assertEquals(1, otherDB.getCount());
 
@@ -713,7 +711,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
 
         repl.start();
         repl.removeChangeListener(replicationListenerToken);
-        boolean ret = latch.await(timeout, TimeUnit.SECONDS);
+        boolean ret = latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
         assertFalse(ret);
 
         int eventCount = replicationEvents.size();
@@ -743,13 +741,13 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken replicationListenerToken = repl.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
-            for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
+            for (ReplicatedDocument doc : update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch.countDown();
         });
 
         run(repl, 0, null);
 
-        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
+        assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
         assertTrue(isPush[0]);
 
@@ -787,7 +785,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         // Run the replicator again:
         run(repl, 0, null);
 
-        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
+        assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
         // Check if getting a new document replication event:
         assertEquals("wrong size: ", docs.size(), 3);
@@ -815,7 +813,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         // Run the replicator again:
         run(repl, 0, null);
 
-        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
+        assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
         // Should not getting a new document replication event:
         assertEquals(docs.size(), 3);
@@ -848,7 +846,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
             });
 
         run(repl, 0, null);
-        boolean ret = latch.await(timeout, TimeUnit.SECONDS);
+        boolean ret = latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
         assertTrue(ret);
 
         // Check:
@@ -890,7 +888,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
             });
 
         run(repl, 0, null);
-        boolean ret = latch.await(timeout, TimeUnit.SECONDS);
+        boolean ret = latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
         assertTrue(ret);
 
         // Check:
@@ -930,7 +928,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
 
         run(repl, 0, null);
 
-        boolean ret = latch.await(timeout, TimeUnit.SECONDS);
+        boolean ret = latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
         assertTrue(ret);
 
         // Check:
@@ -1115,7 +1113,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
 
         // Run the replicator:
         repl.start();
-        assertTrue(latch.await(timeout, TimeUnit.SECONDS));
+        assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
         repl.stop();
 
@@ -1130,7 +1128,7 @@ public class Local2LocalReplicatorTest extends BaseReplicatorTest {
         assertNull(db.getDocument("doc2"));
         assertNull(db.getDocument("doc3"));
 
-        assertTrue(latch1.await(timeout, TimeUnit.SECONDS));
+        assertTrue(latch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         db.close();
         deleteDatabase(db.getName());
     }

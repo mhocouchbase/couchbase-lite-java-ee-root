@@ -55,7 +55,7 @@ private object NullResolver : TestConflictResolver({ null })
 private object LocalResolver : TestConflictResolver({ conflict -> conflict.localDocument })
 private object RemoteResolver : TestConflictResolver({ conflict -> conflict.remoteDocument })
 
-class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
+class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
     /**
      * #1
@@ -412,6 +412,7 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
      * #9
      * 1. Test that there could be multiple conflicts resolver running at the same time without blocking each other.
      */
+    // ??? FlakyTest
     @Test
     fun testConflictResolversRunConcurrently() {
         val barrier = CyclicBarrier(2)
@@ -746,7 +747,7 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
         // This test is somewhat brittle.  There are two possibilities:
         //  -- The remote wins: In this case, the local document has never been seen elsewhere and it is ok
         //     simply to delete it and replace it with the remote. The local doc will have the remote's rev id
-        if (remoteDocRevId.compareTo(localDocRevId) > 0) {
+        if (remoteDocRevId > localDocRevId) {
             assertEquals(remoteDoc.toMap(), db.getDocument(DOC1).toMap())
             assertEquals(remoteDocRevId, resolvedDoc.revID)
         }
@@ -1052,7 +1053,7 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
             }
         }
         var docRepl1: DocumentReplication? = null
-        val token1e = repl1.addDocumentReplicationListener({ repl -> docRepl1 = repl })
+        val token1e = repl1.addDocumentReplicationListener { repl -> docRepl1 = repl }
         repl1.start()
         assertTrue(latch1.await(10, TimeUnit.SECONDS))
 
@@ -1066,7 +1067,7 @@ class ReplicatorConflictResolutionTests : BaseReplicatorTest() {
             }
         }
         var docRepl2: DocumentReplication? = null
-        val token2e = repl2.addDocumentReplicationListener({ repl -> docRepl2 = repl })
+        val token2e = repl2.addDocumentReplicationListener { repl -> docRepl2 = repl }
         repl2.start()
 
         assertTrue(latch3.await(10, TimeUnit.SECONDS))
