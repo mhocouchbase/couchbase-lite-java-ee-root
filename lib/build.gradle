@@ -250,7 +250,8 @@ model {
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
                     cppCompiler.args "-I${JAVA_HOME}/include/win32"
-                    cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
+                    cppCompiler.args "/MD"
+                    cppCompiler.args "-DCOUCHBASE_ENTERPRISE"
                 }
             }
         }
@@ -423,7 +424,9 @@ task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
 task fullTest(dependsOn: ['unitTest'])
 
-task buildCI(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
+task ciCheckWindows(dependsOn: ['pmd', 'findbugsXml', 'test'])
+task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
