@@ -57,7 +57,7 @@ public final class Database extends AbstractDatabase {
             getEncryptionKey(encryptionKey));
     }
 
-    private static byte[] getEncryptionKey(EncryptionKey key) { return (key == null) ? null : key.getKey();  }
+    private static byte[] getEncryptionKey(EncryptionKey key) { return (key == null) ? null : key.getKey(); }
 
     private static int getEncryptionAlgorithm(EncryptionKey key) {
         return (getEncryptionKey(key) == null)
