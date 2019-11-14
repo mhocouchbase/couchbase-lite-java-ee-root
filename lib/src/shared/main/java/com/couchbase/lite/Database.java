@@ -5,7 +5,7 @@
 //
 // Licensed under the Couchbase License Agreement (the "License");
 // you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// You may obtain a copy of the License at:
 // https://info.couchbase.com/rs/302-GJY-034/images/2017-10-30_License_Agreement.pdf
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -80,11 +80,20 @@ public final class Database extends AbstractDatabase {
     //---------------------------------------------
 
     /**
+     * Construct a Database with a given name and the default config.
+     * If the database does not yet exist it will be created.
+     *
+     * @param name   The name of the database: May NOT contain capital letters!
+     * @throws CouchbaseLiteException if any error occurs during the open operation.
+     */
+    public Database(@NonNull String name) throws CouchbaseLiteException {super(name, new DatabaseConfiguration()); }
+
+    /**
      * Construct a  AbstractDatabase with a given name and database config.
      * If the database does not yet exist, it will be created, unless the `readOnly` option is used.
      *
-     * @param name   The name of the database. May NOT contain capital letters!
-     * @param config The database config, Note: null config parameter is not allowed with Android platform
+     * @param name   The name of the database: May NOT contain capital letters!
+     * @param config The database config.
      * @throws CouchbaseLiteException Throws an exception if any error occurs during the open operation.
      */
     public Database(@NonNull String name, @NonNull DatabaseConfiguration config) throws CouchbaseLiteException {
