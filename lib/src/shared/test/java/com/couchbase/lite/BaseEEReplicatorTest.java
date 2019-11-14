@@ -52,35 +52,48 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
     @After
     public void tearDown() {
         if ((otherDB == null) || !otherDB.isOpen()) {
-            Report.log(LogLevel.ERROR, "expected otherDB to be open");
+            Report.log(LogLevel.INFO, "expected otherDB to be open");
             return;
         }
 
         try {
-            otherDB.close();
-            otherDB = null;
+            closeDatabase(otherDB);
             deleteDatabase(OTHERDB);
         }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "Failed closing DB", e);
         }
-
-        super.tearDown();
+        finally {
+            otherDB = null;
+            super.tearDown();
+        }
 
         try { Thread.sleep(500); }
         catch (Exception ignore) { }
     }
 
-    protected ReplicatorConfiguration pullConfig() {
-        return pullConfig(null);
+    // helper method allows kotlin to call isDocumentPending(null)
+    @SuppressWarnings("ConstantConditions")
+    protected boolean callIsDocumentPendingWithNullId(Replicator repl) throws CouchbaseLiteException {
+        return repl.isDocumentPending(null);
     }
+
+    protected ReplicatorConfiguration pullConfig() { return pullConfig(null); }
 
     protected ReplicatorConfiguration pullConfig(ConflictResolver resolver) {
-        return this.makeConfig(false, true, resolver);
+        return makeConfig(false, true, resolver);
     }
 
-    protected ReplicatorConfiguration pushConfig() {
-        return makeConfig(true, false, null);
+    protected ReplicatorConfiguration pushConfig() { return pushConfig(null); }
+
+    protected ReplicatorConfiguration pushConfig(ConflictResolver resolver) {
+        return makeConfig(true, false, resolver);
+    }
+
+    protected ReplicatorConfiguration pushPullConfig() { return pushPullConfig(null); }
+
+    protected ReplicatorConfiguration pushPullConfig(ConflictResolver resolver) {
+        return makeConfig(true, true, resolver);
     }
 
     protected ReplicatorConfiguration makeConfig(boolean push, boolean pull, ConflictResolver resolver) {
@@ -128,15 +141,19 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
             code,
             ignoreErrorAtStopped);
 
-        ListenerToken token = repl.addChangeListener(executor, listener);
-
         if (reset) { repl.resetCheckpoint(); }
 
         if (onReady != null) { onReady.accept(repl); }
 
-        repl.start();
-        boolean success = listener.awaitCompletion(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
-        repl.removeChangeListener(token);
+        ListenerToken token = repl.addChangeListener(executor, listener);
+        boolean success;
+        try {
+            repl.start();
+            success = listener.awaitCompletion(STD_TIMEOUT_SECS, TimeUnit.SECONDS);
+        }
+        finally {
+            repl.removeChangeListener(token);
+        }
 
         // see if the replication succeeded
         AssertionError err = listener.getFailureReason();
@@ -147,14 +164,24 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
         return repl;
     }
 
+    protected Replicator push() {
+        return run(new Replicator(pushConfig()), 0, null, false, false, null);
+    }
+
+    protected Replicator pull() {
+        return run(new Replicator(pullConfig()), 0, null, false, false, null);
+    }
+
+    protected Replicator pushPull() {
+        return run(new Replicator(pushPullConfig()), 0, null, false, false, null);
+    }
+
     void stopContinuousReplicator(Replicator repl) throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = repl.addChangeListener(
             executor,
             change -> {
-                if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                    latch.countDown();
-                }
+                if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) { latch.countDown(); }
             });
 
         try {
