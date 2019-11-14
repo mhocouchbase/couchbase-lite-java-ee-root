@@ -24,15 +24,12 @@ import org.gradle.internal.os.OperatingSystem
 ext {
     CBL_GROUP = 'com.couchbase.lite'
     CBL_ARTIFACT_ID = 'couchbase-lite-java-ee'
-
-    CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
-    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
-
-    // Contains Lite Core native libraries for building JNI
-    CBL_CORE_NATIVE_DIR = "${CBL_JAVA_DIR}/lite-core"
-
-    // Contains all native libraries copied into Jar file
-    CBL_NATIVE_DIR = "${PROJECT_DIR}/build/native"
+    CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
+    CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
+    CBL_LICENSE_URL = 'https://info.couchbase.com/rs/302-GJY-034/images/2017-10-30_License_Agreement.pdf'
+    CBL_PROJECT_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git'
+    CBL_ISSUES_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git/issues'
+    CBL_SITE_URL = 'https://developer.couchbase.com/mobile/'
 
     BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
     BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
@@ -43,8 +40,11 @@ ext {
     JAVA_HOME = org.gradle.internal.jvm.Jvm.current().javaHome
 
     ETC_DIR = "${PROJECT_DIR}/etc"
+    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
+    CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
+    CBL_CORE_NATIVE_DIR = "${CBL_JAVA_DIR}/lite-core"
+    CBL_NATIVE_DIR = "${buildDir}/build/native"
     REPORTS_DIR = "${buildDir}/reports"
-
     CBL_NATIVE_LIBRARIES = []
 }
 
@@ -381,6 +381,36 @@ if (TEST_FILTER != null) {
     test { exclude "${TEST_FILTER}" }
 }
 
+// ----------------------------------------------------------------
+// jar
+// ----------------------------------------------------------------
+
+jar {
+    archivesBaseName = "${CBL_ARTIFACT_ID}"
+}
+
+// ----------------------------------------------------------------
+// java-library-distribution
+// ----------------------------------------------------------------
+
+distributions {
+    main {
+        contents {
+            baseName = "${CBL_ARTIFACT_ID}"
+            into("support") {
+                from "${CBL_CORE_NATIVE_DIR}/support"
+            }
+            eachFile {
+                // Move the main jar file into lib folder
+                if (it.name.startsWith("${CBL_ARTIFACT_ID}") &&
+                    it.name.endsWith(".jar") &&
+                    !it.path.contains("/lib/")) {
+                    it.path = it.path.replace("/${CBL_ARTIFACT_ID}", "/lib/${CBL_ARTIFACT_ID}")
+                }
+            }
+        }
+    }
+}
 
 // ----------------------------------------------------------------
 // Publication
@@ -401,6 +431,36 @@ publishing {
             from components.java
             //artifact sourcesJar
             //artifact javadocJar
+
+            pom {
+                name = "${CBL_GROUP}:${CBL_ARTIFACT_ID}"
+                description = CBL_DESCRIPTION
+                url = CBL_SITE_URL
+                licenses {
+                    license {
+                        name = CBL_LICENSE
+                        url = CBL_LICENSE_URL
+                        distribution = "repo"
+                    }
+                }
+                developers {
+                    developer {
+                        name = "Couchbase Mobile"
+                        email = "mobile@couchbase.com"
+                        organization = "Couchbase"
+                        organizationUrl = "http://www.couchbase.com"
+                    }
+                }
+                issueManagement {
+                    system = "github"
+                    url = CBL_ISSUES_URL
+                }
+                scm {
+                    url = CBL_SITE_URL
+                    connection = CBL_PROJECT_URL
+                    developerConnection = CBL_PROJECT_URL
+                }
+            }
         }
     }
 
