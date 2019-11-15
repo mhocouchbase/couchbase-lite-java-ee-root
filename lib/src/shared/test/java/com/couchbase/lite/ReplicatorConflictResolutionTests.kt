@@ -735,9 +735,9 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         val localDoc = db.getDocument(DOC1)
-        val localDocRevId = localDoc.revisionID
+        val localDocRevId = localDoc.revisionID ?: ""
         val remoteDoc = otherDB.getDocument(DOC1)
-        val remoteDocRevId = remoteDoc.revisionID
+        val remoteDocRevId = remoteDoc.revisionID ?: ""
 
         run(pullConfig(), 0, null)
 
@@ -1177,8 +1177,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(VAL1, testDoc.getString(KEY1))
         assertEquals(VAL2, testDoc.getString(KEY2))
         var val3 = testDoc.getString(KEY3)
-        assertTrue(val3.contains(VAL3))
-        assertTrue(val3.contains(VAL4))
+        assertTrue(val3?.contains(VAL3) ?: false)
+        assertTrue(val3?.contains(VAL4) ?: false)
 
         run(pullConfig, 0, null)
 
@@ -1187,8 +1187,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(VAL1, testDoc.getString(KEY1))
         assertEquals(VAL2, testDoc.getString(KEY2))
         val3 = testDoc.getString(KEY3)
-        assertTrue(val3.contains(VAL3))
-        assertTrue(val3.contains(VAL4))
+        assertTrue(val3?.contains(VAL3) ?: false)
+        assertTrue(val3?.contains(VAL4) ?: false)
     }
 
     /**
