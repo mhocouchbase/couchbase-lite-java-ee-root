@@ -334,7 +334,6 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         String strAnotherDB = "anotherDB";
         Database anotherDB = openDB(strAnotherDB);
         try {
-
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
             anotherDB.save(doc1);
@@ -598,7 +597,6 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         String strAnotherDB = "anotherDB";
         Database anotherDB = openDB(strAnotherDB);
         try {
-
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
@@ -632,7 +630,6 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         String strAnotherDB = "anotherDB";
         Database anotherDB = openDB(strAnotherDB);
         try {
-
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
