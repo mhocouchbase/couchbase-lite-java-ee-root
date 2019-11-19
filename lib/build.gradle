@@ -423,7 +423,7 @@ def mavenRepoPass = properties.getProperty('maven.repo.pass')
 
 publishing {
     publications {
-        couchbaseJava(MavenPublication) {
+        couchbaseLiteJava(MavenPublication) {
             groupId group
             artifactId CBL_ARTIFACT_ID
             version BUILD_VERSION
@@ -486,7 +486,7 @@ task fullTest(dependsOn: ['unitTest'])
 
 task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
 task ciCheckWindows(dependsOn: ['pmd', 'findbugsXml', 'test'])
-task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
+task ciPublish(dependsOn: ['generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
