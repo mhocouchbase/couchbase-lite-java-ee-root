@@ -34,32 +34,32 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    3. Expect exception with "Pending Document IDs are not supported on pull-only replicators."
     //       in cross platform error messages
     @Test
-    fun testPendingDocIDsPullOnlyException() {
+    fun testPendingDocIdsPullOnlyException() {
         val replicator = Replicator(pullConfig())
         val latch = CountDownLatch(1)
-        var token: ListenerToken? = null
 
         var expected: CouchbaseLiteException? = null
         var err: Exception? = null
-        try {
-            token = replicator.addChangeListener { change ->
-                try {
-                    when (change.status.activityLevel) {
-                        AbstractReplicator.ActivityLevel.BUSY -> change.replicator.pendingDocumentIds
-                        AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
-                        else -> Unit
-                    }
-                } catch (e: CouchbaseLiteException) {
-                    expected = e
-                } catch (e: Exception) {
-                    err = err ?: e
-                }
-            }
 
+        val token = replicator.addChangeListener { change ->
+            try {
+                when (change.status.activityLevel) {
+                    AbstractReplicator.ActivityLevel.BUSY -> change.replicator.pendingDocumentIds
+                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    else -> Unit
+                }
+            } catch (e: CouchbaseLiteException) {
+                expected = e
+            } catch (e: Exception) {
+                err = err ?: e
+            }
+        }
+
+        try {
             replicator.start()
             assertTrue(latch.await(15, TimeUnit.SECONDS))
         } finally {
-            token?.let { replicator.removeChangeListener(it) }
+            replicator.removeChangeListener(token)
         }
 
         assertNull(err)
@@ -76,29 +76,29 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     fun testIsDocumentPendingPullOnlyException() {
         val replicator = Replicator(pullConfig())
         val latch = CountDownLatch(1)
-        var token: ListenerToken? = null
 
         var expected: CouchbaseLiteException? = null
         var err: Exception? = null
-        try {
-            token = replicator.addChangeListener { change ->
-                try {
-                    when (change.status.activityLevel) {
-                        AbstractReplicator.ActivityLevel.BUSY -> change.replicator.isDocumentPending("some-doc")
-                        AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
-                        else -> Unit
-                    }
-                } catch (e: CouchbaseLiteException) {
-                    expected = e
-                } catch (e: Exception) {
-                    err = err ?: e
-                }
-            }
 
+        val token = replicator.addChangeListener { change ->
+            try {
+                when (change.status.activityLevel) {
+                    AbstractReplicator.ActivityLevel.BUSY -> change.replicator.isDocumentPending("some-doc")
+                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    else -> Unit
+                }
+            } catch (e: CouchbaseLiteException) {
+                expected = e
+            } catch (e: Exception) {
+                err = err ?: e
+            }
+        }
+
+        try {
             replicator.start()
             assertTrue(latch.await(15, TimeUnit.SECONDS))
         } finally {
-            token?.let { replicator.removeChangeListener(it) }
+            replicator.removeChangeListener(token)
         }
 
         assertNull(err)
@@ -114,29 +114,29 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     fun testIsDocumentPendingNullIdException() {
         val replicator = Replicator(pullConfig())
         val latch = CountDownLatch(1)
-        var token: ListenerToken? = null
 
         var expected: IllegalArgumentException? = null
         var err: Exception? = null
-        try {
-            token = replicator.addChangeListener { change ->
-                try {
-                    when (change.status.activityLevel) {
-                        AbstractReplicator.ActivityLevel.BUSY -> callIsDocumentPendingWithNullId(change.replicator)
-                        AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
-                        else -> Unit
-                    }
-                } catch (e: IllegalArgumentException) {
-                    expected = e
-                } catch (e: Exception) {
-                    err = err ?: e
-                }
-            }
 
+        val token = replicator.addChangeListener { change ->
+            try {
+                when (change.status.activityLevel) {
+                    AbstractReplicator.ActivityLevel.BUSY -> callIsDocumentPendingWithNullId(change.replicator)
+                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    else -> Unit
+                }
+            } catch (e: IllegalArgumentException) {
+                expected = e
+            } catch (e: Exception) {
+                err = err ?: e
+            }
+        }
+
+        try {
             replicator.start()
             assertTrue(latch.await(15, TimeUnit.SECONDS))
         } finally {
-            token?.let { replicator.removeChangeListener(it) }
+            replicator.removeChangeListener(token)
         }
 
         assertNull(err)
@@ -150,7 +150,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    4. Start replication and wait for activity status to busy, and check result is non-zero.
     //    5. When status is stopped, call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
     @Test
-    fun testPendingDocIDsWithCreate() {
+    fun testPendingDocIdsWithCreate() {
         val ids = createDocs(5)
         validatePendingDocumentIds(ids)
     }
@@ -163,7 +163,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    5. Start replication and wait for activity status to stop.
     //    6. Call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
     @Test
-    fun testPendingDocIDsWithEdit() {
+    fun testPendingDocIdsWithEdit() {
         val ids = createDocs(5)
         val changed = ids.drop(3).toSet()
 
@@ -182,7 +182,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    5. Start replication and wait for activity status to stop.
     //    6. Call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
     @Test
-    fun testPendingDocIDsWithDelete() {
+    fun testPendingDocIdsWithDelete() {
         val ids = createDocs(5)
         val deleted = ids.drop(3).toSet()
 
@@ -201,7 +201,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    5. Start replication and wait for activity status to stop.
     //    6. Call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
     @Test
-    fun testPendingDocIDsWithPurge() {
+    fun testPendingDocIdsWithPurge() {
         val ids = createDocs(5)
 
         pushPull()
@@ -317,40 +317,50 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
     private fun validatePendingDocumentIds(changed: Set<String>, config: ReplicatorConfiguration? = null) {
         val replicator = Replicator(config ?: pushConfig())
-        var token: ListenerToken? = null
         val latch = CountDownLatch(1)
 
         var err: Exception? = null
+        var beforeSet = false
         var pendingIdBefore: Set<String>? = null
         var pendingIdAfter: Set<String>? = null
 
-        try {
-            token = replicator.addChangeListener { change ->
-                try {
-                    val ids = change.replicator.pendingDocumentIds
+        val token = replicator.addChangeListener { change ->
+            try {
+                val ids = change.replicator.pendingDocumentIds
 
-                    when (change.status.activityLevel) {
-                        AbstractReplicator.ActivityLevel.CONNECTING -> pendingIdBefore = ids
-                        AbstractReplicator.ActivityLevel.STOPPED -> {
-                            pendingIdAfter = ids
-                            latch.countDown()
+                when (change.status.activityLevel) {
+                    AbstractReplicator.ActivityLevel.CONNECTING ->
+                        if (!beforeSet) {
+                            pendingIdBefore = ids
+                            beforeSet = true
                         }
-                        else -> Unit
+                    AbstractReplicator.ActivityLevel.BUSY ->
+                        if (!beforeSet) {
+                            pendingIdBefore = ids
+                            beforeSet = true
+                        }
+                    AbstractReplicator.ActivityLevel.STOPPED -> {
+                        pendingIdAfter = ids
+                        latch.countDown()
                     }
-                } catch (e: Exception) {
-                    err = e
+                    else -> Unit
                 }
+            } catch (e: Exception) {
+                err = e
             }
+        }
 
+        try {
             replicator.start()
             assertTrue(latch.await(15, TimeUnit.SECONDS))
         } finally {
-            token?.let { replicator.removeChangeListener(it) }
+            replicator.removeChangeListener(token)
         }
 
         assertNull(err)
         assertEquals(changed, pendingIdBefore)
         assertEquals(0, pendingIdAfter?.size ?: -1)
+
     }
 
     private fun validateIsDocumentPending(
@@ -359,38 +369,50 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         config: ReplicatorConfiguration? = null
     ) {
         val replicator = Replicator(config ?: pushConfig())
-        var token: ListenerToken? = null
         val latch = CountDownLatch(1)
 
         var err: Exception? = null
+        var beforeSet = false
         var expectedPendingBefore: Boolean? = null
         var expectedNotPendingBefore: Boolean? = null
         var expectedPendingAfter: Boolean? = null
         var expectedNotPendingAfter: Boolean? = null
-        try {
-            token = replicator.addChangeListener { change ->
-                try {
-                    when (change.status.activityLevel) {
-                        AbstractReplicator.ActivityLevel.CONNECTING -> {
+
+        val token = replicator.addChangeListener { change ->
+            try {
+                // Apparently the replicator doesn't actually promise that it will
+                // give us all of the state changes.  Running this test on a (slow) Nexus 4
+                // I never saw the CONNECTING state.  This is, so I am told, for my own good...
+                when (change.status.activityLevel) {
+                    AbstractReplicator.ActivityLevel.CONNECTING ->
+                        if (!beforeSet) {
                             expectedPendingBefore = validatePending(change.replicator, expectedPending, true)
                             expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
+                            beforeSet = true
                         }
-                        AbstractReplicator.ActivityLevel.STOPPED -> {
-                            expectedPendingAfter = validatePending(change.replicator, expectedPending, false)
-                            expectedNotPendingAfter = validatePending(change.replicator, expectedNotPending, false)
-                            latch.countDown()
+                    AbstractReplicator.ActivityLevel.BUSY ->
+                        if (!beforeSet) {
+                            expectedPendingBefore = validatePending(change.replicator, expectedPending, true)
+                            expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
+                            beforeSet = true
                         }
-                        else -> Unit
+                    AbstractReplicator.ActivityLevel.STOPPED -> {
+                        expectedPendingAfter = validatePending(change.replicator, expectedPending, false)
+                        expectedNotPendingAfter = validatePending(change.replicator, expectedNotPending, false)
+                        latch.countDown()
                     }
-                } catch (e: Exception) {
-                    err = e
+                    else -> Unit
                 }
+            } catch (e: Exception) {
+                err = e
             }
+        }
 
+        try {
             replicator.start()
             assertTrue(latch.await(15, TimeUnit.SECONDS))
         } finally {
-            token?.let { replicator.removeChangeListener(it) }
+            replicator.removeChangeListener(token)
         }
 
         assertNull(err)
@@ -400,7 +422,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         assertTrue("Unexpected not pending after sync", expectedNotPendingAfter ?: false)
     }
 
-    fun validatePending(repl: Replicator, pending: Set<String>?, expected: Boolean) =
+    private fun validatePending(repl: Replicator, pending: Set<String>?, expected: Boolean) =
         pending?.map { docId -> repl.isDocumentPending(docId) }
             ?.fold(true) { acc: Boolean, isPending: Boolean -> acc && (isPending == expected) }
             ?: true
