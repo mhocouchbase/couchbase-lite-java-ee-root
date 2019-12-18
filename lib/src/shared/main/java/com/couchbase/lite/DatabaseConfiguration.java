@@ -17,7 +17,10 @@
 
 package com.couchbase.lite;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
+
+import java.io.File;
 
 
 /**
@@ -35,12 +38,12 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     // Constructors
     //---------------------------------------------
 
-    public DatabaseConfiguration() {
-        this.encryptionKey = null;
-    }
+    public DatabaseConfiguration() { this.encryptionKey = null; }
 
-    public DatabaseConfiguration(@NonNull DatabaseConfiguration config) {
-        super(config);
+    public DatabaseConfiguration(@NonNull DatabaseConfiguration config) { this(config, false); }
+
+    protected DatabaseConfiguration(@NonNull DatabaseConfiguration config, boolean readOnly) {
+        super(config, readOnly);
         this.encryptionKey = config.encryptionKey;
     }
 
@@ -52,11 +55,14 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      * Set the path to the directory to store the database in. If the directory doesn't already
      * exist it will be created when the database is opened.
      *
+     * @deprecated Use: {@link com.couchbase.lite.CouchbaseLite#init(Context, File)}
+     *
      * @param directory the directory
      * @return The self object.
      */
     @NonNull
     @Override
+    @Deprecated
     public DatabaseConfiguration setDirectory(@NonNull String directory) {
         super.setDirectory(directory);
         return this;
@@ -73,7 +79,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      */
     @NonNull
     public DatabaseConfiguration setEncryptionKey(EncryptionKey encryptionKey) {
-        if (isReadonly()) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
+        if (isReadOnly()) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
         this.encryptionKey = encryptionKey;
         return this;
     }

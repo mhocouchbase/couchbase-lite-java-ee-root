@@ -86,7 +86,7 @@ public final class Database extends AbstractDatabase {
      * @param name   The name of the database: May NOT contain capital letters!
      * @throws CouchbaseLiteException if any error occurs during the open operation.
      */
-    public Database(@NonNull String name) throws CouchbaseLiteException {super(name, new DatabaseConfiguration()); }
+    public Database(@NonNull String name) throws CouchbaseLiteException { super(name, new DatabaseConfiguration()); }
 
     /**
      * Construct a  AbstractDatabase with a given name and database config.
