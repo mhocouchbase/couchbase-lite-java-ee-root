@@ -21,7 +21,6 @@ import android.support.annotation.NonNull;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import com.couchbase.lite.CouchbaseLite;
 import com.couchbase.lite.Message;
 import com.couchbase.lite.MessageEndpoint;
 import com.couchbase.lite.MessageEndpointConnection;
@@ -29,6 +28,7 @@ import com.couchbase.lite.MessagingError;
 import com.couchbase.lite.ProtocolType;
 import com.couchbase.lite.ReplicatorConnection;
 import com.couchbase.lite.internal.CBLStatus;
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
@@ -42,7 +42,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // Variables
     // ---------------------------------------------------------------------------------------------
 
-    private final Executor finalizer = CouchbaseLite.getExecutionService().getSerialExecutor();
+    private final Executor finalizer = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
     private final MessageEndpointConnection connection;
     private final ProtocolType protocolType;
