@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
@@ -60,7 +61,7 @@ public class MessageEndpointListener {
 
     private final Object lock = new Object();
 
-    private final Executor dispatcher = CouchbaseLite.getExecutionService().getSerialExecutor();
+    private final Executor dispatcher = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
     // protected by lock.
     private final Map<C4Replicator, MessageEndpointConnection> replicators = new HashMap<>();
