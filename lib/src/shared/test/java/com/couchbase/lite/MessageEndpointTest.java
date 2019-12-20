@@ -345,7 +345,7 @@ public class MessageEndpointTest extends BaseTest {
     public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
-        otherDB = openDB(OTHER_DATABASE_NAME);
+        otherDB = new Database(OTHER_DATABASE_NAME);
         assertNotNull(otherDB);
         assertTrue(otherDB.isOpen());
     }
@@ -357,10 +357,7 @@ public class MessageEndpointTest extends BaseTest {
             return;
         }
 
-        try {
-            closeDatabase(otherDB);
-            deleteDatabase(OTHER_DATABASE_NAME);
-        }
+        try { eraseDatabase(otherDB); }
         catch (CouchbaseLiteException e) {
             throw new RuntimeException("Failed closing and deleting db: " + OTHER_DATABASE_NAME, e);
         }

@@ -36,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class PredictiveQueryTest extends BaseTest {
+public class PredictiveQueryTest extends BaseQueryTest {
 
     private abstract static class TestPredictiveModel implements PredictiveModel {
         private boolean allowCalls = true;
@@ -181,34 +181,21 @@ public class PredictiveQueryTest extends BaseTest {
             .from(DataSource.database(db));
 
         // Query before registering the model:
-        expectError("CouchbaseLite.SQLite", 1, new Execution() {
-            @Override
-            public void run() throws CouchbaseLiteException {
-                q.execute();
-            }
-        });
+        expectError("CouchbaseLite.SQLite", 1, q::execute);
 
         AggregateModel aggregateModel = new AggregateModel();
         aggregateModel.registerModel();
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Dictionary pred = result.getDictionary(0);
-                assertEquals(15, pred.getInt("sum"));
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Dictionary pred = result.getDictionary(0);
+            assertEquals(15, pred.getInt("sum"));
         });
         assertEquals(1, rows);
 
         aggregateModel.unregisterModel();
 
         // Query after unregistering the model:
-        expectError("CouchbaseLite.SQLite", 1, new Execution() {
-            @Override
-            public void run() throws CouchbaseLiteException {
-                q.execute();
-            }
-        });
+        expectError("CouchbaseLite.SQLite", 1, q::execute);
     }
 
     @Test
@@ -224,12 +211,9 @@ public class PredictiveQueryTest extends BaseTest {
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction))
             .from(DataSource.database(db));
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Dictionary pred = result.getDictionary(0);
-                assertEquals(15, pred.getInt("sum"));
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Dictionary pred = result.getDictionary(0);
+            assertEquals(15, pred.getInt("sum"));
         });
         assertEquals(1, rows);
 
@@ -428,12 +412,7 @@ public class PredictiveQueryTest extends BaseTest {
             .select(SelectResult.expression(prediction))
             .from(DataSource.database(db));
 
-        expectError("CouchbaseLite.SQLite", 1, new Execution() {
-            @Override
-            public void run() throws CouchbaseLiteException {
-                q.execute();
-            }
-        });
+        expectError("CouchbaseLite.SQLite", 1, q::execute);
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("key", this);

@@ -40,7 +40,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
     public void setUp() throws CouchbaseLiteException {
         super.setUp();
 
-        otherDB = openDB(OTHERDB);
+        otherDB = new Database(OTHERDB);
 
         assertNotNull(otherDB);
         assertTrue(otherDB.isOpen());
@@ -56,10 +56,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
             return;
         }
 
-        try {
-            closeDatabase(otherDB);
-            deleteDatabase(OTHERDB);
-        }
+        try { eraseDatabase(otherDB); }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "Failed closing DB", e);
         }

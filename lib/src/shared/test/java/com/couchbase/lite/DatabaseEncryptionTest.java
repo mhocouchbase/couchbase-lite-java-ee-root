@@ -46,29 +46,12 @@ public class DatabaseEncryptionTest extends BaseTest {
     @After
     public void tearDown() {
         if (seekrit != null) {
-            try { seekrit.close(); }
+            try {
+                File dbDir = seekrit.getFilePath().getParentFile();
+                eraseDatabase(seekrit);
+            }
             catch (CouchbaseLiteException e) {
                 Report.log(LogLevel.ERROR, "Failed to close seekrit DB", e);
-            }
-        }
-
-        // database exist, delete it
-        if (Database.exists("seekrit", getDbDir())) {
-            // sometimes, db is still in used, wait for a while. Maximum 3 sec
-            for (int i = 0; i < 10; i++) {
-                try {
-                    Database.delete("seekrit", getDbDir());
-                    break;
-                }
-                catch (CouchbaseLiteException e) {
-                    if (e.getCode() != CBLError.Code.BUSY) {
-                        Report.log(LogLevel.ERROR, "Failed to delete seekrit DB", e);
-                        break;
-                    }
-
-                    try { Thread.sleep(300); }
-                    catch (InterruptedException ignore) { }
-                }
             }
         }
 
@@ -78,30 +61,32 @@ public class DatabaseEncryptionTest extends BaseTest {
     @Test
     public void testCreateConfiguration() {
         // Default:
-        DatabaseConfiguration config1 = new DatabaseConfiguration();
-        config1.setDirectory("/tmp");
-        assertNotNull(config1.getDirectory());
-        assertTrue(config1.getDirectory().length() > 0);
-        assertNull(config1.getEncryptionKey());
+        DatabaseConfiguration config = new DatabaseConfiguration();
+        assertNotNull(config.getDirectory());
+        assertFalse(config.getDirectory().isEmpty());
+        assertNull(config.getEncryptionKey());
 
         // Custom
+        config = new DatabaseConfiguration();
+        String dbDir = getScratchDirectoryPath("tmkp");
+        config.setDirectory(dbDir);
         EncryptionKey key = new EncryptionKey("key");
-        DatabaseConfiguration config2 = new DatabaseConfiguration();
-        config2.setDirectory("/tmp/mydb");
-        config2.setEncryptionKey(key);
-        assertEquals("/tmp/mydb", config2.getDirectory());
-        assertEquals(key, config2.getEncryptionKey());
+        config.setEncryptionKey(key);
+        assertEquals(dbDir, config.getDirectory());
+        assertEquals(key, config.getEncryptionKey());
     }
 
     @Test
     public void testGetSetConfiguration() throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.db.getConfig().getDirectory());
+        config.setEncryptionKey(new EncryptionKey("noseeum"));
+        String scratchDirPath = getScratchDirectoryPath("config-test");
+        config.setDirectory(scratchDirPath);
         Database db = new Database("db", config);
         try {
             assertNotNull(db.getConfig());
             assertNotSame(db.getConfig(), config);
-            assertEquals(db.getConfig().getDirectory(), config.getDirectory());
+            assertEquals(db.getConfig().getDirectory(), scratchDirPath);
             assertEquals(db.getConfig().getEncryptionKey(), config.getEncryptionKey());
         }
         finally {
@@ -250,18 +235,15 @@ public class DatabaseEncryptionTest extends BaseTest {
 
     @Test
     public void testCopyEncryptedDatabase() throws CouchbaseLiteException {
-        final String dbName = "seekritDB";
         final String dbPass = "letmein";
-        final File dbDir = getDbDir();
 
         // Create encrypted database:
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(dbDir.getAbsolutePath());
-        config.setEncryptionKey(new EncryptionKey(dbPass));
-        Database db = new Database(dbName, config);
+        DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(dbPass));
+        Database db = new Database("seekritDB", config);
         assertNotNull(db);
 
-        final String dbPath = db.getPath();
+        final File dbDir = db.getFilePath();
+        assertNotNull(dbDir);
 
         // add a doc
         MutableDocument doc = new MutableDocument();
@@ -276,17 +258,17 @@ public class DatabaseEncryptionTest extends BaseTest {
         if (Database.exists(nuName, dbDir)) { Database.delete(nuName, dbDir); }
 
         // Copy
-        Database.copy(new File(dbPath), nuName, config);
-        assertTrue(Database.exists(nuName, dbDir));
-
+        Database.copy(dbDir, nuName, config);
+        File dbParentDir = dbDir.getParentFile();
+        assertTrue(Database.exists(nuName, dbParentDir));
         try {
-            db = new Database(dbName, config);
+            db = new Database(nuName, config);
             assertNotNull(db);
             assertEquals(1, db.getCount());
         }
         finally {
             db.close();
-            Database.delete(nuName, dbDir);
+            Database.delete(nuName, dbParentDir);
         }
     }
 
@@ -301,9 +283,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         final String pwd = "you rode upon a steamer to the violence of the sun";
         final String docId = "Disraeli Gears";
 
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.getDbDir().getAbsolutePath());
-        config.setEncryptionKey(new EncryptionKey(pwd));
+        DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(pwd));
         Database db = new Database(dbName, config);
         final MutableDocument mDoc = new MutableDocument(docId);
         mDoc.setString("guitar", "Eric");
@@ -312,9 +292,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         db.save(mDoc);
         db.close();
 
-        config = new DatabaseConfiguration();
-        config.setDirectory(this.getDbDir().getAbsolutePath());
-        config.setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
+        config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
         db = new Database(dbName, config);
         Document doc2 = db.getDocument(docId);
         assertEquals("Eric", doc2.getString("guitar"));
@@ -329,10 +307,9 @@ public class DatabaseEncryptionTest extends BaseTest {
         final String pwd = "you rode upon a steamer to the violence of the sun";
         final String docId = "Disraeli Gears";
 
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setDirectory(this.getDbDir().getAbsolutePath());
-        config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
-        Database db = new Database(dbName, config);
+        Database db = new Database(
+            dbName,
+            new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd))));
         final MutableDocument mDoc = new MutableDocument(docId);
         mDoc.setString("guitar", "Eric");
         mDoc.setString("bass", "Jack");
@@ -340,10 +317,9 @@ public class DatabaseEncryptionTest extends BaseTest {
         db.save(mDoc);
         db.close();
 
-        config = new DatabaseConfiguration();
-        config.setDirectory(this.getDbDir().getAbsolutePath());
-        config.setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
-        db = new Database(dbName, config);
+        db = new Database(
+            dbName,
+            new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd))));
         Document doc2 = db.getDocument(docId);
         assertEquals("Eric", doc2.getString("guitar"));
         assertEquals("Jack", doc2.getString("bass"));
@@ -445,14 +421,12 @@ public class DatabaseEncryptionTest extends BaseTest {
     private Database openSeekritByKey(EncryptionKey key) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
         if (key != null) { config.setEncryptionKey(key); }
-        config.setDirectory(this.getDbDir().getAbsolutePath());
         return new Database("seekrit", config);
     }
 
     private Database openSeekrit(String password) throws CouchbaseLiteException {
         DatabaseConfiguration config = new DatabaseConfiguration();
         if (password != null) { config.setEncryptionKey(new EncryptionKey(password)); }
-        config.setDirectory(this.getDbDir().getAbsolutePath());
         return new Database("seekrit", config);
     }
 

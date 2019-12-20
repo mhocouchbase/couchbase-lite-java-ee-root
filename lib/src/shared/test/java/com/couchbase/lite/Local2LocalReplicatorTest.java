@@ -332,7 +332,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testPushDocContinuous() throws CouchbaseLiteException, InterruptedException {
         String strAnotherDB = "anotherDB";
-        Database anotherDB = openDB(strAnotherDB);
+        Database anotherDB = new Database(strAnotherDB);
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -356,8 +356,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             stopContinuousReplicator(repl);
         }
         finally {
-            closeDatabase(anotherDB);
-            deleteDatabase(anotherDB.getName());
+            eraseDatabase(anotherDB);
         }
     }
 
@@ -389,7 +388,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
         String strAnotherDB = "anotherDB";
-        Database anotherDB = openDB(strAnotherDB);
+        Database anotherDB = new Database(strAnotherDB);
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -413,8 +412,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             stopContinuousReplicator(repl);
         }
         finally {
-            closeDatabase(anotherDB);
-            deleteDatabase(anotherDB.getName());
+            eraseDatabase(anotherDB);
         }
     }
 
@@ -557,6 +555,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testCloseDatabaseWithActiveReplicator() throws CouchbaseLiteException, InterruptedException {
         Replicator repl = new Replicator(makeConfig(true, true, true));
         repl.start();
+
         while (repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.IDLE) {
             Report.log(LogLevel.WARNING, String.format(
                 Locale.ENGLISH,
@@ -584,8 +583,6 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             Thread.sleep(500);
         }
         assertTrue(attemptCount < 20);
-
-        closeDB();
     }
 
     /*
@@ -595,7 +592,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testPushBlob() throws CouchbaseLiteException, IOException {
         String strAnotherDB = "anotherDB";
-        Database anotherDB = openDB(strAnotherDB);
+        Database anotherDB = new Database(strAnotherDB);
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -616,8 +613,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertNotNull(blob1a);
         }
         finally {
-            closeDatabase(anotherDB);
-            deleteDatabase(anotherDB.getName());
+            eraseDatabase(anotherDB);
         }
     }
 
@@ -628,7 +624,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testPullBlob() throws CouchbaseLiteException, IOException {
         String strAnotherDB = "anotherDB";
-        Database anotherDB = openDB(strAnotherDB);
+        Database anotherDB = new Database(strAnotherDB);
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -650,8 +646,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertNotNull(blob1a);
         }
         finally {
-            closeDatabase(anotherDB);
-            deleteDatabase(anotherDB.getName());
+            eraseDatabase(anotherDB);
         }
     }
 
