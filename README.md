@@ -22,7 +22,7 @@ $ git clone https://github.com/couchbaselabs/couchbase-lite-core-EE.git
 At the root of your working space, create version.text file.
 
 ```
-$ echo "2.7.0" > version.text
+$ echo "2.8.0" > version.text
 ```
 
 #### 1.3 Go to couchbase-lite-java-ee
