@@ -47,6 +47,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
 
         try { Thread.sleep(500); }
         catch (Exception ignore) { }
+
     }
 
     @After
@@ -153,8 +154,8 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
         }
 
         // see if the replication succeeded
-        AssertionError err = listener.getFailureReason();
-        if (err != null) { throw err; }
+        Throwable err = listener.getFailureReason();
+        if (err != null) { throw new RuntimeException(err); }
 
         assertTrue(success);
 
@@ -183,7 +184,9 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
 
         try {
             repl.stop();
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            if (repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) {
+                assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            }
         }
         finally {
             repl.removeChangeListener(token);
