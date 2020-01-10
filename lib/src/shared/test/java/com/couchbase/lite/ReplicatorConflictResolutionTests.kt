@@ -45,7 +45,8 @@ private const val VAL4 = "Pleasant"
 private const val KEY5 = "Oakland"
 private const val VAL5 = "Bay Forest"
 
-private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) : ConflictResolver {
+private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) :
+    ConflictResolver {
     override fun resolve(conflict: Conflict): Document? {
         return resolver(conflict)
     }
@@ -542,7 +543,13 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig(TestConflictResolver { otherDB.getDocument(DOC1) }), 0, null, false, false) { r: Replicator ->
+        run(
+            pullConfig(TestConflictResolver { otherDB.getDocument(DOC1) }),
+            0,
+            null,
+            false,
+            false
+        ) { r: Replicator ->
             replicator = r
             token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
@@ -575,7 +582,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val pullConfig = pullConfig(TestConflictResolver { throw IllegalStateException("freak out!") })
+        val pullConfig =
+            pullConfig(TestConflictResolver { throw IllegalStateException("freak out!") })
 
         var replicator: Replicator? = null
         var token: ListenerToken? = null
@@ -610,11 +618,15 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      */
     @Test
     fun testDocumentReplicationEventForConflictedDocs() {
-        var ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver { otherDB.getDocument(DOC1) })
+        var ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver {
+            otherDB.getDocument(DOC1)
+        })
         assertEquals(1, ids.size)
         assertEquals(ids[0], DOC1)
 
-        ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver { MutableDocument("hooey") })
+        ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver {
+            MutableDocument("hooey")
+        })
         assertEquals(1, ids.size)
         assertEquals(ids[0], DOC1)
 
@@ -1225,7 +1237,53 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(0, db.count)
     }
 
-    private fun makeConflict(docId: String, localData: Map<String, Any>?, remoteData: Map<String, Any>?) {
+    /**
+     * CBL-623: Revision flags get cleared while saving resolved document
+     */
+    @Test
+    fun testConflictResolverPreservesFlags() {
+        var doc = MutableDocument(DOC1)
+        doc.setString(KEY1, VAL1)
+        db.save(doc)
+
+        // sync with the other db
+        run(makeConfig(true, false, false, db, DatabaseEndpoint(otherDB)), 0, null)
+
+        // add a blob in the local copy:
+        doc = db.getDocument(DOC1).toMutable()
+        doc.setString(KEY1, VAL2)
+        doc.setBlob(KEY2, Blob("text/plain", "i'm blob".toByteArray(Charsets.UTF_8)))
+        db.save(doc)
+        val expectedFlags = doc.c4doc!!.selectedFlags;
+        assertNotEquals(0, expectedFlags)
+
+        // add a string in the remote
+        doc = otherDB.getDocument(DOC1).toMutable()
+        doc.setString(KEY1, VAL3)
+        doc.setString(KEY3, VAL4)
+        otherDB.save(doc)
+        assertNotEquals(expectedFlags, doc.c4doc!!.selectedFlags)
+
+        var localFlags: Int = 0;
+        val pullConfig = pullConfig(TestConflictResolver { conflict ->
+            localFlags = conflict.localDocument!!.c4doc!!.selectedFlags
+            conflict.localDocument
+        })
+        run(pullConfig, 0, null)
+
+        // expected flags during conflict resolution
+        assertEquals(expectedFlags, localFlags)
+
+        // expected flags on saved doc
+        val doc1 = db.getDocument(DOC1)
+        assertEquals(expectedFlags, doc1.c4doc!!.selectedFlags)
+    }
+
+    private fun makeConflict(
+        docId: String,
+        localData: Map<String, Any>?,
+        remoteData: Map<String, Any>?
+    ) {
         val doc = MutableDocument(docId)
         db.save(doc)
 
