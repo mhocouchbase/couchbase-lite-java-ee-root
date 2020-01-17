@@ -43,4 +43,5 @@ captures/
 
 # Test DB directory
 CBLTestDb
+.couchbase
 
