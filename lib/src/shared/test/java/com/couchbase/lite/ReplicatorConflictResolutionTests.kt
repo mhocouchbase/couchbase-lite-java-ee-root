@@ -21,6 +21,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
 import java.util.concurrent.BrokenBarrierException
@@ -56,6 +57,7 @@ private object NullResolver : TestConflictResolver({ null })
 private object LocalResolver : TestConflictResolver({ conflict -> conflict.localDocument })
 private object RemoteResolver : TestConflictResolver({ conflict -> conflict.remoteDocument })
 
+@Ignore("NEW CORE")
 class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
     /**

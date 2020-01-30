@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -26,7 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-
+@Ignore("NEW CORE")
 public class MessageEndpointTest extends BaseTest {
     private static final long LONG_DELAY_SEC = 10;
     private static final long SHORT_DELAY_MS = 100;

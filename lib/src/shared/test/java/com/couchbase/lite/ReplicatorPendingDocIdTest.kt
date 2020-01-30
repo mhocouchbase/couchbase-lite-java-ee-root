@@ -19,6 +19,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Ignore
 import org.junit.Test
 import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit
 
 const val TEST_KEY = "test-key"
 
+@Ignore("NEW CORE")
 class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
     //    1. Create replicator config with pull only

@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -46,6 +47,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
+@Ignore("NEW CORE")
 public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test

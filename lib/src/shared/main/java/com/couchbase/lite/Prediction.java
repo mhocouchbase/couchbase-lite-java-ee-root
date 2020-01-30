@@ -46,7 +46,7 @@ public final class Prediction {
 
         @Override
         public long predict(long input, long c4db) {
-            final DocContext context = new DocContext(new Database(new C4Database(c4db).retain()), null);
+            final DocContext context = new DocContext(new Database(new C4Database(c4db, true)));
             final Dictionary output
                 = model.predict((Dictionary) new MRoot(context, new FLValue(input), false).asNative());
             return encode(output).getHandle();
