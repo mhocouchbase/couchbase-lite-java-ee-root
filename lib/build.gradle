@@ -395,12 +395,19 @@ project.afterEvaluate {
 // ----------------------------------------------------------------
 
 test {
-    if (TEST_FILTER != null) {
-        exclude "${TEST_FILTER}"
-    }
+    if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
 
     testLogging {
         outputs.upToDateWhen { false }
+
+        events = [
+            "failed",
+//            "passed",
+//            "skipped"
+        ]
+        
+//        showStandardStreams = true
+
         showCauses = true
         showExceptions = true
         showStackTraces = true

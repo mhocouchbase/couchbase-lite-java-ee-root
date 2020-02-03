@@ -1,6 +1,8 @@
 
-# Java class files
+# Java class and dump files
 *.class
+hs_err_pid*
+
 
 # Generated files
 bin/
