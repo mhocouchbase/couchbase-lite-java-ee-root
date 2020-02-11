@@ -19,6 +19,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Configuration for MessageEndpointListener
@@ -30,11 +32,8 @@ public class MessageEndpointListenerConfiguration {
     private final ProtocolType protocolType;
 
     public MessageEndpointListenerConfiguration(@NonNull Database database, @NonNull ProtocolType protocolType) {
-        if (database == null) { throw new IllegalArgumentException("database cannot be null."); }
-        if (protocolType == null) { throw new IllegalArgumentException("protocolType cannot be null."); }
-
-        this.database = database;
-        this.protocolType = protocolType;
+        this.database = Preconditions.assertNotNull(database, "database");
+        this.protocolType = Preconditions.assertNotNull(protocolType, "protocolType");
     }
 
     @NonNull

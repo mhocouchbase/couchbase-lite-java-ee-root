@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Ignore;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
@@ -44,7 +44,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         private int numberOfCalls;
 
         @Override
-        public Dictionary predict(Dictionary input) {
+        public Dictionary predict(@NotNull Dictionary input) {
             if (!allowCalls) { throw new IllegalStateException("Should not be called."); }
 
             numberOfCalls++;
@@ -325,7 +325,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         Database.prediction.unregisterModel(model);
     }
 
-    @Ignore("NEW CORE")
     @Test
     public void testPredictionWithBlobPropertyInput() throws Exception {
         final String[] texts = new String[] {
@@ -684,7 +683,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.reset();
     }
 
-    @Ignore("NEW CORE")
     @Test
     public void testIndexMultiplePredictionValuesUsingValueIndex() throws Exception {
         createDocument(new int[] {1, 2, 3, 4, 5});

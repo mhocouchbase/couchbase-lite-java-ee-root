@@ -97,9 +97,9 @@ java {
     sourceSets {
         main {
             java.srcDirs = [
-                "src/shared/main/java",                             // Shared EE only code between java android
-                "${CBL_JAVA_DIR}/lib/src/main/java",                // Shared code between java CE and EE
-                "${CBL_JAVA_DIR}/lib/src/shared/main/java"          // Shared code between Java and Android
+                "${CBL_JAVA_DIR}/lib/src/shared/main/java",         // Common
+                "src/shared/main/java",                             // EE Common
+                "${CBL_JAVA_DIR}/lib/src/main/java",                // Common Java
             ]
             resources.srcDirs = [
                 "${CBL_JAVA_DIR}/lib/src/main/resources",           // Resource files
@@ -318,7 +318,6 @@ checkstyle {
 
     showViolations true
 }
-
 task checkstyle(type: Checkstyle) {
     description 'Checkstyle'
     group 'verification'

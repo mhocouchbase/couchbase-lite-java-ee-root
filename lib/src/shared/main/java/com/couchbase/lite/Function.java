@@ -21,6 +21,8 @@ import android.support.annotation.NonNull;
 
 import java.util.Arrays;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Query functions.
@@ -60,15 +62,10 @@ public final class Function extends AbstractFunction {
      * @return The euclidean distance between two given input vectors.
      */
     @NonNull
-    public static Expression euclideanDistance(
-        @NonNull Expression expression1,
-        @NonNull Expression expression2) {
-        if (expression1 == null) { throw new IllegalArgumentException("expression1 cannot be null."); }
-        if (expression2 == null) { throw new IllegalArgumentException("expression2 cannot be null."); }
-
-        return new Expression.FunctionExpression(
-            "EUCLIDEAN_DISTANCE()",
-            Arrays.asList(expression1, expression2));
+    public static Expression euclideanDistance(@NonNull Expression expression1, @NonNull Expression expression2) {
+        Preconditions.assertNotNull(expression1, "expression1");
+        Preconditions.assertNotNull(expression2, "expression2");
+        return new Expression.FunctionExpression("EUCLIDEAN_DISTANCE()", Arrays.asList(expression1, expression2));
     }
 
     /**
@@ -86,9 +83,8 @@ public final class Function extends AbstractFunction {
     public static Expression squaredEuclideanDistance(
         @NonNull Expression expression1,
         @NonNull Expression expression2) {
-        if (expression1 == null) { throw new IllegalArgumentException("expression1 cannot be null."); }
-        if (expression2 == null) { throw new IllegalArgumentException("expression2 cannot be null."); }
-
+        Preconditions.assertNotNull(expression1, "expression1");
+        Preconditions.assertNotNull(expression2, "expression2");
         return new Expression.FunctionExpression(
             "EUCLIDEAN_DISTANCE()",
             Arrays.asList(expression1, expression2, Expression.intValue(2)));
@@ -106,14 +102,9 @@ public final class Function extends AbstractFunction {
      * @return The cosine distance between two given input vectors.
      */
     @NonNull
-    public static Expression cosineDistance(
-        @NonNull Expression expression1,
-        @NonNull Expression expression2) {
-        if (expression1 == null) { throw new IllegalArgumentException("expression1 cannot be null."); }
-        if (expression2 == null) { throw new IllegalArgumentException("expression2 cannot be null."); }
-
-        return new Expression.FunctionExpression(
-            "COSINE_DISTANCE()",
-            Arrays.asList(expression1, expression2));
+    public static Expression cosineDistance(@NonNull Expression expression1, @NonNull Expression expression2) {
+        Preconditions.assertNotNull(expression1, "expression1");
+        Preconditions.assertNotNull(expression2, "expression2");
+        return new Expression.FunctionExpression("COSINE_DISTANCE()", Arrays.asList(expression1, expression2));
     }
 }

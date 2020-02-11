@@ -20,6 +20,8 @@ import android.support.annotation.NonNull;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
@@ -35,7 +37,7 @@ public class Message {
      */
     @NonNull
     public static Message fromData(@NonNull byte[] data) {
-        if (data == null) { throw new IllegalArgumentException("data cannot be null."); }
+        Preconditions.assertNotNull(data, "data");
         return new Message(data);
     }
 

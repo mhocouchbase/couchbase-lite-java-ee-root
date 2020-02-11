@@ -16,6 +16,7 @@
 //
 package com.couchbase.lite;
 
+import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4Socket;
 
 
@@ -27,18 +28,25 @@ public final class Replicator extends AbstractReplicator {
      */
     public Replicator(ReplicatorConfiguration config) { super(config); }
 
-    @Override
-    protected int framing() {
-        final Object target = config.getTarget();
-        return (target instanceof MessageEndpoint
-            && ((MessageEndpoint) target).getProtocolType() == ProtocolType.BYTE_STREAM)
-            ? C4Socket.WEB_SOCKET_CLIENT_FRAMING
-            : C4Socket.NO_FRAMING;
-    }
 
     @Override
-    protected String schema() {
-        // put something in the address so it's not illegal
-        return (!(config.getTarget() instanceof MessageEndpoint)) ? null : "x-msg-endpt";
+    protected C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
+        final Endpoint target = config.getTarget();
+
+        if (target instanceof URLEndpoint) { return getRemoteC4ReplicatorLocked(((URLEndpoint) target).getURL()); }
+
+        if (target instanceof DatabaseEndpoint) {
+            return getLocalC4ReplicatorLocked(((DatabaseEndpoint) target).getDatabase());
+        }
+
+        if (target instanceof MessageEndpoint) {
+            return getMessageC4ReplicatorLocked(
+                (((MessageEndpoint) target).getProtocolType() != ProtocolType.BYTE_STREAM)
+                    ? C4Socket.NO_FRAMING
+                    : C4Socket.WEB_SOCKET_CLIENT_FRAMING
+            );
+        }
+
+        throw new IllegalStateException("unrecognized endpoint type: " + target);
     }
 }

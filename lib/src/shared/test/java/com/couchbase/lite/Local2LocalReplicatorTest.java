@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -47,7 +48,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-@Ignore("NEW CORE")
 public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test
@@ -1170,7 +1170,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
                 boolean started;
 
                 @Override
-                public void changed(@NonNull ReplicatorChange change) {
+                public void changed(@NotNull @NonNull ReplicatorChange change) {
                     switch (change.getStatus().getActivityLevel()) {
                         case BUSY:
                             started = true;

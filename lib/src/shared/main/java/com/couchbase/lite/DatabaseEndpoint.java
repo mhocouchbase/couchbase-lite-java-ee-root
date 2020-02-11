@@ -18,6 +18,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
@@ -30,26 +32,19 @@ public final class DatabaseEndpoint implements Endpoint {
     /**
      * Constructor with the database instance
      *
-     * @param database
+     * @param database the target database
      */
     public DatabaseEndpoint(@NonNull Database database) {
-        if (database == null) { throw new IllegalArgumentException("the database parameter is null."); }
-        this.database = database;
+        this.database = Preconditions.assertNotNull(database, "database");
     }
 
     /**
      * Return the Database instance
      */
     @NonNull
-    public Database getDatabase() {
-        return database;
-    }
+    public Database getDatabase() { return database; }
 
     @NonNull
     @Override
-    public String toString() {
-        return "DatabaseEndpoint{" +
-            "database=" + database +
-            '}';
-    }
+    public String toString() { return "DatabaseEndpoint{database=" + database + '}'; }
 }

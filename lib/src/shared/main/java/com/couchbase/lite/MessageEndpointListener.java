@@ -108,7 +108,7 @@ public class MessageEndpointListener {
         C4ReplicatorStatus status;
         synchronized (config.getDatabase().getLock()) {
             try {
-                replicator = config.getDatabase().getC4Database().createReplicator(
+                replicator = config.getDatabase().getC4Database().createTargetReplicator(
                     new MessageSocket(connection, config.getProtocolType()),
                     passiveMode,
                     passiveMode,

@@ -18,6 +18,8 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
@@ -38,7 +40,7 @@ public class MessagingError {
      * @param recoverable the recoverable flag
      */
     public MessagingError(@NonNull Exception error, boolean recoverable) {
-        if (error == null) { throw new IllegalArgumentException("error cannot be null."); }
+        Preconditions.assertNotNull(error, "error");
         this.error = error;
         this.recoverable = recoverable;
     }
@@ -48,16 +50,12 @@ public class MessagingError {
      *
      * @return the error object
      */
-    public Exception getError() {
-        return error;
-    }
+    public Exception getError() { return error; }
 
     /**
      * Is the error recoverable?
      *
      * @return the recoverable flag identifying whether the error is recoverable or not
      */
-    public boolean isRecoverable() {
-        return recoverable;
-    }
+    public boolean isRecoverable() { return recoverable; }
 }

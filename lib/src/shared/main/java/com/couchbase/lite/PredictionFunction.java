@@ -23,6 +23,8 @@ import android.support.annotation.NonNull;
 import java.util.Arrays;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
@@ -36,9 +38,9 @@ public final class PredictionFunction extends Expression {
     // member variables
     //---------------------------------------------
 
-    private Expression model;
+    private final Expression model;
 
-    private Expression input;
+    private final Expression input;
 
     //---------------------------------------------
     // Constructor
@@ -50,10 +52,6 @@ public final class PredictionFunction extends Expression {
 
         this.model = Expression.string(model);
         this.input = input;
-    }
-
-    PredictionFunction() {
-        throw new IllegalStateException();
     }
 
     //---------------------------------------------
@@ -68,7 +66,7 @@ public final class PredictionFunction extends Expression {
      */
     @NonNull
     public Expression propertyPath(@NonNull String path) {
-        if (path == null) { throw new IllegalArgumentException("path cannot be null."); }
+        Preconditions.assertNotNull(path, "path");
         return getPredictionFunction(Arrays.asList(model, input, Expression.string("." + path)));
     }
 
@@ -77,9 +75,7 @@ public final class PredictionFunction extends Expression {
     //---------------------------------------------
 
     @Override
-    Object asJSON() {
-        return getPredictionFunction(Arrays.asList(model, input)).asJSON();
-    }
+    Object asJSON() { return getPredictionFunction(Arrays.asList(model, input)).asJSON(); }
 
     //---------------------------------------------
     // Private level access

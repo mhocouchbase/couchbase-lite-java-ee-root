@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -27,7 +28,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-@Ignore("NEW CORE")
 public class MessageEndpointTest extends BaseTest {
     private static final long LONG_DELAY_SEC = 10;
     private static final long SHORT_DELAY_MS = 100;
@@ -115,7 +115,7 @@ public class MessageEndpointTest extends BaseTest {
         }
 
         @Override
-        public void changed(@NonNull MessageEndpointListenerChange change) {
+        public void changed(@NotNull @NonNull MessageEndpointListenerChange change) {
             if (change.getStatus().getError() != null) {
                 exceptions.add(change.getStatus().getError());
             }
@@ -634,6 +634,7 @@ public class MessageEndpointTest extends BaseTest {
             AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
             true,
             endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());

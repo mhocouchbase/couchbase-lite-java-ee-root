@@ -20,9 +20,7 @@ import android.support.annotation.NonNull;
 
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
-    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
-        super(config);
-    }
+    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) { super(config); }
 
     public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
         super(database, target);
@@ -30,9 +28,4 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
 
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }
-
-    @Override
-    Database getTargetDatabase() {
-        return (!(target instanceof DatabaseEndpoint)) ? null : ((DatabaseEndpoint) target).getDatabase();
-    }
 }

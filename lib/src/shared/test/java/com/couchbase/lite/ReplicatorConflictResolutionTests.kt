@@ -57,7 +57,6 @@ private object NullResolver : TestConflictResolver({ null })
 private object LocalResolver : TestConflictResolver({ conflict -> conflict.localDocument })
 private object RemoteResolver : TestConflictResolver({ conflict -> conflict.remoteDocument })
 
-@Ignore("NEW CORE")
 class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
     /**
