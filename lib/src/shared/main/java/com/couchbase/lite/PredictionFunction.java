@@ -25,7 +25,7 @@ import java.util.List;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/><br/>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * PredictionFunction that allows to create an expression that
  * refers to one of the properties of the prediction result dictionary.

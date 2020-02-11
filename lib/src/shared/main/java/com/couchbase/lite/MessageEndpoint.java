@@ -22,7 +22,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * Message endpoint.
  */
@@ -52,9 +52,9 @@ public class MessageEndpoint implements Endpoint {
         Object target,
         @NonNull ProtocolType protocolType,
         @NonNull MessageEndpointDelegate delegate) {
-        Preconditions.checkArgNotNull(uid, "uid");
-        Preconditions.checkArgNotNull(protocolType, "protocolType");
-        Preconditions.checkArgNotNull(delegate, "delegate");
+        Preconditions.assertNotNull(uid, "uid");
+        Preconditions.assertNotNull(protocolType, "protocolType");
+        Preconditions.assertNotNull(delegate, "delegate");
 
         this.uid = uid;
         this.target = target;

@@ -34,7 +34,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/><br/>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * The prediction model manager for registering and unregistering predictive models.
  */
@@ -93,8 +93,8 @@ public final class Prediction {
      * @param model The predictive model.
      */
     public synchronized void registerModel(@NonNull String name, @NonNull PredictiveModel model) {
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(model, "model");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(model, "model");
 
         if (models == null) { models = new HashMap<>(); }
 
@@ -111,7 +111,7 @@ public final class Prediction {
      * @param name The name of the predictive model.
      */
     public synchronized void unregisterModel(@NonNull String name) {
-        Preconditions.checkArgNotNull(name, "name");
+        Preconditions.assertNotNull(name, "name");
 
         if (models == null) { return; }
 

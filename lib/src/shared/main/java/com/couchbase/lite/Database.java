@@ -43,9 +43,9 @@ public final class Database extends AbstractDatabase {
         @NonNull String name,
         @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        Preconditions.checkArgNotNull(path, "path");
-        Preconditions.checkArgNotNull(name, "name");
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(path, "path");
+        Preconditions.assertNotNull(name, "name");
+        Preconditions.assertNotNull(config, "config");
 
         final EncryptionKey encryptionKey = config.getEncryptionKey();
 
@@ -66,12 +66,12 @@ public final class Database extends AbstractDatabase {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * The predictive model manager for registering and unregistering predictive models.
      * This is part of the Public API.
      */
-    @SuppressWarnings("ConstantName")
+    @SuppressWarnings({"PMD.FieldNamingConventions", "ConstantName"})
     @NonNull
     public static final Prediction prediction = new Prediction();
 
@@ -107,7 +107,7 @@ public final class Database extends AbstractDatabase {
     //---------------------------------------------
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/></br>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Changes the database's encryption key, or removes encryption if the new key is null.
      *

@@ -64,7 +64,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/></br>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Set a key to encrypt the database with. If the database does not exist and is being created,
      * it will use this key, and the same key must be given every time it's opened
@@ -80,7 +80,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/></br>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Returns a key to encrypt the database with.
      *

@@ -1,12 +1,12 @@
 //
 // build.gradle
 //
-// Copyright (c) 2019 Couchbase, Inc.  All rights reserved.
+// Copyright (c) 2017, 2018, 2019 Couchbase, Inc. All rights reserved.
 //
 // Licensed under the Couchbase License Agreement (the "License");
 // you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// https://info.couchbase.com/rs/302-GJY-034/images/2017-10-30_License_Agreement.pdf
+// You may obtain a copy of the License at:
+//     https://info.couchbase.com/rs/302-GJY-034/images/2017-10-30_License_Agreement.pdf
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,8 +14,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+// Please try to keep this build file as similar to the other family build files
+// as is possible.
+//
+import com.github.spotbugs.SpotBugsTask
+
 import org.apache.tools.ant.filters.ReplaceTokens
 import org.gradle.internal.os.OperatingSystem
+
+
+// ----------------------------------------------------------------
+// Plugins
+// ----------------------------------------------------------------
+
+plugins {
+    id 'java-library'
+    id 'cpp'
+    id 'kotlin'
+    id 'java-library-distribution'
+    id 'checkstyle'
+    id 'pmd'
+    id 'com.github.spotbugs'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'com.github.kt3k.coveralls'
+}
+
 
 // ----------------------------------------------------------------
 // Constants
@@ -62,11 +86,6 @@ properties.load(project.rootProject.file('local.properties').newDataInputStream(
 // Build Java
 // ----------------------------------------------------------------
 
-apply plugin: 'cpp'
-apply plugin: 'java-library'
-apply plugin: 'java-library-distribution'
-apply plugin: 'kotlin'
-
 group = CBL_GROUP
 
 java {
@@ -85,7 +104,7 @@ java {
             resources.srcDirs = [
                 "${CBL_JAVA_DIR}/lib/src/main/resources",           // Resource files
                 "${CBL_NATIVE_DIR}"                                 // Native Libraries
-            ]                    
+            ]
         }
         test {
             java.srcDirs = [
@@ -108,7 +127,7 @@ repositories {
 
 dependencies {
     compileOnly 'com.android.support:support-annotations:28.0.0'
-    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
 
     implementation 'com.squareup.okhttp3:okhttp:3.9.1'
 
@@ -175,6 +194,7 @@ model {
     repositories {
         libs(PrebuiltLibraries) {
             liteCore {
+                headers.srcDir "${CBL_CORE_DIR}/C/"                             // include c4Private.h for debugging
                 headers.srcDir "${CBL_CORE_DIR}/C/include"
                 headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/API"
                 headers.srcDir "${CBL_CORE_DIR}/vendor/fleece/Fleece/Support"
@@ -239,14 +259,18 @@ model {
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                 } else if (targetPlatform.operatingSystem.linux) {
                     def libCxxIncDir = properties.getProperty('LINUX_LIBCXX_INCDIR')
-                    if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
+                    if (libCxxIncDir != null) {
+                        cppCompiler.args '-isystem', libCxxIncDir
+                    }
                     cppCompiler.args '-I', "${JAVA_HOME}/include"
                     cppCompiler.args '-I', "${JAVA_HOME}/include/linux"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                     def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
-                    if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
+                    if (libCxxLibDir != null) {
+                        linker.args '-L', libCxxLibDir
+                    }
                     linker.args '-stdlib=libc++'
                 } else if (targetPlatform.operatingSystem.windows) {
                     cppCompiler.args "-I${JAVA_HOME}/include"
@@ -260,12 +284,14 @@ model {
 }
 
 /////// JavaDoc
-
 javadoc {
+    failOnError false
+
     exclude "**/internal/**"
     exclude "com/couchbase/lite/utils"
+
     options {
-        title = "Couchbase Lite ${BUILD_VERSION}, Enterprise Edition"
+        title = "${CBL_LICENSE} ${BUILD_VERSION}"
         memberLevel = JavadocMemberLevel.PUBLIC
         docEncoding = 'UTF-8'
         encoding = 'UTF-8'
@@ -276,6 +302,7 @@ javadoc {
     }
 }
 
+
 // ----------------------------------------------------------------
 // Static analysis
 // ----------------------------------------------------------------
@@ -283,9 +310,8 @@ javadoc {
 def fileFilter = ['**/gen/**', "okhttp3/**"]
 
 /////// Checkstyle
-apply plugin: 'checkstyle'
 checkstyle {
-    toolVersion = "8.18"
+    toolVersion = "8.29"
 
     configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
     configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
@@ -303,8 +329,6 @@ task checkstyle(type: Checkstyle) {
 
     classpath = files()
 
-    checkstyleTest.enabled = false
-
     reports {
         xml {
             enabled = true
@@ -318,8 +342,10 @@ task checkstyle(type: Checkstyle) {
 }
 
 /////// PMD
-apply plugin: 'pmd'
-pmd { toolVersion "5.8.1" }
+pmd {
+    toolVersion '6.21.0'
+    ruleSets = []
+}
 task pmd(type: Pmd) {
     description 'PMD'
     group 'verification'
@@ -329,8 +355,6 @@ task pmd(type: Pmd) {
     source = sourceSets.main.java.srcDirs
     include '**/*.java'
     exclude fileFilter
-
-    pmdTest.enabled = false
 
     reports {
         xml {
@@ -344,46 +368,34 @@ task pmd(type: Pmd) {
     }
 }
 
-/////// Findbugs
-// !!! FIXME: Update to SpotBugs
-apply plugin: 'findbugs'
-def findbugsAll = task('findbugs') {
-    description 'Findbugs with all reports'
-    group 'verification'
-}
+/////// SpotBugs
+spotbugs { toolVersion = '3.1.12' }
+['Html', 'Xml'].each { reportType ->
+    task("spotbugs${reportType}", type: SpotBugsTask) {
+        description "Spotbugs with $reportType report"
+        group 'verification'
 
-project.afterEvaluate {
-    ['Html', 'Xml'].each { reportType ->
-        findbugsAll.dependsOn task("findbugs${reportType}", type: FindBugs) {
-            description "Findbugs with $reportType report"
-            group 'verification'
+        dependsOn 'compileJava'
 
-            dependsOn 'compileJava'
+        effort = "max"
+        reportLevel = "medium"
+        ignoreFailures = false
 
-            findbugs.toolVersion = "3.0.1"
+        source = sourceSets.main.java.srcDirs
 
-            findbugsTest.enabled = false
+        classes = fileTree(dir: "${buildDir}/classes/java/main", excludes: fileFilter)
+        classpath = files()
 
-            effort = "max"
-            reportLevel = "medium"
-            ignoreFailures = false
+        excludeFilter = file("${ETC_DIR}/spotbugs/spotbugs.xml")
 
-            source = sourceSets.main.java.srcDirs
-
-            classes = fileTree(dir: "${buildDir}/classes/java/main", excludes: fileFilter)
-            classpath = files()
-
-            excludeFilter = file("${ETC_DIR}/findbugs/findbugs.xml")
-
-            reports {
-                xml {
-                    enabled = (reportType == "Xml")
-                    setDestination(file("${REPORTS_DIR}/findbugs.xml"))
-                }
-                html {
-                    enabled = (reportType == "Html")
-                    setDestination(file("${REPORTS_DIR}/findbugs.html"))
-                }
+        reports {
+            xml {
+                enabled = (reportType == "Xml")
+                setDestination(file("${REPORTS_DIR}/spotbugs.xml"))
+            }
+            html {
+                enabled = (reportType == "Html")
+                setDestination(file("${REPORTS_DIR}/spotbugs.html"))
             }
         }
     }
@@ -395,7 +407,9 @@ project.afterEvaluate {
 // ----------------------------------------------------------------
 
 test {
-    if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
+    if (TEST_FILTER != null) {
+        exclude "${TEST_FILTER}"
+    }
 
     testLogging {
         outputs.upToDateWhen { false }
@@ -405,7 +419,7 @@ test {
 //            "passed",
 //            "skipped"
         ]
-        
+
 //        showStandardStreams = true
 
         showCauses = true
@@ -415,13 +429,13 @@ test {
     }
 }
 
+
 // ----------------------------------------------------------------
 // jar
 // ----------------------------------------------------------------
 
-jar {
-    archivesBaseName = "${CBL_ARTIFACT_ID}"
-}
+jar { archivesBaseName = "${CBL_ARTIFACT_ID}" }
+
 
 // ----------------------------------------------------------------
 // java-library-distribution
@@ -446,23 +460,24 @@ distributions {
     }
 }
 
+
 // ----------------------------------------------------------------
 // Publication
 // ----------------------------------------------------------------
-
-apply plugin: 'maven-publish'
 
 def mavenRepoUser = properties.getProperty('maven.repo.user')
 def mavenRepoPass = properties.getProperty('maven.repo.pass')
 
 // Generate javadoc.jar
 task javadocJar(type: Jar, dependsOn: javadoc) {
+    archiveBaseName = "${CBL_ARTIFACT_ID}"
     archiveClassifier = 'javadoc'
     from javadoc.destinationDir
 }
 
 // Generate source.jar
 task sourcesJar(type: Jar) {
+    archiveBaseName = "${CBL_ARTIFACT_ID}"
     archiveClassifier = 'sources'
     from sourceSets.main.java.srcDirs
 }
@@ -517,7 +532,7 @@ publishing {
 
     repositories {
         maven {
-            url = MAVEN_URL
+            url MAVEN_URL
             credentials {
                 username mavenRepoUser
                 password mavenRepoPass
@@ -531,26 +546,22 @@ publishing {
 // Tasks
 // ----------------------------------------------------------------
 
-task smokeTest(dependsOn: ['checkstyle', 'pmd', 'findbugsHtml', 'compileJava'])
+task smokeTest(dependsOn: ['compileJava', 'checkstyle', 'pmd', 'spotbugsHtml'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
 task fullTest(dependsOn: ['unitTest'])
 
-task ciCheck(dependsOn: ['checkstyle', 'pmd', 'findbugsXml', 'test'])
-task ciCheckWindows(dependsOn: ['pmd', 'findbugsXml', 'test'])
+task ciCheck(dependsOn: ['checkstyle', 'pmd', 'spotbugsXml', 'test'])
+task ciCheckWindows(dependsOn: ['pmd', 'spotbugsXml', 'test'])
 task ciPublish(dependsOn: ['generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
-    tasks.withType(FindBugs) { shouldRunAfter tasks.withType(Pmd) }
-
-    tasks.whenTaskAdded {
-        if (it.name.startsWith("findbugs")) {
-            test.shouldRunAfter(it)
-        }
-        if (it.name.startsWith("checkstyle")) {
-            pmd.shouldRunAfter(it)
-        }
-    }
+    tasks.withType(Javadoc) { shouldRunAfter test }
+    test.shouldRunAfter unitTest
+    test.shouldRunAfter smokeTest
+    tasks.withType(SpotBugsTask) { shouldRunAfter tasks.withType(Pmd) }
+    tasks.withType(Pmd) { shouldRunAfter tasks.withType(Checkstyle) }
+    tasks.withType(Checkstyle) { shouldRunAfter compileJava }
 }
 
 
@@ -577,7 +588,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
     }
 
     task copyLiteCore(type: Copy, dependsOn: LiteCoreJNISharedLibrary) {
-        from ("${CBL_CORE_NATIVE_DIR}") {
+        from("${CBL_CORE_NATIVE_DIR}") {
             include "macos/**"
             include "linux/**"
             include "windows/**"
@@ -599,7 +610,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
     processResources.dependsOn(["generateNativeLibraryMD5"])
 }
 
-static def getNativeLibraryResourcePath(platform) {
+def getNativeLibraryResourcePath(platform) {
     def os = ""
     if (platform.operatingSystem.isMacOsX())
         os = "macos";
@@ -614,8 +625,11 @@ static def getNativeLibraryResourcePath(platform) {
 
 def getLicenseVersion() {
     def version = "master"
-    try { version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/product-texts")).text.trim() }
-    catch (Exception ignore) {}
+    try {
+        version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/product-texts")).text.trim()
+    }
+    catch (Exception ignore) {
+    }
     return version
 }
 
@@ -623,10 +637,12 @@ def getBuildCommit() {
     def commit = "unknown"
     try {
         commit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim()
-        if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) { commit += "+" }
+        if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) {
+            commit += "+"
+        }
     }
-    catch (Exception ignore) {}
+    catch (Exception ignore) {
+    }
     return commit
 }
-
 

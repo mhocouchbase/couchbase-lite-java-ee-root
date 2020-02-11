@@ -28,7 +28,7 @@ import java.util.Arrays;
 public final class Function extends AbstractFunction {
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Creates prediction function with the given model name and input. When running a query with
      * the prediction function, the corresponding predictive model registered to CouchbaseLite
@@ -49,7 +49,7 @@ public final class Function extends AbstractFunction {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Creates a function that returns the euclidean distance between the two input vectors.
      * The result is a non-negative floating-point number. The expression1 and expression2 must be
@@ -72,7 +72,7 @@ public final class Function extends AbstractFunction {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Creates a function that returns the squared euclidean distance between the two input vectors.
      * The result is a non-negative floating-point number. The expression1 and expression2 must be
@@ -95,7 +95,7 @@ public final class Function extends AbstractFunction {
     }
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Creates a function that returns the cosine distance which one minus the cosine similarity
      * between the two input vectors. The result is a floating-point number ranges from −1.0 to 1.0.

@@ -20,7 +20,7 @@ import android.support.annotation.NonNull;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * The replicator connection used by the application to tell the replicator to
  * consume the data received from the other peer or to close the connection.

@@ -71,7 +71,7 @@ public class MessageEndpointListener {
     private final MessageEndpointListenerConfiguration config;
 
     public MessageEndpointListener(@NonNull MessageEndpointListenerConfiguration config) {
-        Preconditions.checkArgNotNull(config, "config");
+        Preconditions.assertNotNull(config, "config");
         this.config = config;
     }
 
@@ -90,9 +90,7 @@ public class MessageEndpointListener {
      * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
-        Preconditions.checkArgNotNull(connection, "connection");
-
-        final MessageSocket socket = new MessageSocket(connection, config.getProtocolType());
+        Preconditions.assertNotNull(connection, "connection");
 
         final FLEncoder encoder = new FLEncoder();
         encoder.beginDict(1);
@@ -105,18 +103,17 @@ public class MessageEndpointListener {
         catch (LiteCoreException e) { Log.e(DOMAIN, "Failed to encode", e); }
         finally { encoder.free(); }
 
-        final C4ReplicatorListener statusListener = new ReplicatorListener();
-
+        final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
         C4Replicator replicator = null;
         C4ReplicatorStatus status;
         synchronized (config.getDatabase().getLock()) {
             try {
                 replicator = config.getDatabase().getC4Database().createReplicator(
-                    socket,
-                    C4ReplicatorMode.C4_PASSIVE,
-                    C4ReplicatorMode.C4_PASSIVE,
+                    new MessageSocket(connection, config.getProtocolType()),
+                    passiveMode,
+                    passiveMode,
                     options,
-                    statusListener,
+                    new ReplicatorListener(),
                     this);
                 replicator.start();
                 status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.CONNECTING);
@@ -139,7 +136,7 @@ public class MessageEndpointListener {
      * @param connection the connection to be closed
      */
     public void close(@NonNull MessageEndpointConnection connection) {
-        Preconditions.checkArgNotNull(connection, "connection");
+        Preconditions.assertNotNull(connection, "connection");
 
         synchronized (lock) {
             for (Map.Entry<C4Replicator, MessageEndpointConnection> entry : replicators.entrySet()) {
@@ -180,7 +177,7 @@ public class MessageEndpointListener {
      */
     @NonNull
     public ListenerToken addChangeListener(Executor queue, @NonNull MessageEndpointListenerChangeListener listener) {
-        Preconditions.checkArgNotNull(listener, "listener");
+        Preconditions.assertNotNull(listener, "listener");
         return changeNotifier.addChangeListener(queue, listener);
     }
 
@@ -190,7 +187,7 @@ public class MessageEndpointListener {
      * @param token identifier for the listener to be removed
      */
     public void removeChangeListener(@NonNull ListenerToken token) {
-        Preconditions.checkArgNotNull(token, "token");
+        Preconditions.assertNotNull(token, "token");
         changeNotifier.removeChangeListener(token);
     }
 

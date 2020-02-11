@@ -17,7 +17,7 @@
 package com.couchbase.lite;
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * The protocol type of the data transportation.
  */

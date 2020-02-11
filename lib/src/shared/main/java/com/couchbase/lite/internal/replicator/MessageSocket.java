@@ -98,7 +98,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     @Override
     public void receive(@NonNull Message message) {
         synchronized (this) {
-            Preconditions.checkArgNotNull(message, "message");
+            Preconditions.assertNotNull(message, "message");
 
             if (released() || closed) { return; }
             received(message.toData());

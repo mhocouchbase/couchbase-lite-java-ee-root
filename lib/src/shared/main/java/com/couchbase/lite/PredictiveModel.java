@@ -21,7 +21,7 @@ import android.support.annotation.NonNull;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/><br/>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * PredictiveModel protocol that allows to integrate machine learning model into
  * CouchbaseLite Query via invoking the Function.prediction() function.

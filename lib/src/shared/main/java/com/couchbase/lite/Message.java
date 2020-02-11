@@ -22,7 +22,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * A message sent between message endpoint connections.
  */
@@ -44,6 +44,7 @@ public class Message {
 
     // !!! FIXME: This method stores a mutable array as private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
+    @SuppressWarnings("PMD.ArrayIsStoredDirectly")
     Message(byte[] data) { this.data = data; }
 
     /**
@@ -54,6 +55,7 @@ public class Message {
      */
     // !!! FIXME: This method returns a writable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
+    @SuppressWarnings("PMD.MethodReturnsInternalArray")
     @NonNull
     public byte[] toData() { return this.data; }
 }

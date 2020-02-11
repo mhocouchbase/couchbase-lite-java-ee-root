@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit
 
 const val TEST_KEY = "test-key"
 
-@Ignore("NEW CORE")
+//@Ignore("NEW CORE")
 class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
     //    1. Create replicator config with pull only

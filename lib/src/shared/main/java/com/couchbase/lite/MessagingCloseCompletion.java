@@ -17,7 +17,7 @@
 package com.couchbase.lite;
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * The MessagingCompletion callback interface used for acknowledging
  * the completion of a messaging operation.

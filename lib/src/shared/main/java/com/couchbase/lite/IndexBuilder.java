@@ -29,7 +29,7 @@ import java.util.List;
 public final class IndexBuilder extends AbstractIndexBuilder {
 
     /**
-     * <b>ENTERPRISE EDITION API</b><br/><br/>
+     * <b>ENTERPRISE EDITION API</b><br><br>
      * <p>
      * Create a predictive index with the given predictive model name, input specification to
      * the predictive model, and the properties of the prediction result.

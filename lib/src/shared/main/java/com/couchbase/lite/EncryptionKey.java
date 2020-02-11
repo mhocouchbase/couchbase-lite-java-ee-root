@@ -24,7 +24,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * An encryption key for a database. This is a symmetric key that be kept secret.
  * It should be stored either in the Keychain, or in the user's memory (hopefully not a sticky note.)
@@ -40,7 +40,7 @@ public final class EncryptionKey {
      * @param key The raw AES-128 key data.
      */
     public EncryptionKey(@NonNull byte[] key) {
-        Preconditions.checkArgNotNull(key, "key");
+        Preconditions.assertNotNull(key, "key");
         if (key.length != C4Constants.EncryptionKeySize.AES256) {
             throw new IllegalArgumentException("Key size is invalid. Key must be a 256-bit (32-byte) key.");
         }
@@ -55,7 +55,7 @@ public final class EncryptionKey {
      * @param password The password string.
      */
     public EncryptionKey(@NonNull String password) {
-        Preconditions.checkArgNotNull(password, "password");
+        Preconditions.assertNotNull(password, "password");
 
         // This is wrong; can't change the API.
         final byte[] key;

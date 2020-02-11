@@ -18,13 +18,16 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/><br/>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * The predictive index used for querying with prediction function. The predictive index
  * is different from the normal index in that the predictive index will cache the prediction
@@ -35,37 +38,30 @@ import java.util.List;
  * the predictive result so that the predictive model will not be called again after indexing.
  */
 public class PredictiveIndex extends AbstractIndex {
+    @NonNull
+    private final String model;
+    @NonNull
+    private final Expression input;
+    @Nullable
+    private final List<String> properties;
 
-    private String model;
-
-    private Expression input;
-
-    private List<String> properties;
-
-    PredictiveIndex(@NonNull String model, @NonNull Expression input, List<String> properties) {
-        if (model == null) { throw new IllegalArgumentException("model cannot be null."); }
-        if (input == null) { throw new IllegalArgumentException("input cannot be null."); }
-
-        this.model = model;
-        this.input = input;
+    PredictiveIndex(@NonNull String model, @NonNull Expression input, @Nullable List<String> properties) {
+        this.model = Preconditions.assertNotNull(model, "model");
+        this.input = Preconditions.assertNotNull(input, "input");
         this.properties = properties;
     }
 
+    @NonNull
     @Override
-    IndexType type() {
-        return IndexType.Predictive;
-    }
+    IndexType type() { return IndexType.Predictive; }
 
     @Override
-    String language() {
-        return null;
-    }
+    String language() { return null; }
 
     @Override
-    boolean ignoreAccents() {
-        return false;
-    }
+    boolean ignoreAccents() { return false; }
 
+    @NonNull
     @Override
     List<Object> items() {
         final List<Object> items = new ArrayList<>();
@@ -74,13 +70,12 @@ public class PredictiveIndex extends AbstractIndex {
         items.add(input.asJSON());
 
         if (properties != null) {
-            for (String property : properties) {
-                items.add("." + property);
-            }
+            for (String property : properties) { items.add("." + property); }
         }
 
         final List<Object> json = new ArrayList<>();
         json.add(items);
+
         return json;
     }
 }

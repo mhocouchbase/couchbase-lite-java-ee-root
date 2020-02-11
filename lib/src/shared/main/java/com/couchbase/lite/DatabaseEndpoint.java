@@ -20,7 +20,7 @@ import android.support.annotation.NonNull;
 
 
 /**
- * <b>ENTERPRISE EDITION API</b><br/></br>
+ * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * Database based replication target endpoint.
  */
