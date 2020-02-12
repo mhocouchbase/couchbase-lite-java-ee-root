@@ -57,7 +57,7 @@ public final class Prediction {
                 final FLEncoder encoder = new FLEncoder();
                 try {
                     prediction.encodeTo(encoder);
-                    return encoder.finish2().managed(); // Will be freed by the native code.
+                    return encoder.managedFinish2(); // Will be freed by the native code.
                 }
                 catch (LiteCoreException e) {
                     Log.e(LogDomain.QUERY, "Error when encoding a predictive result", e);
@@ -66,7 +66,7 @@ public final class Prediction {
                     encoder.free();
                 }
             }
-            return new FLSliceResult().managed(); // Will be freed by the native code.
+            return new FLSliceResult(true); // Will be freed by the native code.
         }
     }
 
