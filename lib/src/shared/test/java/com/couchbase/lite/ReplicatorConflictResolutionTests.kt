@@ -21,7 +21,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
 import java.util.concurrent.BrokenBarrierException
@@ -56,6 +55,23 @@ private open class TestConflictResolver(private var resolver: (Conflict) -> Docu
 private object NullResolver : TestConflictResolver({ null })
 private object LocalResolver : TestConflictResolver({ conflict -> conflict.localDocument })
 private object RemoteResolver : TestConflictResolver({ conflict -> conflict.remoteDocument })
+
+fun CountDownLatch.stdWait(): Boolean {
+    try {
+        return this.await(2, TimeUnit.SECONDS)
+    } catch (ignore: InterruptedException) {
+    }
+    return false
+}
+
+fun CyclicBarrier.stdWait(): Boolean {
+    try {
+        this.await(2, TimeUnit.SECONDS)
+        return true
+    } catch (ignore: BrokenBarrierException) {
+    }
+    return false
+}
 
 class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
@@ -423,10 +439,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val pullConfig1 = pullConfig()
         pullConfig1.conflictResolver = TestConflictResolver { conflict ->
-            try {
-                barrier.await(10, TimeUnit.SECONDS)
-            } catch (ignore: BrokenBarrierException) {
-            }
+            barrier.stdWait()
             conflict.localDocument
         }
         val repl1 = Replicator(pullConfig1)
@@ -438,10 +451,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val pullConfig2 = pullConfig()
         pullConfig2.conflictResolver = TestConflictResolver { conflict ->
-            try {
-                barrier.await(10, TimeUnit.SECONDS)
-            } catch (ignore: BrokenBarrierException) {
-            }
+            barrier.stdWait()
             conflict.localDocument
         }
         val repl2 = Replicator(pullConfig1)
@@ -454,8 +464,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         repl1.start()
         repl2.start()
 
-        // ??? 30s seems like a long time but this test fails, occasionally, at 10s
-        assertTrue(latch.await(30, TimeUnit.SECONDS))
+        assertTrue(latch.stdWait())
 
         repl1.removeChangeListener(token1)
         repl2.removeChangeListener(token2)
@@ -1055,7 +1064,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val pullConfig1 = pullConfig(TestConflictResolver { conflict ->
             latch1.countDown()
-            latch2.await(10, TimeUnit.SECONDS)
+            assertTrue(latch2.stdWait())
             conflict.localDocument
         })
         val repl1 = Replicator(pullConfig1)
@@ -1067,7 +1076,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         var docRepl1: DocumentReplication? = null
         val token1e = repl1.addDocumentReplicationListener { repl -> docRepl1 = repl }
         repl1.start()
-        assertTrue(latch1.await(10, TimeUnit.SECONDS))
+        assertTrue(latch1.stdWait())
 
         // the first replicator is running but stuck.
 
@@ -1082,7 +1091,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val token2e = repl2.addDocumentReplicationListener { repl -> docRepl2 = repl }
         repl2.start()
 
-        assertTrue(latch3.await(10, TimeUnit.SECONDS))
+        assertTrue(latch3.stdWait())
         // the second replicator is complete.
         repl2.removeChangeListener(token2c)
         repl2.removeChangeListener(token2e)
@@ -1099,7 +1108,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         // restart the first replicator.
         latch2.countDown()
 
-        assertTrue(latch4.await(10, TimeUnit.SECONDS))
+        assertTrue(latch4.stdWait())
         // first replicator is complete
         repl1.removeChangeListener(token1c)
         repl1.removeChangeListener(token1e)
