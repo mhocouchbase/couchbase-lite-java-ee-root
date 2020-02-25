@@ -48,7 +48,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         if (seekrit != null) {
             try {
                 File dbDir = seekrit.getFilePath().getParentFile();
-                eraseDatabase(seekrit);
+                deleteDb(seekrit);
             }
             catch (CouchbaseLiteException e) {
                 Report.log(LogLevel.ERROR, "Failed to close seekrit DB", e);

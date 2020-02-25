@@ -19,7 +19,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
@@ -170,7 +169,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        changed.forEach { id -> db.getDocument(id).let { db.save(it.toMutable().setString(TEST_KEY, "quiche")) } }
+        changed.forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) } }
 
         validatePendingDocumentIds(changed)
     }
@@ -189,7 +188,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        deleted.forEach { id -> db.getDocument(id).let { db.delete(it) } }
+        deleted.forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.delete(it) } }
 
         validatePendingDocumentIds(deleted)
     }
@@ -207,7 +206,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        ids.drop(3).forEach { id -> db.getDocument(id).let { db.purge(it) } }
+        ids.drop(3).forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.purge(it) } }
 
         validatePendingDocumentIds(emptySet())
     }
@@ -237,7 +236,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        db.getDocument(id).let { db.save(it.toMutable().setString(TEST_KEY, "quiche")) }
+        baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
 
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
@@ -249,7 +248,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        db.getDocument(id).let { db.delete(it) }
+        baseTestDb.getDocument(id).let { baseTestDb.delete(it) }
 
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
@@ -266,7 +265,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        db.purge(id)
+        baseTestDb.purge(id)
 
         validateIsDocumentPending(emptySet(), setOf(id))
     }
@@ -311,7 +310,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         ids.map { MutableDocument(it) }
             .forEach {
                 it.setString(TEST_KEY, "souffle")
-                db.save(it)
+                baseTestDb.save(it)
             }
         return ids.toSet()
     }

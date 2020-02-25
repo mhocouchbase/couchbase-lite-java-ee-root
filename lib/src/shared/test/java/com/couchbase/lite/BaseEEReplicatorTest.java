@@ -57,7 +57,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
             return;
         }
 
-        try { eraseDatabase(otherDB); }
+        try { deleteDb(otherDB); }
         catch (CouchbaseLiteException e) {
             Report.log(LogLevel.ERROR, "Failed closing DB", e);
         }
@@ -95,7 +95,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
     }
 
     protected ReplicatorConfiguration makeConfig(boolean push, boolean pull, ConflictResolver resolver) {
-        return makeConfig(push, pull, false, db, new DatabaseEndpoint(otherDB), resolver);
+        return makeConfig(push, pull, false, baseTestDb, new DatabaseEndpoint(otherDB), resolver);
     }
 
     protected Replicator run(ReplicatorConfiguration config, int code, String domain) {
@@ -143,7 +143,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
 
         if (onReady != null) { onReady.accept(repl); }
 
-        ListenerToken token = repl.addChangeListener(executor, listener);
+        ListenerToken token = repl.addChangeListener(testSerialExecutor, listener);
         boolean success;
         try {
             repl.start();
@@ -177,7 +177,7 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
     void stopContinuousReplicator(Replicator repl) throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) { latch.countDown(); }
             });

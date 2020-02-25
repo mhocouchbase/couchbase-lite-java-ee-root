@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
 import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -179,10 +180,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         // Query before registering the model:
-        expectError("CouchbaseLite.SQLite", 1, q::execute);
+        TestUtils.assertThrowsCBL("CouchbaseLite.SQLite", 1, q::execute);
 
         AggregateModel aggregateModel = new AggregateModel();
         aggregateModel.registerModel();
@@ -196,7 +197,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
 
         // Query after unregistering the model:
-        expectError("CouchbaseLite.SQLite", 1, q::execute);
+        TestUtils.assertThrowsCBL("CouchbaseLite.SQLite", 1, q::execute);
     }
 
     @Test
@@ -211,7 +212,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
         int rows = verifyQuery(q, (n, result) -> {
             Dictionary pred = result.getDictionary(0);
             assertEquals(15, pred.getInt("sum"));
@@ -245,7 +246,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         MutableDocument doc = new MutableDocument();
         doc.setString("name", "Daniel");
         doc.setInt("number", 2);
-        db.save(doc);
+        baseTestDb.save(doc);
 
         // Create a prediction function input:
         Date date = new Date();
@@ -286,7 +287,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -335,7 +336,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         for (String text : texts) {
             MutableDocument doc = new MutableDocument();
             doc.setBlob("text", new Blob("text/plain", text.getBytes()));
-            db.save(doc);
+            baseTestDb.save(doc);
         }
 
         TextModel textModel = new TextModel();
@@ -349,7 +350,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.property("text"),
                 SelectResult.expression(prediction.propertyPath("wc")).as("wc"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("wc").greaterThan(Expression.value(15)));
 
         int rows = verifyQuery(q, new QueryResult() {
@@ -368,7 +369,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
     @Test
     public void testPredictionWithBlobParameterInput() throws Exception {
-        db.save(new MutableDocument());
+        baseTestDb.save(new MutableDocument());
 
         TextModel textModel = new TextModel();
         textModel.registerModel();
@@ -381,7 +382,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.property("text"),
                 SelectResult.expression(prediction.propertyPath("wc")).as("wc"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         Parameters params = new Parameters();
         String text = "Knox on fox in socks in box. Socks on Knox and Knox in box";
@@ -411,9 +412,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
-        expectError("CouchbaseLite.SQLite", 1, q::execute);
+        TestUtils.assertThrowsCBL("CouchbaseLite.SQLite", 1, q::execute);
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("key", this);
@@ -422,7 +423,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q2 = QueryBuilder
             .select(SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         try {
             q2.execute();
@@ -447,7 +448,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q = QueryBuilder
             .select(SelectResult.property("numbers"), SelectResult.expression(prediction))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -487,7 +488,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.expression(prediction.propertyPath("min")).as("min"),
                 SelectResult.expression(prediction.propertyPath("max")).as("max"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -537,7 +538,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.expression(prediction.propertyPath("min")).as("min"),
                 SelectResult.expression(prediction.propertyPath("max")).as("max"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         int rows = verifyQuery(q, new QueryResult() {
@@ -573,7 +574,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction.propertyPath("sum")).as("sum"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").greaterThan(Expression.value(1)))
             .orderBy(Ordering.expression(prediction.propertyPath("sum")).descending());
 
@@ -596,7 +597,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         MutableDocument doc = new MutableDocument();
         doc.setString("text", "Knox on fox in socks in box. Socks on Knox and Knox in box.");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         AggregateModel aggregateModel = new AggregateModel();
         aggregateModel.registerModel();
@@ -609,7 +610,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(prediction),
                 SelectResult.expression(prediction.propertyPath("sum")))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -632,7 +633,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(prediction),
                 SelectResult.expression(prediction.propertyPath("sum")))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.notNullOrMissing());
 
         rows = verifyQuery(q2, new QueryResult() {
@@ -661,11 +662,11 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         Index index = IndexBuilder.valueIndex(ValueIndexItem.expression(
             prediction.propertyPath("sum")));
-        db.createIndex("SumIndex", index);
+        baseTestDb.createIndex("SumIndex", index);
 
         final Query q = QueryBuilder
             .select(SelectResult.expression(prediction.propertyPath("sum")).as("sum"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         String explain = q.explain();
@@ -696,16 +697,16 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
 
         Index sumIndex = IndexBuilder.valueIndex(ValueIndexItem.expression(prediction.propertyPath("sum")));
-        db.createIndex("SumIndex", sumIndex);
+        baseTestDb.createIndex("SumIndex", sumIndex);
 
         Index avgIndex = IndexBuilder.valueIndex(ValueIndexItem.expression(prediction.propertyPath("avg")));
-        db.createIndex("AvgIndex", avgIndex);
+        baseTestDb.createIndex("AvgIndex", avgIndex);
 
         final Query q = QueryBuilder
             .select(
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").lessThanOrEqualTo(Expression.value(15))
                 .or(prediction.propertyPath("avg").equalTo(Expression.value(8))));
 
@@ -738,7 +739,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         Index index = IndexBuilder.valueIndex(
             ValueIndexItem.expression(prediction.propertyPath("sum")),
             ValueIndexItem.expression(prediction.propertyPath("avg")));
-        db.createIndex("SumAvgIndex", index);
+        baseTestDb.createIndex("SumAvgIndex", index);
 
         aggregateModel.setAllowCalls(false);
 
@@ -746,7 +747,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)).and(
                 prediction.propertyPath("avg").equalTo(Expression.value(3))));
 
@@ -779,7 +780,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
 
         Index index = IndexBuilder.predictiveIndex(model, input, null);
-        db.createIndex("AggIndex", index);
+        baseTestDb.createIndex("AggIndex", index);
 
         aggregateModel.setAllowCalls(false);
 
@@ -787,7 +788,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.property("numbers"),
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         String explain = q.explain();
@@ -822,7 +823,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
 
         Index index = IndexBuilder.predictiveIndex(model, input, Arrays.asList("sum"));
-        db.createIndex("SumIndex", index);
+        baseTestDb.createIndex("SumIndex", index);
 
         aggregateModel.setAllowCalls(false);
 
@@ -830,7 +831,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.property("numbers"),
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         String explain = q.explain();
@@ -862,10 +863,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
 
         Index sumIndex = IndexBuilder.predictiveIndex(model, input, Arrays.asList("sum"));
-        db.createIndex("SumIndex", sumIndex);
+        baseTestDb.createIndex("SumIndex", sumIndex);
 
         Index avgIndex = IndexBuilder.predictiveIndex(model, input, Arrays.asList("avg"));
-        db.createIndex("AvgIndex", avgIndex);
+        baseTestDb.createIndex("AvgIndex", avgIndex);
 
         aggregateModel.setAllowCalls(false);
 
@@ -873,7 +874,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").lessThanOrEqualTo(Expression.value(15)).or(
                 prediction.propertyPath("avg").equalTo(Expression.value(8))));
 
@@ -907,7 +908,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         PredictionFunction prediction = Function.prediction(model, input);
 
         Index index = IndexBuilder.predictiveIndex(model, input, Arrays.asList("sum", "avg"));
-        db.createIndex("SumAvgIndex", index);
+        baseTestDb.createIndex("SumAvgIndex", index);
 
         aggregateModel.setAllowCalls(false);
 
@@ -915,7 +916,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(prediction.propertyPath("sum")).as("sum"),
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)).and(
                 prediction.propertyPath("avg").equalTo(Expression.value(3))));
 
@@ -951,14 +952,14 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         // Index:
         Index index = IndexBuilder.predictiveIndex(model, input, Arrays.asList("sum"));
-        db.createIndex("SumIndex", index);
+        baseTestDb.createIndex("SumIndex", index);
 
         aggregateModel.setAllowCalls(false);
 
         // Query with index:
         final Query q = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         String explain = q.explain();
@@ -976,13 +977,13 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
         // Delete SumIndex:
-        db.deleteIndex("SumIndex");
+        baseTestDb.deleteIndex("SumIndex");
 
         // Query again:
         aggregateModel.reset();
         final Query q2 = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         explain = q2.explain();
@@ -1018,20 +1019,20 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         // Create agg index:
         Index aggIndex = IndexBuilder.predictiveIndex(model, input, null);
-        db.createIndex("AggIndex", aggIndex);
+        baseTestDb.createIndex("AggIndex", aggIndex);
 
         // Create sum index:
         Index sumIndex = IndexBuilder.predictiveIndex(model, input, Arrays.asList("sum"));
-        db.createIndex("SumIndex", sumIndex);
+        baseTestDb.createIndex("SumIndex", sumIndex);
 
         // Create avg index:
         Index avgIndex = IndexBuilder.predictiveIndex(model, input, Arrays.asList("avg"));
-        db.createIndex("AvgIndex", avgIndex);
+        baseTestDb.createIndex("AvgIndex", avgIndex);
 
         // Query:
         final Query q = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").lessThanOrEqualTo(Expression.value(15)).or(
                 prediction.propertyPath("avg").equalTo(Expression.value(8))));
 
@@ -1051,7 +1052,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
         // Delete SumIndex:
-        db.deleteIndex("SumIndex");
+        baseTestDb.deleteIndex("SumIndex");
 
         // Note: when having only one index, SQLite optimizer doesn't utilize the index
         //       when using OR expr. Hence explicity test each index with two queries:
@@ -1060,7 +1061,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q2 = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
         explain = q2.explain();
@@ -1084,7 +1085,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         final Query q3 = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("avg").equalTo(Expression.value(8)));
 
         explain = q3.explain();
@@ -1103,14 +1104,14 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertEquals(0, aggregateModel.getNumberOfCalls());
 
         // Delete AvgIndex
-        db.deleteIndex("AvgIndex");
+        baseTestDb.deleteIndex("AvgIndex");
 
         aggregateModel.reset();
         aggregateModel.setAllowCalls(false);
 
         final Query q4 = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("avg").equalTo(Expression.value(8)));
 
         explain = q4.explain();
@@ -1131,13 +1132,13 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertEquals(0, aggregateModel.getNumberOfCalls());
 
         // Delete AggIndex
-        db.deleteIndex("AggIndex");
+        baseTestDb.deleteIndex("AggIndex");
 
         aggregateModel.reset();
 
         final Query q5 = QueryBuilder
             .select(SelectResult.property("numbers"))
-            .from(DataSource.database(db))
+            .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").lessThanOrEqualTo(Expression.value(15)).or(
                 prediction.propertyPath("avg").equalTo(Expression.value(8))));
 
@@ -1174,7 +1175,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
             doc.setValue("distance", test[2]);
-            db.save(doc);
+            baseTestDb.save(doc);
         }
 
         Expression distance = Function.euclideanDistance(
@@ -1185,7 +1186,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(distance),
                 SelectResult.property("distance"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -1213,7 +1214,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
             doc.setValue("distance", test[2]);
-            db.save(doc);
+            baseTestDb.save(doc);
         }
 
         Expression distance = Function.squaredEuclideanDistance(
@@ -1224,7 +1225,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(distance),
                 SelectResult.property("distance"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -1253,7 +1254,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
             doc.setValue("distance", test[2]);
-            db.save(doc);
+            baseTestDb.save(doc);
         }
 
         Expression distance = Function.cosineDistance(
@@ -1264,7 +1265,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(
                 SelectResult.expression(distance),
                 SelectResult.property("distance"))
-            .from(DataSource.database(db));
+            .from(DataSource.database(baseTestDb));
 
         int rows = verifyQuery(q, new QueryResult() {
             @Override
@@ -1284,7 +1285,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             list.add(n);
         }
         doc.setArray("numbers", new MutableArray(list));
-        db.save(doc);
+        baseTestDb.save(doc);
         return doc;
     }
 }

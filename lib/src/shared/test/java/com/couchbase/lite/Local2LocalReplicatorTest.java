@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -94,8 +93,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertTrue(docIds.contains(doc2.getId()));
         assertTrue(revIds.contains(doc2.getRevisionID()));
 
-        assertNotNull(db.getDocument("doc1"));
-        assertNotNull(db.getDocument("doc2"));
+        assertNotNull(baseTestDb.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc2"));
 
         Map<String, Object> data = new HashMap<>();
         data.put("_removed", true);
@@ -109,9 +108,9 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         run(config, 0, null);
 
         // because doc1's removal should be rejected
-        assertNotNull(db.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc1"));
         // because the next document's removal is not rejected
-        assertNull(db.getDocument("doc2"));
+        assertNull(baseTestDb.getDocument("doc2"));
     }
 
     @Test
@@ -122,7 +121,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         // Add a document to db database so that it can pull the deleted docs from
         MutableDocument doc0 = new MutableDocument("doc0");
         doc0.setString("species", "Cat");
-        db.save(doc0);
+        baseTestDb.save(doc0);
 
         // Create documents
         final Blob blob = new Blob("text/plain", "I'm a tiger.".getBytes(StandardCharsets.UTF_8));
@@ -178,8 +177,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertTrue(revIds.contains(doc2.getRevisionID()));
 
         // Check replicated documents
-        assertNotNull(db.getDocument("doc1"));
-        assertNotNull(db.getDocument("doc2"));
+        assertNotNull(baseTestDb.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc2"));
 
         //this action will be rejected
         otherDB.delete(doc2);
@@ -190,8 +189,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         run(config, 0, null);
 
         // Check documents
-        assertNull(db.getDocument("doc1"));
-        assertNotNull(db.getDocument("doc2"));
+        assertNull(baseTestDb.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
     @Test
@@ -208,19 +207,19 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         doc1.setString("species", "Tiger");
         doc1.setString("pattern", "Hobbes");
         doc1.setBlob("photo", blob);
-        db.save(doc1);
+        baseTestDb.save(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "Striped");
         doc2.setBlob("photo", blob);
-        db.save(doc2);
+        baseTestDb.save(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setString("species", "Tiger");
         doc3.setString("pattern", "None");
         doc3.setBlob("photo", blob);
-        db.save(doc3);
+        baseTestDb.save(doc3);
 
         // Create replicator with push filter
         ReplicatorConfiguration config = makeConfig(true, false, false);
@@ -269,10 +268,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertNotNull(otherDB.getDocument("doc3"));
 
         // Delete doc1
-        db.delete(doc1);
+        baseTestDb.delete(doc1);
 
         // Delete doc3 (Will be rejected by the filter)
-        db.delete(doc3);
+        baseTestDb.delete(doc3);
 
         // Reset docIds
         docIds.clear();
@@ -316,8 +315,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testPushDoc() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -358,7 +357,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             stopContinuousReplicator(repl);
         }
         finally {
-            eraseDatabase(anotherDB);
+            deleteDb(anotherDB);
         }
     }
 
@@ -369,8 +368,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testPullDoc() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -379,8 +378,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         run(makeConfig(false, true, false), 0, null);
 
-        assertEquals(2, db.getCount());
-        Document doc2a = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document doc2a = baseTestDb.getDocument("doc2");
         assertEquals("Cat", doc2a.getString("name"));
     }
 
@@ -414,7 +413,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             stopContinuousReplicator(repl);
         }
         finally {
-            eraseDatabase(anotherDB);
+            deleteDb(anotherDB);
         }
     }
 
@@ -422,11 +421,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testPullConflict() throws CouchbaseLiteException {
         MutableDocument mDoc1 = new MutableDocument("doc");
         mDoc1.setValue("species", "Tiger");
-        Document doc1 = save(mDoc1);
+        Document doc1 = saveDocInBaseTestDb(mDoc1);
         mDoc1 = doc1.toMutable();
         mDoc1.setValue("name", "Hobbes");
-        doc1 = save(mDoc1);
-        assertEquals(1, db.getCount());
+        doc1 = saveDocInBaseTestDb(mDoc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument mDoc2 = new MutableDocument("doc");
         mDoc2.setValue("species", "Tiger");
@@ -439,13 +438,13 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertEquals(1, otherDB.getCount());
 
         run(makeConfig(false, true, false), 0, null);
-        assertEquals(1, db.getCount());
+        assertEquals(1, baseTestDb.getCount());
 
         String revId1 = doc1.getRevisionID();
         assertNotNull(revId1);
         String revId2 = doc2.getRevisionID();
         assertNotNull(revId2);
-        Document doc1a = db.getDocument("doc");
+        Document doc1a = baseTestDb.getDocument("doc");
         if (revId1.compareTo(revId2) > 0) { assertEquals(doc1.toMap(), doc1a.toMap()); }
         else { assertEquals(doc2.toMap(), doc1a.toMap()); }
     }
@@ -455,7 +454,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Replicator r = new Replicator(makeConfig(true, true, true, otherDB));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = r.addChangeListener(executor, change -> {
+        ListenerToken token = r.addChangeListener(testSerialExecutor, change -> {
             if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
                 Report.log(LogLevel.INFO, "*****Replicator stopped");
                 latch.countDown();
@@ -481,17 +480,17 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testDocIDFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
-        Document saved1 = save(doc1);
+        Document saved1 = saveDocInBaseTestDb(doc1);
         doc1 = saved1.toMutable();
         doc1.setString("name", "Hobbes");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
-        Document saved2 = save(doc2);
+        Document saved2 = saveDocInBaseTestDb(doc2);
         doc2 = saved2.toMutable();
         doc2.setString("pattern", "striped");
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setString("species", "Tiger");
@@ -514,8 +513,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         ReplicatorConfiguration config = makeConfig(true, true, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
         run(config, 0, null);
-        assertEquals(3, db.getCount());
-        assertNotNull(db.getDocument("doc3"));
+        assertEquals(3, baseTestDb.getCount());
+        assertNotNull(baseTestDb.getDocument("doc3"));
         assertEquals(3, otherDB.getCount());
         assertNotNull(otherDB.getDocument("doc1"));
     }
@@ -524,7 +523,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testModifyingDocInFilterForbidden() throws CouchbaseLiteException, InterruptedException {
         MutableDocument doc0 = new MutableDocument("doc0");
         doc0.setString("species", "Cat");
-        db.save(doc0);
+        baseTestDb.save(doc0);
 
         boolean[] gotException = new boolean[1];
         ReplicatorConfiguration config = makeConfig(true, false, false);
@@ -536,7 +535,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         repl = new Replicator(config);
-        ListenerToken token = repl.addChangeListener(executor, change -> {
+        ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> {
             if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
                 latch.countDown();
             }
@@ -567,7 +566,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             Thread.sleep(500);
         }
 
-        try { db.close(); }
+        try { baseTestDb.close(); }
         catch (CouchbaseLiteException e) {
             assertEquals(CBLError.Domain.CBLITE, e.getDomain());
             assertEquals(CBLError.Code.BUSY, e.getCode());
@@ -615,7 +614,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertNotNull(blob1a);
         }
         finally {
-            eraseDatabase(anotherDB);
+            deleteDb(anotherDB);
         }
     }
 
@@ -648,7 +647,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertNotNull(blob1a);
         }
         finally {
-            eraseDatabase(anotherDB);
+            deleteDb(anotherDB);
         }
     }
 
@@ -660,12 +659,12 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
         doc1.setString("name", "Hobbes");
-        db.save(doc1);
+        baseTestDb.save(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "striped");
-        db.save(doc2);
+        baseTestDb.save(doc2);
 
         // push
         ReplicatorConfiguration config = makeConfig(true, false, false);
@@ -675,25 +674,25 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         config = makeConfig(false, true, false);
         run(config, 0, null);
 
-        assertEquals(2L, db.getCount());
+        assertEquals(2L, baseTestDb.getCount());
         assertEquals(2L, otherDB.getCount());
 
-        Document doc = db.getDocument("doc1");
-        db.purge(doc);
+        Document doc = baseTestDb.getDocument("doc1");
+        baseTestDb.purge(doc);
 
-        doc = db.getDocument("doc2");
-        db.purge(doc);
+        doc = baseTestDb.getDocument("doc2");
+        baseTestDb.purge(doc);
 
         // "because the documents were purged"
-        assertEquals(0L, db.getCount());
+        assertEquals(0L, baseTestDb.getCount());
         run(config, 0, null);
 
         // "because the documents were purged and the replicator is already past them"
-        assertEquals(0L, db.getCount());
+        assertEquals(0L, baseTestDb.getCount());
         run(config, 0, null, false, true, null);
 
         // "because the replicator was reset"
-        assertEquals(2L, db.getCount());
+        assertEquals(2L, baseTestDb.getCount());
     }
 
     @Test
@@ -701,12 +700,12 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setInt("answer", 42);
         doc1.setString("expired", "string");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setInt("answer", 42);
         doc2.setString("pushDoc", "string");
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setInt("answer", 42);
@@ -722,10 +721,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Date nowPlusHalfSec = new Date(now + 500);
         Date nowPlusTenSecs = new Date(now + (5 * 1000));
 
-        db.setDocumentExpiration("doc1", nowPlusHalfSec);
+        baseTestDb.setDocumentExpiration("doc1", nowPlusHalfSec);
         otherDB.setDocumentExpiration("doc3", nowPlusHalfSec);
 
-        db.setDocumentExpiration("doc2", nowPlusTenSecs);
+        baseTestDb.setDocumentExpiration("doc2", nowPlusTenSecs);
         otherDB.setDocumentExpiration("doc4", nowPlusTenSecs);
 
         Thread.sleep(1000);
@@ -739,9 +738,9 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         run(config, 0, null);
 
         assertNull(otherDB.getDocument("doc1")); // expired; not copied
-        assertNull(db.getDocument("doc3")); // expired; not copied
+        assertNull(baseTestDb.getDocument("doc3")); // expired; not copied
 
-        assertEquals(db.getDocument("doc4").getString("pullDoc"), "string");
+        assertEquals(baseTestDb.getDocument("doc4").getString("pullDoc"), "string");
         assertEquals(otherDB.getDocument("doc2").getString("pushDoc"), "string");
     }
 
@@ -751,13 +750,13 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("name", "Tiger");
-        db.save(doc1);
-        db.purge(doc1);
+        baseTestDb.save(doc1);
+        baseTestDb.purge(doc1);
 
         repl = new Replicator(makeConfig(true, false, false, otherDB));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken documentToken = repl.addDocumentReplicationListener(executor, replicationEvents::add);
+        ListenerToken documentToken = repl.addDocumentReplicationListener(testSerialExecutor, replicationEvents::add);
         ListenerToken changeToken = repl.addChangeListener(change -> {
             if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
                 latch.countDown();
@@ -778,7 +777,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         int eventCount = replicationEvents.size();
         assertEquals(eventCount, 0);
 
-        assertNull(db.getDocument("doc1"));
+        assertNull(baseTestDb.getDocument("doc1"));
         assertNull(otherDB.getDocument("doc1"));
     }
 
@@ -787,12 +786,12 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
         doc1.setString("pattern", "Hobbes");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         final MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "Striped");
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         final Map<String, ReplicatedDocument> docs = new HashMap<>();
         final boolean[] isPush = new boolean[1];
@@ -846,7 +845,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setString("species", "Tiger");
         doc3.setString("pattern", "Star");
-        db.save(doc3);
+        baseTestDb.save(doc3);
 
         final CountDownLatch latch2 = new CountDownLatch(1);
         token = repl.addDocumentReplicationListener(update -> {
@@ -882,7 +881,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc4 = new MutableDocument("doc4");
         doc4.setString("species", "Tiger");
         doc4.setString("pattern", "WhiteStriped");
-        db.save(doc4);
+        baseTestDb.save(doc4);
 
         final CountDownLatch latch3 = new CountDownLatch(1);
         token = repl.addChangeListener(change -> {
@@ -910,7 +909,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setValue("species", "Tiger");
         doc1a.setString("pattern", "Star");
-        save(doc1a);
+        saveDocInBaseTestDb(doc1a);
 
         MutableDocument doc1b = new MutableDocument("doc1");
         doc1b.setValue("species", "Tiger");
@@ -921,7 +920,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = repl.addDocumentReplicationListener(
-            executor,
+            testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
                     docs.add(d);
@@ -951,7 +950,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc1a = new MutableDocument("doc1");
         doc1a.setString("species", "Tiger");
         doc1a.setString("pattern", "start");
-        db.save(doc1a);
+        baseTestDb.save(doc1a);
 
         MutableDocument doc2 = new MutableDocument("doc1");
         doc2.setString("species", "Tiger");
@@ -963,7 +962,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = repl.addDocumentReplicationListener(
-            executor,
+            testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
                     docs.add(d);
@@ -995,14 +994,14 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
         doc1.setString("pattern", "Star");
-        db.save(doc1);
-        db.delete(doc1);
+        baseTestDb.save(doc1);
+        baseTestDb.delete(doc1);
 
         repl = new Replicator(makeConfig(true, false, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = repl.addDocumentReplicationListener(
-            executor,
+            testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
                     docs.add(d);
@@ -1039,20 +1038,20 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         doc1.setString("species", "Tiger");
         doc1.setString("pattern", "Hobbes");
         doc1.setBlob("photo", blob);
-        db.save(doc1);
+        baseTestDb.save(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "Striped");
         doc2.setBlob("photo", blob);
-        db.save(doc2);
+        baseTestDb.save(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setString("species", "Tiger");
         doc3.setString("pattern", "Star");
         doc3.setBlob("photo", blob);
-        db.save(doc3);
-        db.delete(doc3);
+        baseTestDb.save(doc3);
+        baseTestDb.delete(doc3);
 
         // Create replicator with push filter
         ReplicatorConfiguration config = makeConfig(true, false, continuous);
@@ -1108,7 +1107,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         // Add a document to db database so that it can pull the deleted docs from
         MutableDocument doc0 = new MutableDocument("doc0");
         doc0.setString("species", "Cat");
-        db.save(doc0);
+        baseTestDb.save(doc0);
 
         // Create documents
         final String content = "I'm a tiger.";
@@ -1165,7 +1164,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final CountDownLatch doneLatch = new CountDownLatch(1);
         final CountDownLatch stoppedLatch = new CountDownLatch(1);
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             new ReplicatorChangeListener() {
                 boolean started;
 
@@ -1204,9 +1203,9 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertTrue(revIds.contains(doc3.getRevisionID()));
 
             // Check replicated documents
-            assertNotNull(db.getDocument("doc1"));
-            assertNull(db.getDocument("doc2"));
-            assertNull(db.getDocument("doc3"));
+            assertNotNull(baseTestDb.getDocument("doc1"));
+            assertNull(baseTestDb.getDocument("doc2"));
+            assertNull(baseTestDb.getDocument("doc3"));
 
             repl.stop();
             assertTrue(stoppedLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
@@ -1222,7 +1221,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         boolean pull,
         boolean continuous,
         Database targetDatabase) {
-        return makeConfig(push, pull, continuous, this.db, new DatabaseEndpoint(targetDatabase));
+        return makeConfig(push, pull, continuous, this.baseTestDb, new DatabaseEndpoint(targetDatabase));
     }
 
     private ReplicatorConfiguration makeConfig(boolean push, boolean pull, boolean continuous) {

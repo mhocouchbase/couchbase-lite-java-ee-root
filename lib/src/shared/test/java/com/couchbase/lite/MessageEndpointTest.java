@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -28,7 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class MessageEndpointTest extends BaseTest {
+public class MessageEndpointTest extends BaseDbTest {
     private static final long LONG_DELAY_SEC = 10;
     private static final long SHORT_DELAY_MS = 100;
     private static final String OTHER_DATABASE_NAME = "otherdb";
@@ -358,7 +357,7 @@ public class MessageEndpointTest extends BaseTest {
             return;
         }
 
-        try { eraseDatabase(otherDB); }
+        try { deleteDb(otherDB); }
         catch (CouchbaseLiteException e) {
             throw new RuntimeException("Failed closing and deleting db: " + OTHER_DATABASE_NAME, e);
         }
@@ -371,8 +370,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushDocWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -395,8 +394,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushDocWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -419,8 +418,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushDocContinuousWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -443,8 +442,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushDocContinuousWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -467,8 +466,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPullDocWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -482,8 +481,8 @@ public class MessageEndpointTest extends BaseTest {
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         run(config, 0, null);
 
-        assertEquals(2, db.getCount());
-        Document savedDoc = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc.getString("name"));
     }
 
@@ -491,8 +490,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPullDocWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -506,8 +505,8 @@ public class MessageEndpointTest extends BaseTest {
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         run(config, 0, null);
 
-        assertEquals(2, db.getCount());
-        Document savedDoc = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc.getString("name"));
     }
 
@@ -515,8 +514,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPullDocContinuousWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -530,8 +529,8 @@ public class MessageEndpointTest extends BaseTest {
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
         run(config, 0, null);
 
-        assertEquals(2, db.getCount());
-        Document savedDoc = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc.getString("name"));
     }
 
@@ -539,8 +538,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPullDocContinuousWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -554,8 +553,8 @@ public class MessageEndpointTest extends BaseTest {
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
         run(config, 0, null);
 
-        assertEquals(2, db.getCount());
-        Document savedDoc = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc.getString("name"));
     }
 
@@ -563,8 +562,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushPullDocWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -582,8 +581,8 @@ public class MessageEndpointTest extends BaseTest {
         Document savedDoc1 = otherDB.getDocument("doc1");
         assertEquals("Tiger", savedDoc1.getString("name"));
 
-        assertEquals(2, db.getCount());
-        Document savedDoc2 = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc2 = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc2.getString("name"));
     }
 
@@ -591,8 +590,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushPullDocWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -610,8 +609,8 @@ public class MessageEndpointTest extends BaseTest {
         Document savedDoc1 = otherDB.getDocument("doc1");
         assertEquals("Tiger", savedDoc1.getString("name"));
 
-        assertEquals(2, db.getCount());
-        Document savedDoc2 = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc2 = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc2.getString("name"));
     }
 
@@ -619,8 +618,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushPullDocContinuousWithMessage() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -641,8 +640,8 @@ public class MessageEndpointTest extends BaseTest {
         Document savedDoc1 = otherDB.getDocument("doc1");
         assertEquals("Tiger", savedDoc1.getString("name"));
 
-        assertEquals(2, db.getCount());
-        Document savedDoc2 = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc2 = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc2.getString("name"));
     }
 
@@ -650,8 +649,8 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushPullDocContinuousWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
-        save(doc1);
-        assertEquals(1, db.getCount());
+        saveDocInBaseTestDb(doc1);
+        assertEquals(1, baseTestDb.getCount());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "Cat");
@@ -669,8 +668,8 @@ public class MessageEndpointTest extends BaseTest {
         Document savedDoc1 = otherDB.getDocument("doc1");
         assertEquals("Tiger", savedDoc1.getString("name"));
 
-        assertEquals(2, db.getCount());
-        Document savedDoc2 = db.getDocument("doc2");
+        assertEquals(2, baseTestDb.getCount());
+        Document savedDoc2 = baseTestDb.getDocument("doc2");
         assertEquals("Cat", savedDoc2.getString("name"));
     }
 
@@ -711,7 +710,7 @@ public class MessageEndpointTest extends BaseTest {
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
         ReplicatorConfiguration config = new ReplicatorConfiguration(
-            db,
+            baseTestDb,
             new MessageEndpoint(
                 "p2ptest1",
                 serverConnection,
@@ -754,19 +753,19 @@ public class MessageEndpointTest extends BaseTest {
     public void testP2PPassiveCloseAll() throws InterruptedException, CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("test");
         doc.setString("name", "smokey");
-        db.save(doc);
+        baseTestDb.save(doc);
 
         final MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
         final MockServerConnection serverConnection1 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
-        final ReplicatorConfiguration config1 = new ReplicatorConfiguration(db, new MessageEndpoint(
+        final ReplicatorConfiguration config1 = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
             "p2ptest1", serverConnection1, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
         config1.setContinuous(true);
         final Replicator replicator1 = new Replicator(config1);
 
         final MockServerConnection serverConnection2 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
-        final ReplicatorConfiguration config2 = new ReplicatorConfiguration(db, new MessageEndpoint(
+        final ReplicatorConfiguration config2 = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
             "p2ptest2", serverConnection2, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
         config2.setContinuous(true);
         final Replicator replicator2 = new Replicator(config2);
@@ -843,7 +842,7 @@ public class MessageEndpointTest extends BaseTest {
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(db, new MessageEndpoint(
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
             "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
         config.setContinuous(true);
 
@@ -862,7 +861,7 @@ public class MessageEndpointTest extends BaseTest {
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
         MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(db, new MessageEndpoint(
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
             "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
         config.setContinuous(true);
 
@@ -879,15 +878,15 @@ public class MessageEndpointTest extends BaseTest {
     public void testPushWithDocIDsFilter() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "doc1");
-        save(doc1);
+        saveDocInBaseTestDb(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "doc2");
-        save(doc2);
+        saveDocInBaseTestDb(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setValue("name", "doc3");
-        save(doc3);
+        saveDocInBaseTestDb(doc3);
 
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
@@ -925,21 +924,21 @@ public class MessageEndpointTest extends BaseTest {
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
         run(config, 0, null);
 
-        assertEquals(2, db.getCount());
-        assertNotNull(db.getDocument("doc1"));
-        assertNotNull(db.getDocument("doc3"));
-        assertNull(db.getDocument("doc2"));
+        assertEquals(2, baseTestDb.getCount());
+        assertNotNull(baseTestDb.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc3"));
+        assertNull(baseTestDb.getDocument("doc2"));
     }
 
     @Test
     public void testPushPullWithDocIDsFilter() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "doc1");
-        db.save(doc1);
+        baseTestDb.save(doc1);
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setValue("name", "doc2");
-        db.save(doc2);
+        baseTestDb.save(doc2);
 
         MutableDocument doc3 = new MutableDocument("doc3");
         doc3.setValue("name", "doc3");
@@ -957,11 +956,11 @@ public class MessageEndpointTest extends BaseTest {
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
         run(config, 0, null);
 
-        assertEquals(3, db.getCount());
-        assertNotNull(db.getDocument("doc1"));
-        assertNotNull(db.getDocument("doc2"));
-        assertNotNull(db.getDocument("doc4"));
-        assertNull(db.getDocument("doc3"));
+        assertEquals(3, baseTestDb.getCount());
+        assertNotNull(baseTestDb.getDocument("doc1"));
+        assertNotNull(baseTestDb.getDocument("doc2"));
+        assertNotNull(baseTestDb.getDocument("doc4"));
+        assertNull(baseTestDb.getDocument("doc3"));
 
         assertEquals(3, otherDB.getCount());
         assertNotNull(otherDB.getDocument("doc1"));
@@ -974,7 +973,7 @@ public class MessageEndpointTest extends BaseTest {
         ReplicatorConfiguration.ReplicatorType type,
         boolean continuous,
         Endpoint target) {
-        ReplicatorConfiguration config = new ReplicatorConfiguration(db, target);
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, target);
         config.setReplicatorType(type);
         config.setContinuous(continuous);
         return config;
@@ -990,7 +989,7 @@ public class MessageEndpointTest extends BaseTest {
 
         final AssertionError[] fail = new AssertionError[1];
         ListenerToken token = repl.addChangeListener(
-            executor,
+            testSerialExecutor,
             change -> {
                 // Verify change status:
                  try { verifyChangeStatus(change, code, domain); }
@@ -1061,7 +1060,7 @@ public class MessageEndpointTest extends BaseTest {
 
         MockServerConnection server = new MockServerConnection(otherDB, protocolType);
         ReplicatorConfiguration config = new ReplicatorConfiguration(
-            db,
+            baseTestDb,
             new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)));
         config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
         return config;
@@ -1070,7 +1069,7 @@ public class MessageEndpointTest extends BaseTest {
     private void testP2PError(MockConnectionLifecycleLocation location, boolean recoverable) throws Exception {
         MutableDocument mdoc = new MutableDocument("livesindb");
         mdoc.setString("name", "db");
-        db.save(mdoc);
+        baseTestDb.save(mdoc);
 
         String expectedDomain = recoverable ? null : CBLError.Domain.CBLITE;
         int expectedCode = recoverable ? 0 : CBLError.Code.WEB_SOCKET_CLOSE_USER_PERMANENT;
