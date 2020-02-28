@@ -55,7 +55,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final Set<String> revIds = new HashSet<>();
 
         // Make a blob
-        final Blob blob = new Blob("text/plain", "I'm a tiger.".getBytes(StandardCharsets.UTF_8));
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         // Create identical documents
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -124,7 +124,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc0);
 
         // Create documents
-        final Blob blob = new Blob("text/plain", "I'm a tiger.".getBytes(StandardCharsets.UTF_8));
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
@@ -199,9 +199,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final Set<String> revIds = new HashSet<>();
 
         // Create documents
-        final String content = "I'm a tiger.";
-        byte[] b = content.getBytes(StandardCharsets.UTF_8);
-        final Blob blob = new Blob("text/plain", b);
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
@@ -247,10 +245,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         });
 
         // Create replicator"
-        repl = new Replicator(config);
+        baseTestReplicator = new Replicator(config);
 
         // Run the replicator
-        run(repl, 0, null);
+        run(baseTestReplicator, 0, null);
 
         // Check documents passed to the filter
         assertEquals(3, docIds.size());
@@ -277,7 +275,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         docIds.clear();
 
         // Restart the replicator
-        run(repl, 0, null);
+        run(baseTestReplicator, 0, null);
 
         // Check docIds. Should be 2 (No doc2 updated).
         assertEquals(2, docIds.size());
@@ -332,8 +330,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test
     public void testPushDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        String strAnotherDB = "anotherDB";
-        Database anotherDB = new Database(strAnotherDB);
+        Database anotherDB = createDb();
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -388,8 +385,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        String strAnotherDB = "anotherDB";
-        Database anotherDB = new Database(strAnotherDB);
+        Database anotherDB = createDb();
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -410,7 +406,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             Document doc2a = anotherDB.getDocument("doc2");
             assertEquals("Cat", doc2a.getString("name"));
 
-            stopContinuousReplicator(repl);
+            stopContinuousReplicator(baseTestReplicator);
         }
         finally {
             deleteDb(anotherDB);
@@ -534,26 +530,26 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         });
 
         final CountDownLatch latch = new CountDownLatch(1);
-        repl = new Replicator(config);
-        ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> {
+        baseTestReplicator = new Replicator(config);
+        ListenerToken token = baseTestReplicator.addChangeListener(testSerialExecutor, change -> {
             if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
                 latch.countDown();
             }
         });
 
         try {
-            repl.start();
+            baseTestReplicator.start();
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         assertTrue("Expected exception not thrown", gotException[0]);
     }
 
     @Test
-    public void testCloseDatabaseWithActiveReplicator() throws CouchbaseLiteException, InterruptedException {
+    public void testCloseDatabaseWithActiveReplicator() throws InterruptedException {
         Replicator repl = new Replicator(makeConfig(true, true, true));
         repl.start();
 
@@ -592,8 +588,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPushBlob() throws CouchbaseLiteException, IOException {
-        String strAnotherDB = "anotherDB";
-        Database anotherDB = new Database(strAnotherDB);
+        Database anotherDB = createDb();
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -624,8 +619,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullBlob() throws CouchbaseLiteException, IOException {
-        String strAnotherDB = "anotherDB";
-        Database anotherDB = new Database(strAnotherDB);
+        Database anotherDB = createDb();
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -753,25 +747,27 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc1);
         baseTestDb.purge(doc1);
 
-        repl = new Replicator(makeConfig(true, false, false, otherDB));
+        baseTestReplicator = new Replicator(makeConfig(true, false, false, otherDB));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken documentToken = repl.addDocumentReplicationListener(testSerialExecutor, replicationEvents::add);
-        ListenerToken changeToken = repl.addChangeListener(change -> {
+        ListenerToken documentToken = baseTestReplicator.addDocumentReplicationListener(
+            testSerialExecutor,
+            replicationEvents::add);
+        ListenerToken changeToken = baseTestReplicator.addChangeListener(change -> {
             if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
                 latch.countDown();
             }
         });
 
         try {
-            repl.start();
-            repl.removeChangeListener(documentToken);
+            baseTestReplicator.start();
+            baseTestReplicator.removeChangeListener(documentToken);
 
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(documentToken);
-            repl.removeChangeListener(changeToken);
+            baseTestReplicator.removeChangeListener(documentToken);
+            baseTestReplicator.removeChangeListener(changeToken);
         }
 
         int eventCount = replicationEvents.size();
@@ -797,21 +793,21 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final boolean[] isPush = new boolean[1];
 
         // Push
-        repl = new Replicator(makeConfig(true, false, false));
+        baseTestReplicator = new Replicator(makeConfig(true, false, false));
 
         final CountDownLatch latch1 = new CountDownLatch(1);
-        ListenerToken token = repl.addDocumentReplicationListener(update -> {
+        ListenerToken token = baseTestReplicator.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
             for (ReplicatedDocument doc : update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch1.countDown();
         });
 
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         assertTrue(isPush[0]);
@@ -848,7 +844,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc3);
 
         final CountDownLatch latch2 = new CountDownLatch(1);
-        token = repl.addDocumentReplicationListener(update -> {
+        token = baseTestReplicator.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
             for (ReplicatedDocument doc : update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch2.countDown();
@@ -856,11 +852,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         // Run the replicator again
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         // Check if getting a new document replication event
@@ -884,7 +880,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc4);
 
         final CountDownLatch latch3 = new CountDownLatch(1);
-        token = repl.addChangeListener(change -> {
+        token = baseTestReplicator.addChangeListener(change -> {
             if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
                 latch3.countDown();
             }
@@ -892,11 +888,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         // Run the replicator a third time
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch3.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         // Should not getting a new document replication event
@@ -916,10 +912,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         doc1b.setString("pattern", "Striped");
         otherDB.save(doc1b);
 
-        repl = new Replicator(makeConfig(false, true, false));
+        baseTestReplicator = new Replicator(makeConfig(false, true, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = repl.addDocumentReplicationListener(
+        ListenerToken token = baseTestReplicator.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
@@ -929,11 +925,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             });
 
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         // Check
@@ -958,10 +954,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         otherDB.save(doc2);
 
         // Push
-        repl = new Replicator(makeConfig(true, false, false));
+        baseTestReplicator = new Replicator(makeConfig(true, false, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = repl.addDocumentReplicationListener(
+        ListenerToken token = baseTestReplicator.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
@@ -971,11 +967,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             });
 
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         // Check
@@ -997,10 +993,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc1);
         baseTestDb.delete(doc1);
 
-        repl = new Replicator(makeConfig(true, false, false));
+        baseTestReplicator = new Replicator(makeConfig(true, false, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = repl.addDocumentReplicationListener(
+        ListenerToken token = baseTestReplicator.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
                 for (ReplicatedDocument d : update.getDocuments()) {
@@ -1010,11 +1006,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             });
 
         try {
-            run(repl, 0, null);
+            run(baseTestReplicator, 0, null);
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
         // Check
@@ -1030,9 +1026,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final Set<String> revIds = new HashSet<>();
 
         // Create documents
-        final String content = "I'm a tiger.";
-        byte[] b = content.getBytes(StandardCharsets.UTF_8);
-        final Blob blob = new Blob("text/plain", b);
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
@@ -1110,9 +1104,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc0);
 
         // Create documents
-        final String content = "I'm a tiger.";
-        byte[] b = content.getBytes(StandardCharsets.UTF_8);
-        final Blob blob = new Blob("text/plain", b);
+        final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
 
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
@@ -1160,10 +1152,10 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         });
 
         // Run the replicator
-        repl = new Replicator(config);
+        baseTestReplicator = new Replicator(config);
         final CountDownLatch doneLatch = new CountDownLatch(1);
         final CountDownLatch stoppedLatch = new CountDownLatch(1);
-        ListenerToken token = repl.addChangeListener(
+        ListenerToken token = baseTestReplicator.addChangeListener(
             testSerialExecutor,
             new ReplicatorChangeListener() {
                 boolean started;
@@ -1189,7 +1181,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         // Run the replicator
         try {
-            repl.start();
+            baseTestReplicator.start();
             assertTrue(doneLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
             // Check documents passed to the filter
@@ -1207,11 +1199,11 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             assertNull(baseTestDb.getDocument("doc2"));
             assertNull(baseTestDb.getDocument("doc3"));
 
-            repl.stop();
+            baseTestReplicator.stop();
             assertTrue(stoppedLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
-            repl.removeChangeListener(token);
+            baseTestReplicator.removeChangeListener(token);
         }
 
     }

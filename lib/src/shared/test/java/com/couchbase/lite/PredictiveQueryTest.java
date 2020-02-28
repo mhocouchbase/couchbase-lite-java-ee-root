@@ -17,6 +17,7 @@
 
 package com.couchbase.lite;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -31,16 +32,16 @@ import com.couchbase.lite.internal.utils.DateUtils;
 import com.couchbase.lite.utils.Report;
 import com.couchbase.lite.utils.TestUtils;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class PredictiveQueryTest extends BaseQueryTest {
-
-    private abstract static class TestPredictiveModel implements PredictiveModel {
+     private static abstract class TestPredictiveModel implements PredictiveModel {
         private boolean allowCalls = true;
         private int numberOfCalls;
 
@@ -53,30 +54,22 @@ public class PredictiveQueryTest extends BaseQueryTest {
             return getPrediction(input);
         }
 
-        public void registerModel() {
-            Database.prediction.registerModel(getName(), this);
-        }
+        protected abstract String getName();
 
-        public void unregisterModel() {
-            Database.prediction.unregisterModel(getName());
-        }
+        protected abstract Dictionary getPrediction(Dictionary input);
 
-        public void setAllowCalls(boolean allowCalls) {
-            this.allowCalls = allowCalls;
-        }
+        public void registerModel() { Database.prediction.registerModel(getName(), this); }
+
+        public void unregisterModel() { Database.prediction.unregisterModel(getName()); }
+
+        public void setAllowCalls(boolean allowCalls) { this.allowCalls = allowCalls; }
+
+        public int getNumberOfCalls() { return numberOfCalls; }
 
         public void reset() {
             numberOfCalls = 0;
             allowCalls = true;
         }
-
-        public int getNumberOfCalls() {
-            return numberOfCalls;
-        }
-
-        abstract public String getName();
-
-        abstract public Dictionary getPrediction(Dictionary input);
     }
 
     private static final class EchoModel extends TestPredictiveModel {
@@ -120,7 +113,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
 
         public static Expression createInput(String propertyName) {
-            Map<String, Object> input = new HashMap<String, Object>();
+            Map<String, Object> input = new HashMap<>();
             input.put("numbers", Expression.property(propertyName));
             return Expression.map(input);
         }
@@ -157,7 +150,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
 
         public static Expression createInput(Expression expression) {
-            Map<String, Object> input = new HashMap<String, Object>();
+            Map<String, Object> input = new HashMap<>();
             input.put("text", expression);
             return Expression.map(input);
         }
@@ -223,13 +216,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         EchoModel echoModel = new EchoModel();
         Database.prediction.registerModel(model, echoModel);
 
-        rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Dictionary pred = result.getDictionary(0);
-                assertNull(pred.getValue("sum"));
-                assertNotNull(pred.getArray("numbers"));
-            }
+        rows = verifyQuery(q, (n, result) -> {
+            Dictionary pred = result.getDictionary(0);
+            assertNull(pred.getValue("sum"));
+            assertNotNull(pred.getArray("numbers"));
         });
         assertEquals(1, rows);
 
@@ -252,7 +242,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         Date date = new Date();
         final String dateStr = DateUtils.toJson(date);
         Expression power = Function.power(Expression.property("number"), Expression.intValue(2));
-        final Map<String, Object> map = new HashMap<String, Object>();
+        final Map<String, Object> map = new HashMap<>();
         map.put("null", null);
         // Literal:
         map.put("number1", 10);
@@ -260,8 +250,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         map.put("boolean", true);
         map.put("string", "hello");
         map.put("date", date);
-        map.put("null", null);
-        final Map<String, Object> subMap = new HashMap<String, Object>();
+        final Map<String, Object> subMap = new HashMap<>();
         subMap.put("foo", "bar");
         map.put("dict", subMap);
         final List<String> subList = Arrays.asList("1", "2", "3");
@@ -274,7 +263,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         map.put("expr_value_string", Expression.value("hi"));
         map.put("expr_value_date", Expression.value(date));
         map.put("expr_value_null", Expression.value(null));
-        final Map<String, Object> subExprMap = new HashMap<String, Object>();
+        final Map<String, Object> subExprMap = new HashMap<>();
         subExprMap.put("ping", "pong");
         map.put("expr_value_dict", Expression.value(subExprMap));
         final List<String> subExprList = Arrays.asList("4", "5", "6");
@@ -289,36 +278,31 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(SelectResult.expression(prediction))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Dictionary pred = result.getDictionary(0);
-                assertEquals(map.size(), pred.count());
-                // Literal:
-                assertEquals(10, pred.getInt("number1"));
-                assertEquals(10.1, pred.getDouble("number2"), 0.0);
-                assertEquals(true, pred.getBoolean("boolean"));
-                assertEquals("hello", pred.getString("string"));
-                assertEquals(dateStr, DateUtils.toJson(pred.getDate("date")));
-                assertNull(pred.getString("null"));
-                assertEquals(subMap, pred.getDictionary("dict").toMap());
-                assertTrue(Arrays.equals(
-                    new String[] {"1", "2", "3"},
-                    pred.getArray("array").toList().toArray(new String[3])));
-                // Expression:
-                assertEquals("Daniel", pred.getString("expr_property"));
-                assertEquals(20, pred.getInt("expr_value_number1"));
-                assertEquals(20.1, pred.getDouble("expr_value_number2"), 0.0);
-                assertEquals(true, pred.getBoolean("expr_value_boolean"));
-                assertEquals("hi", pred.getString("expr_value_string"));
-                assertEquals(dateStr, DateUtils.toJson(pred.getDate("expr_value_date")));
-                assertNull(pred.getString("expr_value_null"));
-                assertEquals(subExprMap, pred.getDictionary("expr_value_dict").toMap());
-                assertTrue(Arrays.equals(
-                    subExprList.toArray(new String[3]),
-                    pred.getArray("expr_value_array").toList().toArray(new String[3])));
-                assertEquals(4, pred.getInt("expr_power"));
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Dictionary pred = result.getDictionary(0);
+            assertEquals(map.size(), pred.count());
+            // Literal:
+            assertEquals(10, pred.getInt("number1"));
+            assertEquals(10.1, pred.getDouble("number2"), 0.0);
+            assertTrue(pred.getBoolean("boolean"));
+            assertEquals("hello", pred.getString("string"));
+            assertEquals(dateStr, DateUtils.toJson(pred.getDate("date")));
+            assertNull(pred.getString("null"));
+            assertEquals(subMap, pred.getDictionary("dict").toMap());
+            assertArrayEquals(new String[] {"1", "2", "3"}, pred.getArray("array").toList().toArray(new String[3]));
+            // Expression:
+            assertEquals("Daniel", pred.getString("expr_property"));
+            assertEquals(20, pred.getInt("expr_value_number1"));
+            assertEquals(20.1, pred.getDouble("expr_value_number2"), 0.0);
+            assertTrue(pred.getBoolean("expr_value_boolean"));
+            assertEquals("hi", pred.getString("expr_value_string"));
+            assertEquals(dateStr, DateUtils.toJson(pred.getDate("expr_value_date")));
+            assertNull(pred.getString("expr_value_null"));
+            assertEquals(subExprMap, pred.getDictionary("expr_value_dict").toMap());
+            assertArrayEquals(
+                subExprList.toArray(new String[3]),
+                pred.getArray("expr_value_array").toList().toArray(new String[3]));
+            assertEquals(4, pred.getInt("expr_power"));
         });
 
         assertEquals(1, rows);
@@ -329,13 +313,13 @@ public class PredictiveQueryTest extends BaseQueryTest {
     @Test
     public void testPredictionWithBlobPropertyInput() throws Exception {
         final String[] texts = new String[] {
-            "Knox on fox in socks in box. Socks on Knox and Knox in box.",
+            BLOB_CONTENT,
             "Clocks on fox tick. Clocks on Knox tock. Six sick bricks tick. Six sick chicks tock."
         };
 
         for (String text : texts) {
             MutableDocument doc = new MutableDocument();
-            doc.setBlob("text", new Blob("text/plain", text.getBytes()));
+            doc.setBlob("text", new Blob("text/plain", text.getBytes(StandardCharsets.UTF_8)));
             baseTestDb.save(doc);
         }
 
@@ -353,14 +337,11 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("wc").greaterThan(Expression.value(15)));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Blob blob = result.getBlob("text");
-                String text = new String(blob.getContent());
-                assertEquals(texts[1], text);
-                assertEquals(16, result.getInt("wc"));
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Blob blob = result.getBlob("text");
+            String text = new String(blob.getContent());
+            assertEquals(texts[1], text);
+            assertEquals(16, result.getInt("wc"));
         });
         assertEquals(1, rows);
 
@@ -385,22 +366,16 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .from(DataSource.database(baseTestDb));
 
         Parameters params = new Parameters();
-        String text = "Knox on fox in socks in box. Socks on Knox and Knox in box";
-        params.setBlob("text", new Blob("text/plain", text.getBytes()));
+        params.setBlob("text", new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8)));
         q.setParameters(params);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(14, result.getInt("wc"));
-            }
-        });
+        int rows = verifyQuery(q, (n, result) -> assertEquals(14, result.getInt("wc")));
         assertEquals(1, rows);
 
         textModel.unregisterModel();
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void testPredictionWithNonSupportedInputTypes() throws Exception {
         EchoModel echoModel = new EchoModel();
         echoModel.registerModel();
@@ -416,7 +391,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         TestUtils.assertThrowsCBL("CouchbaseLite.SQLite", 1, q::execute);
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("key", this);
         input = Expression.map(map);
         prediction = Function.prediction(model, input);
@@ -425,13 +400,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(SelectResult.expression(prediction))
             .from(DataSource.database(baseTestDb));
 
-        try {
-            q2.execute();
-            fail();
-        }
-        catch (IllegalArgumentException e) { }
 
-        echoModel.unregisterModel();
+        try { q2.execute(); }
+        finally { echoModel.unregisterModel(); }
     }
 
     @Test
@@ -450,19 +421,16 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .select(SelectResult.property("numbers"), SelectResult.expression(prediction))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                MutableDictionary dict = new MutableDictionary();
-                dict.setArray("numbers", numbers);
-                Dictionary expected = aggregateModel.predict(dict);
-                Dictionary prediction = result.getDictionary(1);
-                assertEquals(expected.getInt("sum"), prediction.getInt("sum"));
-                assertEquals(expected.getInt("min"), prediction.getInt("min"));
-                assertEquals(expected.getInt("max"), prediction.getInt("max"));
-                assertEquals(expected.getDouble("avg"), prediction.getDouble("avg"), 0.0);
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Array numbers = result.getArray(0);
+            MutableDictionary dict = new MutableDictionary();
+            dict.setArray("numbers", numbers);
+            Dictionary expected = aggregateModel.predict(dict);
+            Dictionary prediction1 = result.getDictionary(1);
+            assertEquals(expected.getInt("sum"), prediction1.getInt("sum"));
+            assertEquals(expected.getInt("min"), prediction1.getInt("min"));
+            assertEquals(expected.getInt("max"), prediction1.getInt("max"));
+            assertEquals(expected.getDouble("avg"), prediction1.getDouble("avg"), 0.0);
         });
         assertEquals(2, rows);
 
@@ -490,29 +458,26 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.expression(prediction.propertyPath("avg")).as("avg"))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                MutableDictionary dict = new MutableDictionary();
-                dict.setArray("numbers", numbers);
-                Dictionary expected = aggregateModel.predict(dict);
+        int rows = verifyQuery(q, (n, result) -> {
+            Array numbers = result.getArray(0);
+            MutableDictionary dict = new MutableDictionary();
+            dict.setArray("numbers", numbers);
+            Dictionary expected = aggregateModel.predict(dict);
 
-                int sum = result.getInt(1);
-                int min = result.getInt(2);
-                int max = result.getInt(3);
-                double avg = result.getDouble(4);
+            int sum = result.getInt(1);
+            int min = result.getInt(2);
+            int max = result.getInt(3);
+            double avg = result.getDouble(4);
 
-                assertEquals(sum, result.getInt("sum"));
-                assertEquals(min, result.getInt("min"));
-                assertEquals(max, result.getInt("max"));
-                assertEquals(avg, result.getDouble("avg"), 0.0);
+            assertEquals(sum, result.getInt("sum"));
+            assertEquals(min, result.getInt("min"));
+            assertEquals(max, result.getInt("max"));
+            assertEquals(avg, result.getDouble("avg"), 0.0);
 
-                assertEquals(expected.getInt("sum"), sum);
-                assertEquals(expected.getInt("min"), min);
-                assertEquals(expected.getInt("max"), max);
-                assertEquals(expected.getDouble("avg"), avg, 0.0);
-            }
+            assertEquals(expected.getInt("sum"), sum);
+            assertEquals(expected.getInt("min"), min);
+            assertEquals(expected.getInt("max"), max);
+            assertEquals(expected.getDouble("avg"), avg, 0.0);
         });
         assertEquals(2, rows);
 
@@ -541,19 +506,16 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .from(DataSource.database(baseTestDb))
             .where(prediction.propertyPath("sum").equalTo(Expression.value(15)));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                int sum = result.getInt(1);
-                int min = result.getInt(2);
-                int max = result.getInt(3);
-                double avg = result.getInt(4);
+        int rows = verifyQuery(q, (n, result) -> {
+            int sum = result.getInt(1);
+            int min = result.getInt(2);
+            int max = result.getInt(3);
+            double avg = result.getInt(4);
 
-                assertEquals(15, sum);
-                assertEquals(1, min);
-                assertEquals(5, max);
-                assertEquals(3.0, avg, 0.0);
-            }
+            assertEquals(15, sum);
+            assertEquals(1, min);
+            assertEquals(5, max);
+            assertEquals(3.0, avg, 0.0);
         });
         assertEquals(1, rows);
 
@@ -578,13 +540,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .where(prediction.propertyPath("sum").greaterThan(Expression.value(1)))
             .orderBy(Ordering.expression(prediction.propertyPath("sum")).descending());
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                int sum = result.getInt(0);
-                assertEquals((n == 1 ? 40 : 15), sum);
+        int rows = verifyQuery(q, (n, result) -> {
+            int sum = result.getInt(0);
+            assertEquals((n == 1 ? 40 : 15), sum);
 
-            }
         });
         assertEquals(2, rows);
 
@@ -596,7 +555,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         createDocument(new int[] {1, 2, 3, 4, 5});
 
         MutableDocument doc = new MutableDocument();
-        doc.setString("text", "Knox on fox in socks in box. Socks on Knox and Knox in box.");
+        doc.setString("text", BLOB_CONTENT);
         baseTestDb.save(doc);
 
         AggregateModel aggregateModel = new AggregateModel();
@@ -612,17 +571,14 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.expression(prediction.propertyPath("sum")))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (n == 1) {
-                    assertNotNull(result.getDictionary(0));
-                    assertEquals(15, result.getInt(1));
-                }
-                else {
-                    assertNull(result.getValue(0));
-                    assertNull(result.getValue(0));
-                }
+        int rows = verifyQuery(q, (n, result) -> {
+            if (n == 1) {
+                assertNotNull(result.getDictionary(0));
+                assertEquals(15, result.getInt(1));
+            }
+            else {
+                assertNull(result.getValue(0));
+                assertNull(result.getValue(0));
             }
         });
         assertEquals(2, rows);
@@ -636,12 +592,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
             .from(DataSource.database(baseTestDb))
             .where(prediction.notNullOrMissing());
 
-        rows = verifyQuery(q2, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertNotNull(result.getDictionary(0));
-                assertEquals(15, result.getInt(1));
-            }
+        rows = verifyQuery(q2, (n, result) -> {
+            assertNotNull(result.getDictionary(0));
+            assertEquals(15, result.getInt(1));
         });
         assertEquals(1, rows);
 
@@ -672,12 +625,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         String explain = q.explain();
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(15, result.getInt(0));
-            }
-        });
+        int rows = verifyQuery(q, (n, result) -> assertEquals(15, result.getInt(0)));
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
@@ -715,11 +663,8 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assert (result.getInt(0) == 15 || result.getInt(1) == 8);
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            assert (result.getInt(0) == 15 || result.getInt(1) == 8);
         });
         assertEquals(2, rows);
     }
@@ -754,12 +699,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
         String explain = q.explain();
         assertTrue(explain.indexOf("USING INDEX SumAvgIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(15, result.getInt(0));
-                assertEquals(3, result.getInt(1));
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            assertEquals(15, result.getInt(0));
+            assertEquals(3, result.getInt(1));
         });
         assertEquals(1, rows);
         assertEquals(4, aggregateModel.getNumberOfCalls());
@@ -795,14 +737,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
         // Check that the AggIndex is not used. The AggIndex is not used because the predictive index
         // is created without the properties specified so that only cache table is used and there will
         // be no actual SQLite index created.
-        assertTrue(explain.indexOf("USING INDEX AggIndex") < 0);
+        assertFalse(explain.contains("USING INDEX AggIndex"));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(15, result.getInt(1));
-            }
-        });
+        int rows = verifyQuery(q, (n, result) -> assertEquals(15, result.getInt(1)));
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
@@ -837,12 +774,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         String explain = q.explain();
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(15, result.getInt(1));
-            }
-        });
+        int rows = verifyQuery(q, (n, result) -> assertEquals(15, result.getInt(1)));
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
@@ -882,11 +814,8 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assert (result.getInt(0) == 15 || result.getInt(1) == 8);
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            assert (result.getInt(0) == 15 || result.getInt(1) == 8);
         });
         assertEquals(2, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -923,13 +852,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         String explain = q.explain();
         assertTrue(explain.indexOf("USING INDEX SumAvgIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                assertEquals(15, result.getInt(0));
-                assertEquals(3, result.getInt(1));
+        int rows = verifyQuery(q, (n, result) -> {
+            assertEquals(15, result.getInt(0));
+            assertEquals(3, result.getInt(1));
 
-            }
         });
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -965,13 +891,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         String explain = q.explain();
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -988,15 +911,12 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         explain = q2.explain();
         // Check that the SumIndex is not used:
-        assertTrue(explain.indexOf("USING INDEX SumIndex") < 0);
+        assertFalse(explain.contains("USING INDEX SumIndex"));
 
-        rows = verifyQuery(q2, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        rows = verifyQuery(q2, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
         assertEquals(1, rows);
         assertEquals(4, aggregateModel.getNumberOfCalls()); // Note: verifyQuery executes query twice
@@ -1040,13 +960,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
         assertEquals(2, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -1055,7 +972,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         baseTestDb.deleteIndex("SumIndex");
 
         // Note: when having only one index, SQLite optimizer doesn't utilize the index
-        //       when using OR expr. Hence explicity test each index with two queries:
+        //       when using OR expr. Hence explicitly test each index with two queries:
         aggregateModel.reset();
         aggregateModel.setAllowCalls(false);
 
@@ -1066,15 +983,12 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         explain = q2.explain();
         // Check that the SumIndex is not used:
-        assertTrue(explain.indexOf("USING INDEX SumIndex") < 0);
+        assertFalse(explain.contains("USING INDEX SumIndex"));
 
-        rows = verifyQuery(q2, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        rows = verifyQuery(q2, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1091,13 +1005,10 @@ public class PredictiveQueryTest extends BaseQueryTest {
         explain = q3.explain();
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        rows = verifyQuery(q3, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        rows = verifyQuery(q3, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1116,16 +1027,13 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         explain = q4.explain();
         // Check that the SumIndex and AvgIndex are not used:
-        assertTrue(explain.indexOf("USING INDEX SumIndex") < 0);
-        assertTrue(explain.indexOf("USING INDEX AvgIndex") < 0);
+        assertFalse(explain.contains("USING INDEX SumIndex"));
+        assertFalse(explain.contains("USING INDEX AvgIndex"));
 
-        rows = verifyQuery(q4, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        rows = verifyQuery(q4, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1144,16 +1052,13 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         explain = q5.explain();
         // Check that the SumIndex and AvgIndex are not used:
-        assertTrue(explain.indexOf("USING INDEX SumIndex") < 0);
-        assertTrue(explain.indexOf("USING INDEX AvgIndex") < 0);
+        assertFalse(explain.contains("USING INDEX SumIndex"));
+        assertFalse(explain.contains("USING INDEX AvgIndex"));
 
-        rows = verifyQuery(q5, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                Array numbers = result.getArray(0);
-                assertNotNull(numbers);
-                assert (numbers.count() > 0);
-            }
+        rows = verifyQuery(q5, (n, result) -> {
+            Array numbers = result.getArray(0);
+            assertNotNull(numbers);
+            assert (numbers.count() > 0);
         });
 
         assertEquals(2, rows);
@@ -1188,12 +1093,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.property("distance"))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
-                else { assertEquals(result.getInt(1), result.getInt(0)); }
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
+            else { assertEquals(result.getInt(1), result.getInt(0)); }
         });
 
         assertEquals(tests.length, rows);
@@ -1227,12 +1129,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.property("distance"))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
-                else { assertEquals(result.getInt(1), result.getInt(0)); }
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
+            else { assertEquals(result.getInt(1), result.getInt(0)); }
         });
 
         assertEquals(tests.length, rows);
@@ -1267,12 +1166,9 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 SelectResult.property("distance"))
             .from(DataSource.database(baseTestDb));
 
-        int rows = verifyQuery(q, new QueryResult() {
-            @Override
-            public void check(int n, Result result) throws Exception {
-                if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
-                else { assertEquals(result.getDouble(1), result.getDouble(0), 0.0); }
-            }
+        int rows = verifyQuery(q, (n, result) -> {
+            if (result.getValue(1) == null) { assertNull(result.getValue(0)); }
+            else { assertEquals(result.getDouble(1), result.getDouble(0), 0.0); }
         });
 
         assertEquals(tests.length, rows);
@@ -1280,7 +1176,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
     private MutableDocument createDocument(int[] numbers) throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument();
-        List<Object> list = new ArrayList<Object>();
+        List<Object> list = new ArrayList<>();
         for (int n : numbers) {
             list.add(n);
         }

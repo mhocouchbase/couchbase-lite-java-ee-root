@@ -16,6 +16,8 @@
 //
 package com.couchbase.lite;
 
+import java.nio.charset.StandardCharsets;
+
 import org.junit.Test;
 
 import com.couchbase.lite.internal.core.C4Constants;
@@ -37,7 +39,7 @@ public class EncryptionKeyTest extends BaseTest {
     public void testNullKey() { new EncryptionKey((byte[]) null); }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testShortKey() { new EncryptionKey("abc".getBytes()); }
+    public void testShortKey() { new EncryptionKey("abc".getBytes(StandardCharsets.UTF_8)); }
 
     private String bytesToHex(byte[] in) {
         final StringBuilder builder = new StringBuilder();

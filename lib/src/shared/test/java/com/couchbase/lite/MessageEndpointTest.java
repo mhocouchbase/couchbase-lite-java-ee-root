@@ -15,8 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -27,16 +25,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class MessageEndpointTest extends BaseDbTest {
+
+public class MessageEndpointTest extends BaseReplicatorTest {
     private static final long LONG_DELAY_SEC = 10;
     private static final long SHORT_DELAY_MS = 100;
-    private static final String OTHER_DATABASE_NAME = "otherdb";
     private static final List<String> ACTIVITY_NAMES
         = Collections.unmodifiableList(Arrays.asList("stopped", "offline", "connecting", "idle", "busy"));
 
-    enum MockConnectionLifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
+    private enum MockConnectionLifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
 
-    interface MockConnectionErrorLogic {
+    private interface MockConnectionErrorLogic {
         boolean shouldClose(MockConnectionLifecycleLocation location);
 
         MessagingError createError();
@@ -137,7 +135,7 @@ public class MessageEndpointTest extends BaseDbTest {
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-    private abstract class MockConnection implements MessageEndpointConnection {
+    private static abstract class MockConnection implements MessageEndpointConnection {
         private final ProtocolType protocolType;
 
         protected MockConnection remoteConnection;
@@ -213,7 +211,7 @@ public class MessageEndpointTest extends BaseDbTest {
                     if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.CLOSE)) {
                         this.error = errorLogic.createError();
                     }
-                    remoteConnection.disconnect(this.error, completion::complete);
+                    remoteConnection.disconnect(this.error, completion);
                 }
             });
         }
@@ -336,35 +334,8 @@ public class MessageEndpointTest extends BaseDbTest {
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
 
-    private Database otherDB;
-    private Replicator repl;
-
-    @Before
-    public void setUp() throws CouchbaseLiteException {
-        super.setUp();
-
-        otherDB = new Database(OTHER_DATABASE_NAME);
-        assertNotNull(otherDB);
-        assertTrue(otherDB.isOpen());
-    }
-
-    @After
-    public void tearDown() {
-        if (!otherDB.isOpen()) {
-            Report.log(LogLevel.ERROR, "OtherDB is unexpectedly closed, in tearDown");
-            return;
-        }
-
-        try { deleteDb(otherDB); }
-        catch (CouchbaseLiteException e) {
-            throw new RuntimeException("Failed closing and deleting db: " + OTHER_DATABASE_NAME, e);
-        }
-        finally { super.tearDown(); }
-
-        try { Thread.sleep(SHORT_DELAY_MS); } catch (InterruptedException ignore) { }
-    }
+    /////////////////////////////////   T E S T S   //////////////////////////////////////
 
     @Test
     public void testPushDocWithMessage() throws Exception {
@@ -969,6 +940,9 @@ public class MessageEndpointTest extends BaseDbTest {
         assertNull(otherDB.getDocument("doc2"));
     }
 
+
+    /////////////////////////////////   H E L P E R S   //////////////////////////////////////
+
     private ReplicatorConfiguration makeConfig(
         ReplicatorConfiguration.ReplicatorType type,
         boolean continuous,
@@ -984,24 +958,24 @@ public class MessageEndpointTest extends BaseDbTest {
     }
 
     private void run(ReplicatorConfiguration config, final int code, final String domain, final boolean reset) {
-        repl = new Replicator(config);
+        baseTestReplicator = new Replicator(config);
         final CountDownLatch latch = new CountDownLatch(1);
 
         final AssertionError[] fail = new AssertionError[1];
-        ListenerToken token = repl.addChangeListener(
+        ListenerToken token = baseTestReplicator.addChangeListener(
             testSerialExecutor,
             change -> {
                 // Verify change status:
-                 try { verifyChangeStatus(change, code, domain); }
-                 catch (AssertionError e) { fail[0] = e; }
+                try { verifyChangeStatus(change, code, domain); }
+                catch (AssertionError e) { fail[0] = e; }
 
                 // Stop continuous replicator:
                 Replicator.Status status = change.getStatus();
                 switch (status.getActivityLevel()) {
                     case IDLE:
-                        if (repl.getConfig().isContinuous()
+                        if (baseTestReplicator.getConfig().isContinuous()
                             && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
-                            repl.stop();
+                            baseTestReplicator.stop();
                         }
                         break;
                     case STOPPED:
@@ -1010,15 +984,15 @@ public class MessageEndpointTest extends BaseDbTest {
                 }
             });
 
-        if (reset) { repl.resetCheckpoint(); }
+        if (reset) { baseTestReplicator.resetCheckpoint(); }
 
-        repl.start();
+        baseTestReplicator.start();
 
         boolean success = false;
         try { success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
         catch (InterruptedException ignore) { }
 
-        repl.removeChangeListener(token);
+        baseTestReplicator.removeChangeListener(token);
 
         if (fail[0] != null) { throw fail[0]; }
 
@@ -1050,7 +1024,30 @@ public class MessageEndpointTest extends BaseDbTest {
         if (domain != null) { assertEquals(domain, error.getDomain()); }
     }
 
-    private ReplicatorConfiguration createFailureP2PConfiguration(
+    private void testP2PError(MockConnectionLifecycleLocation location, boolean recoverable)
+        throws CouchbaseLiteException {
+        MutableDocument mdoc = new MutableDocument("livesindb");
+        mdoc.setString("name", "db");
+        baseTestDb.save(mdoc);
+
+        String expectedDomain = recoverable ? null : CBLError.Domain.CBLITE;
+        int expectedCode = recoverable ? 0 : CBLError.Code.WEB_SOCKET_CLOSE_USER_PERMANENT;
+
+        Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
+        run(createFailureP2PConfig(ProtocolType.BYTE_STREAM, location, recoverable), expectedCode, expectedDomain);
+
+        // !!! This is wrong: should wait for the replication to complete.
+        try { Thread.sleep(SHORT_DELAY_MS); } catch (InterruptedException ignore) { }
+
+        Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");
+        run(
+            createFailureP2PConfig(ProtocolType.MESSAGE_STREAM, location, recoverable),
+            expectedCode,
+            expectedDomain,
+            true);
+    }
+
+    private ReplicatorConfiguration createFailureP2PConfig(
         ProtocolType protocolType,
         MockConnectionLifecycleLocation location,
         boolean recoverable) {
@@ -1064,27 +1061,5 @@ public class MessageEndpointTest extends BaseDbTest {
             new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)));
         config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
         return config;
-    }
-
-    private void testP2PError(MockConnectionLifecycleLocation location, boolean recoverable) throws Exception {
-        MutableDocument mdoc = new MutableDocument("livesindb");
-        mdoc.setString("name", "db");
-        baseTestDb.save(mdoc);
-
-        String expectedDomain = recoverable ? null : CBLError.Domain.CBLITE;
-        int expectedCode = recoverable ? 0 : CBLError.Code.WEB_SOCKET_CLOSE_USER_PERMANENT;
-
-        Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
-
-        ReplicatorConfiguration config
-            = createFailureP2PConfiguration(ProtocolType.BYTE_STREAM, location, recoverable);
-        run(config, expectedCode, expectedDomain);
-
-        Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");
-
-        try { Thread.sleep(SHORT_DELAY_MS); } catch (InterruptedException ignore) { }
-
-        config = createFailureP2PConfiguration(ProtocolType.MESSAGE_STREAM, location, recoverable);
-        run(config, expectedCode, expectedDomain, true);
     }
 }

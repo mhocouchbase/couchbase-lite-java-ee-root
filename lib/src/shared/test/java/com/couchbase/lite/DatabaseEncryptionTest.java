@@ -16,11 +16,13 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.Nullable;
+
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import org.junit.After;
@@ -28,7 +30,7 @@ import org.junit.Test;
 
 import com.couchbase.lite.internal.core.C4Key;
 import com.couchbase.lite.utils.IOUtils;
-import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.utils.TestUtils;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -37,25 +39,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 
 public class DatabaseEncryptionTest extends BaseTest {
-    private Database seekrit;
+    private static final String TEST_PWD = "sekrit";
+    private static final Map<String, EncryptionKey> KEYS = new HashMap<>();
+
+
+    private Database encryptionTestDb;
 
     @After
+    @Override
     public void tearDown() {
-        if (seekrit != null) {
-            try {
-                File dbDir = seekrit.getFilePath().getParentFile();
-                deleteDb(seekrit);
-            }
-            catch (CouchbaseLiteException e) {
-                Report.log(LogLevel.ERROR, "Failed to close seekrit DB", e);
-            }
-        }
-
-        super.tearDown();
+        try { deleteDb(encryptionTestDb); }
+        finally { super.tearDown(); }
     }
 
     @Test
@@ -68,9 +65,9 @@ public class DatabaseEncryptionTest extends BaseTest {
 
         // Custom
         config = new DatabaseConfiguration();
-        String dbDir = getScratchDirectoryPath("tmkp");
+        String dbDir = getScratchDirectoryPath(getUniqueName());
         config.setDirectory(dbDir);
-        EncryptionKey key = new EncryptionKey("key");
+        EncryptionKey key = getEncryptionKey(TEST_PWD);
         config.setEncryptionKey(key);
         assertEquals(dbDir, config.getDirectory());
         assertEquals(key, config.getEncryptionKey());
@@ -78,384 +75,330 @@ public class DatabaseEncryptionTest extends BaseTest {
 
     @Test
     public void testGetSetConfiguration() throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        config.setEncryptionKey(new EncryptionKey("noseeum"));
-        String scratchDirPath = getScratchDirectoryPath("config-test");
-        config.setDirectory(scratchDirPath);
-        Database db = new Database("db", config);
-        try {
-            assertNotNull(db.getConfig());
-            assertNotSame(db.getConfig(), config);
-            assertEquals(db.getConfig().getDirectory(), scratchDirPath);
-            assertEquals(db.getConfig().getEncryptionKey(), config.getEncryptionKey());
-        }
-        finally {
-            db.delete();
-        }
+        final EncryptionKey key = getEncryptionKey(TEST_PWD);
+        final String path = getScratchDirectoryPath(getUniqueName());
+
+        final DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(key).setDirectory(path);
+        createTestDbWithConfig(config);
+
+        final DatabaseConfiguration dbConfig = encryptionTestDb.getConfig();
+        assertNotNull(dbConfig);
+        assertNotSame(dbConfig, config);
+        assertEquals(key, dbConfig.getEncryptionKey());
+        assertEquals(path, dbConfig.getDirectory());
     }
 
     @Test
     public void testUnEncryptedDatabase() throws CouchbaseLiteException {
         // Create unencrypted database:
-        seekrit = openSeekrit(null);
-        assertNotNull(seekrit);
+        createEncryptedTestDbWithPassword(null);
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("answer", 42);
-        MutableDocument doc = new MutableDocument(null, map);
-        seekrit.save(doc);
-        seekrit.close();
-        seekrit = null;
+        createDocInTestDb();
 
         // Try to reopen with password (fails):
-        try {
-            openSeekrit("wrong");
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.NOT_A_DATABSE_FILE, e.getCode());
-            assertEquals("The provided encryption key was incorrect.", e.getMessage());
-        }
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.NOT_A_DATABSE_FILE,
+            () -> reopenTestDbWithPassword("foo"));
 
         // Reopen with no password:
-        seekrit = openSeekrit(null);
-        assertNotNull(seekrit);
-        assertEquals(1, seekrit.getCount());
+        reopenTestDbWithPassword(null);
+        assertNotNull(encryptionTestDb);
+        assertEquals(1, encryptionTestDb.getCount());
     }
 
     @Test
     public void testEncryptedDatabase() throws CouchbaseLiteException {
         // Create encrypted database:
-        seekrit = openSeekrit("letmein");
-        assertNotNull(seekrit);
+        createEncryptedTestDbWithPassword(TEST_PWD);
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("answer", 42);
-        MutableDocument doc = new MutableDocument(null, map);
-        seekrit.save(doc);
-        seekrit.close();
-        seekrit = null;
+        createDocInTestDb();
 
         // Reopen without password (fails):
-        try {
-            openSeekrit(null);
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.NOT_A_DATABSE_FILE, e.getCode());
-            assertEquals("The provided encryption key was incorrect.", e.getMessage());
-        }
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.NOT_A_DATABSE_FILE,
+            () -> reopenTestDbWithPassword(null));
 
         // Reopen with wrong password (fails):
-        try {
-            openSeekrit("wrong");
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.NOT_A_DATABSE_FILE, e.getCode());
-            assertEquals("The provided encryption key was incorrect.", e.getMessage());
-        }
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.NOT_A_DATABSE_FILE,
+            () -> reopenTestDbWithPassword("wrong"));
 
         // Reopen with correct password:
-        seekrit = openSeekrit("letmein");
-        assertNotNull(seekrit);
-        assertEquals(1, seekrit.getCount());
+        reopenTestDbWithPassword(TEST_PWD);
+        assertNotNull(encryptionTestDb);
+        assertEquals(1, encryptionTestDb.getCount());
     }
 
     @Test
     public void testDeleteEncryptedDatabase() throws CouchbaseLiteException {
         // Create encrypted database:
-        seekrit = openSeekrit("letmein");
-        assertNotNull(seekrit);
+        createEncryptedTestDbWithPassword(TEST_PWD);
 
-        // Delete database:
-        seekrit.delete();
-
-        // Re-create database:
-        seekrit = openSeekrit(null);
-        assertNotNull(seekrit);
-        assertEquals(0, seekrit.getCount());
-        seekrit.close();
-        seekrit = null;
+        // Create a new database with the same name but no password
+        // This deletes the original
+        encryptionTestDb = recreateDb(encryptionTestDb);
+        assertNotNull(encryptionTestDb);
+        assertEquals(0, encryptionTestDb.getCount());
 
         // Make sure it doesn't need a password now:
-        seekrit = openSeekrit(null);
-        assertNotNull(seekrit);
-        assertEquals(0, seekrit.getCount());
-        seekrit.close();
-        seekrit = null;
+        reopenTestDbWithPassword(null);
+        assertNotNull(encryptionTestDb);
+        assertEquals(0, encryptionTestDb.getCount());
 
         // Make sure old password doesn't work:
-        try {
-            seekrit = openSeekrit("letmein");
-            fail();
-        }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.NOT_A_DATABSE_FILE, e.getCode());
-            assertEquals("The provided encryption key was incorrect.", e.getMessage());
-        }
+        TestUtils.assertThrowsCBL(
+            CBLError.Domain.CBLITE,
+            CBLError.Code.NOT_A_DATABSE_FILE,
+            () -> reopenTestDbWithPassword(TEST_PWD));
     }
 
     @Test
     public void testCompactEncryptedDatabase() throws CouchbaseLiteException {
         // Create encrypted database:
-        seekrit = openSeekrit("letmein");
-        assertNotNull(seekrit);
+        createEncryptedTestDbWithPassword(TEST_PWD);
 
         // Create a doc and then update it:
-        Map<String, Object> map = new HashMap<>();
-        map.put("answer", 42);
-        MutableDocument doc = new MutableDocument(null, map);
-        seekrit.save(doc);
-        Document savedDoc = seekrit.getDocument(doc.getId());
-        doc = savedDoc.toMutable();
-        doc.setValue("answer", 84);
-        seekrit.save(doc);
-        savedDoc = seekrit.getDocument(doc.getId());
+        MutableDocument mDoc = createDocInTestDb().toMutable();
+        mDoc.setValue("answer", 84);
+        encryptionTestDb.save(mDoc);
+
+        mDoc = encryptionTestDb.getDocument(mDoc.getId()).toMutable();
 
         // Compact:
-        seekrit.compact();
+        encryptionTestDb.compact();
 
         // Update the document again:
-        doc = savedDoc.toMutable();
-        doc.setValue("answer", 85);
-        seekrit.save(doc);
-        seekrit.getDocument(doc.getId());
+        mDoc.setValue("answer", 85);
+        encryptionTestDb.save(mDoc);
+        encryptionTestDb.getDocument(mDoc.getId());
 
         // Close and re-open:
-        seekrit.close();
-        seekrit = openSeekrit("letmein");
-        assertNotNull(seekrit);
-        assertEquals(1, seekrit.getCount());
+        reopenTestDbWithPassword(TEST_PWD);
+        assertNotNull(encryptionTestDb);
+        assertEquals(1, encryptionTestDb.getCount());
     }
 
     @Test
     public void testCopyEncryptedDatabase() throws CouchbaseLiteException {
-        final String dbPass = "letmein";
-
         // Create encrypted database:
-        DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(dbPass));
-        Database db = new Database("seekritDB", config);
-        assertNotNull(db);
+        final DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(getEncryptionKey(TEST_PWD));
+        encryptionTestDb = createDb(config);
+        assertNotNull(encryptionTestDb);
 
-        final File dbDir = db.getFilePath();
+        final File dbDir = encryptionTestDb.getFilePath();
         assertNotNull(dbDir);
 
         // add a doc
-        MutableDocument doc = new MutableDocument();
-        doc.setString("foo", "bar");
-        db.save(doc);
+        createDocInTestDb();
 
-        db.close();
-
-        final String nuName = "testDb2";
-
-        // Make sure no an existing database at the new location:
-        if (Database.exists(nuName, dbDir)) { Database.delete(nuName, dbDir); }
+        encryptionTestDb.close();
 
         // Copy
-        Database.copy(dbDir, nuName, config);
-        File dbParentDir = dbDir.getParentFile();
-        assertTrue(Database.exists(nuName, dbParentDir));
+        final String newName = getUniqueName();
+        Database.copy(dbDir, newName, config);
+        Database newDb = null;
         try {
-            db = new Database(nuName, config);
-            assertNotNull(db);
-            assertEquals(1, db.getCount());
+            assertTrue(Database.exists(newName, dbDir.getParentFile()));
+
+            newDb = new Database(newName, config);
+            assertNotNull(newDb);
+            assertEquals(1, newDb.getCount());
         }
         finally {
-            db.close();
-            Database.delete(nuName, dbParentDir);
+            deleteDb(newDb);
         }
     }
 
     @Test
-    public void testEncryptedBlobs() throws CouchbaseLiteException, IOException {
-        testEncryptedBlobs("letmein");
-    }
+    public void testDefaultKeyGeneration() throws CouchbaseLiteException {
+        final String pwd = "You rode upon a steamer ~ 2 the violence of the sun!!";
 
-    @Test
-    public void testLegacyKeyGeneration() throws CouchbaseLiteException {
-        final String dbName = "Cream";
-        final String pwd = "you rode upon a steamer to the violence of the sun";
-        final String docId = "Disraeli Gears";
+        createEncryptedTestDbWithPassword(pwd);
 
-        DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(pwd));
-        Database db = new Database(dbName, config);
-        final MutableDocument mDoc = new MutableDocument(docId);
-        mDoc.setString("guitar", "Eric");
-        mDoc.setString("bass", "Jack");
-        mDoc.setString("drums", "Ginger");
-        db.save(mDoc);
-        db.close();
+        final Document doc = createDocInTestDb();
 
-        config = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
-        db = new Database(dbName, config);
-        Document doc2 = db.getDocument(docId);
-        assertEquals("Eric", doc2.getString("guitar"));
-        assertEquals("Jack", doc2.getString("bass"));
-        assertEquals("Ginger", doc2.getString("drums"));
-        db.delete();
+        DatabaseConfiguration config
+            = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getPbkdf2Key(pwd)));
+
+        encryptionTestDb = reopenDb(encryptionTestDb, config);
+        Document doc2 = encryptionTestDb.getDocument(doc.getId());
+        assertNotNull(doc2);
+        for (String key : doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
     }
 
     @Test
     public void testCoreKeyGeneration() throws CouchbaseLiteException {
-        final String dbName = "Cream";
-        final String pwd = "you rode upon a steamer to the violence of the sun";
-        final String docId = "Disraeli Gears";
+        final String pwd = "You rode upon a steamer 2 the violence of the sun";
+        final DatabaseConfiguration config
+            = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
 
-        Database db = new Database(
-            dbName,
-            new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd))));
-        final MutableDocument mDoc = new MutableDocument(docId);
-        mDoc.setString("guitar", "Eric");
-        mDoc.setString("bass", "Jack");
-        mDoc.setString("drums", "Ginger");
-        db.save(mDoc);
-        db.close();
+        encryptionTestDb = createDb(config);
 
-        db = new Database(
-            dbName,
-            new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd))));
-        Document doc2 = db.getDocument(docId);
-        assertEquals("Eric", doc2.getString("guitar"));
-        assertEquals("Jack", doc2.getString("bass"));
-        assertEquals("Ginger", doc2.getString("drums"));
-        db.delete();
+        final Document doc = createDocInTestDb();
+
+
+        encryptionTestDb = reopenDb(encryptionTestDb, config);
+        Document doc2 = encryptionTestDb.getDocument(doc.getId());
+        assertNotNull(doc2);
+        for (String key : doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
     }
 
     @Test
     public void testMultipleDatabases() throws CouchbaseLiteException {
         // Create encrypted database:
-        seekrit = openSeekrit("seekrit");
+        createEncryptedTestDbWithPassword(TEST_PWD);
 
         // Get another instance of the database:
-        Database seekrit2 = openSeekrit("seekrit");
-        assertNotNull(seekrit2);
-        seekrit2.close();
+        final Database db = duplicateDb(encryptionTestDb, encryptionTestDb.getConfig());
+        try { assertNotNull(db); }
+        finally { closeDb(db); }
 
         // Try rekey:
-        EncryptionKey newKey = new EncryptionKey("foobar");
-        seekrit.changeEncryptionKey(newKey);
+        EncryptionKey newKey = getEncryptionKey("foo");
+        encryptionTestDb.changeEncryptionKey(newKey);
+
+        reopenTestDbWithPassword("foo");
     }
 
     @Test
-    public void testAddKey() throws CouchbaseLiteException, IOException {
-        rekeyUsingOldPassword(null, "letmein");
+    public void testCreateEncryptedBlob() throws CouchbaseLiteException, IOException {
+        createAndVerifyEncryptedBlob(TEST_PWD);
     }
 
     @Test
-    public void testReKey() throws CouchbaseLiteException, IOException {
-        rekeyUsingOldPassword("letmein", "letmeout");
-    }
+    public void testAddKey() throws CouchbaseLiteException, IOException { rekeyAndVerifyDb(null, TEST_PWD); }
 
     @Test
-    public void testRemoveKey() throws CouchbaseLiteException, IOException {
-        rekeyUsingOldPassword("letmein", (String) null);
-    }
+    public void testReKey() throws CouchbaseLiteException, IOException { rekeyAndVerifyDb(TEST_PWD, "foo"); }
 
     // https://github.com/couchbase/couchbase-lite-android/issues/1720
     @Test
-    public void testRemoveKey2() throws CouchbaseLiteException, IOException {
-        rekeyUsingOldPassword("letmein", (EncryptionKey) null);
+    public void testRemoveKey() throws CouchbaseLiteException, IOException { rekeyAndVerifyDb(TEST_PWD, null); }
+
+    // This is purely a time optimization.
+    // Creating keys is pretty expensive and caching them makes the tests run much faster.
+    // If you use this in a test, be sure that you are still testing what you intend to test!
+    private EncryptionKey getEncryptionKey(String password) {
+        EncryptionKey key = KEYS.get(password);
+        if (key == null) {
+            key = new EncryptionKey(password);
+            KEYS.put(password, key);
+        }
+        return key;
     }
 
-    private void rekeyUsingOldPassword(String oldPass, String newPass) throws CouchbaseLiteException, IOException {
-        rekeyUsingOldPassword(oldPass, newPass != null ? new EncryptionKey(newPass) : null);
+    private void createEncryptedTestDbWithPassword(String password) throws CouchbaseLiteException {
+        final DatabaseConfiguration config = new DatabaseConfiguration();
+        if (password != null) { config.setEncryptionKey(getEncryptionKey(password)); }
+        createTestDbWithConfig(config);
     }
 
-    private void rekeyUsingOldPassword(String oldPass, EncryptionKey newKey)
-        throws CouchbaseLiteException, IOException {
-        // First run the encryped blobs test to populate the database:
-        testEncryptedBlobs(oldPass);
+    private void createTestDbWithConfig(DatabaseConfiguration config) throws CouchbaseLiteException {
+        encryptionTestDb = createDb(config);
+        assertNotNull(encryptionTestDb);
+    }
+
+    private void reopenTestDbWithPassword(@Nullable String password) throws CouchbaseLiteException {
+        DatabaseConfiguration config = new DatabaseConfiguration();
+        if (password != null) { config.setEncryptionKey(getEncryptionKey(password)); }
+        encryptionTestDb = reopenDb(encryptionTestDb, config);
+        assertNotNull(encryptionTestDb);
+    }
+
+    private void rekeyAndVerifyDb(String oldPass, String newPass) throws CouchbaseLiteException, IOException {
+        // First run the encrypted blobs test to populate the database:
+        final String docId = createAndVerifyEncryptedBlob(oldPass);
 
         // Create some documents:
-        seekrit.inBatch(() -> {
+        encryptionTestDb.inBatch(() -> {
             for (int i = 0; i < 100; i++) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("seq", i);
                 MutableDocument doc = new MutableDocument(null, map);
-                try { seekrit.save(doc); }
-                catch (CouchbaseLiteException e) { fail(); }
+                try { encryptionTestDb.save(doc); }
+                catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
             }
         });
 
         // Rekey:
-        seekrit.changeEncryptionKey(newKey);
+        encryptionTestDb.changeEncryptionKey((newPass == null) ? null : getEncryptionKey(newPass));
 
-        // Close & reopen seekrit:
-        seekrit.close();
-        seekrit = null;
-
-        // Reopen the database with the new key:
-        Database seekrit2 = openSeekritByKey(newKey);
-        assertNotNull(seekrit2);
-        seekrit = seekrit2;
+        // Close & reopen with the new key:
+        reopenTestDbWithPassword(newPass);
+        assertNotNull(encryptionTestDb);
 
         // Check the document and its attachment:
-        Document doc = seekrit.getDocument("att");
-        Blob blob = doc.getBlob("blob");
-        assertNotNull(blob.getContent());
-        String content = new String(blob.getContent());
-        assertEquals("This is a blob!", content);
+        Document doc = encryptionTestDb.getDocument(docId);
+        assertNotNull(doc);
+        final Blob blob = doc.getBlob("blob");
+        assertNotNull(blob);
+        final byte[] body = blob.getContent();
+        assertNotNull(body);
+        assertEquals(BLOB_CONTENT, new String(body));
 
         // Query documents:
         Expression SEQ = Expression.property("seq");
         Query query = QueryBuilder
             .select(SelectResult.expression(SEQ))
-            .from(DataSource.database(seekrit))
+            .from(DataSource.database(encryptionTestDb))
             .where(SEQ.notNullOrMissing())
             .orderBy(Ordering.expression(SEQ));
         ResultSet rs = query.execute();
         assertNotNull(rs);
         int i = 0;
-        for (Result r : rs) {
-            assertEquals(i, r.getInt(0));
-            i++;
-        }
+        for (Result r : rs) { assertEquals(i++, r.getInt(0)); }
     }
 
-    private Database openSeekritByKey(EncryptionKey key) throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        if (key != null) { config.setEncryptionKey(key); }
-        return new Database("seekrit", config);
-    }
+    private String createAndVerifyEncryptedBlob(String password) throws CouchbaseLiteException, IOException {
+        final String docId = getUniqueName();
 
-    private Database openSeekrit(String password) throws CouchbaseLiteException {
-        DatabaseConfiguration config = new DatabaseConfiguration();
-        if (password != null) { config.setEncryptionKey(new EncryptionKey(password)); }
-        return new Database("seekrit", config);
-    }
-
-    private void testEncryptedBlobs(String password) throws CouchbaseLiteException, IOException {
         // Create database with the password:
-        seekrit = openSeekrit(password);
-        assertNotNull(seekrit);
+        createEncryptedTestDbWithPassword(password);
+        assertNotNull(encryptionTestDb);
 
         // Save a doc with a blob:
-        byte[] body = "This is a blob!".getBytes();
-        MutableDocument mDoc = new MutableDocument("att");
-        Blob blob = new Blob("text/plain", body);
-        mDoc.setBlob("blob", blob);
-        seekrit.save(mDoc);
-        Document doc = seekrit.getDocument(mDoc.getId());
+        final byte[] body = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+
+        MutableDocument mDoc = new MutableDocument(docId);
+        mDoc.setBlob("blob", new Blob("text/plain", body));
+        encryptionTestDb.save(mDoc);
+
+        Document doc = encryptionTestDb.getDocument(docId);
+        assertEquals(docId, doc.getId());
 
         // Read content from the raw blob file:
-        blob = doc.getBlob("blob");
+        final Blob blob = doc.getBlob("blob");
+        assertNotNull(blob);
         assertNotNull(blob.digest());
         assertArrayEquals(body, blob.getContent());
 
-        String filename = blob.digest().substring(5);
-        filename = filename.replaceAll("/", "_");
-        String path = String.format(Locale.ENGLISH, "%s/Attachments/%s.blob", seekrit.getPath(), filename);
-        File file = new File(path);
+        File file = new File(encryptionTestDb.getPath()
+            + "/Attachments/" + blob.digest().substring(5).replaceAll("/", "_") + ".blob");
         assertTrue(file.exists());
+
         byte[] raw = IOUtils.toByteArray(file);
         assertNotNull(raw);
-        if (password != null) { assertFalse(Arrays.equals(raw, body)); }
-        else { assertArrayEquals(raw, body); }
+        if (password == null) { assertArrayEquals(raw, body); }
+        else { assertFalse(Arrays.equals(raw, body)); }
+
+        return docId;
+    }
+
+    private Document createDocInTestDb() throws CouchbaseLiteException {
+        final Map<String, Object> map = new HashMap<>();
+        map.put("guitar", "Eric");
+        map.put("bass", "Jack");
+        map.put("drums", "Ginger");
+
+        final MutableDocument mDoc = new MutableDocument(null, map);
+        encryptionTestDb.save(mDoc);
+
+        final Document doc = encryptionTestDb.getDocument(mDoc.getId());
+        assertNotNull(doc);
+
+        return doc;
     }
 }
