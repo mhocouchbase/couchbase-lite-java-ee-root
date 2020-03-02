@@ -357,7 +357,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             replicator.removeChangeListener(token)
         }
 
-        assertNull(err)
+        if (err != null) { throw AssertionError("Unexpected error", err); }
         assertEquals(changed, pendingIdBefore)
         assertEquals(0, pendingIdAfter?.size ?: -1)
 
