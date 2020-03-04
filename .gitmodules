@@ -1,0 +1,15 @@
+[submodule "common"]
+	path = common
+	url = git://github.com/couchbase/couchbase-lite-java
+[submodule "core"]
+	path = core
+	url = git://github.com/couchbase/couchbase-lite-core
+[submodule "build"]
+	path = build
+	url = git://github.com/couchbase/couchbase-lite-build
+[submodule "legal"]
+	path = legal
+	url = git://github.com/couchbase/product-texts
+[submodule "couchbase-lite-core-EE"]
+	path = couchbase-lite-core-EE
+	url = ssh://git@github.com/couchbase/couchbase-lite-core-EE
