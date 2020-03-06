@@ -1,0 +1,684 @@
+<h1 align="center">How To Compile And Use SEE</h1>
+
+<h2>Introduction</h2>
+
+This file describes the SQLite Encryption Extension (SEE) for
+SQLite.  The SEE allows SQLite to read and write encrypted
+database files.  All database content, including the metadata, is
+encrypted so that to an outside observer the database appears to
+be white noise.
+
+A version of SQLite that includes SEE is also able to read and
+write normal database files created with a public domain version
+of SQLite.  But the public version of SQLite will not be able
+to read or write an encrypted database file.  Indeed, no version
+of any known software will be able to access an encrypted
+database file without knowing the encryption key.
+
+The SEE is actually a set of extensions employing various 
+encryption algorithms.  The following encryption algorithms are
+currently supported:
+
+    *   RC4 with security enhancements
+    *   AES-128 in OFB mode
+    *   AES-128 in CCM mode
+    *   AES-256 in OFB mode
+
+There are eight different variations on the SEE: one for each of
+the supported algorithms, a fifth variant that simultaneously
+supports all algorithms except AES-128 CCM, an alternative
+implementation that calls out to the CCCrypt library
+for the encryption routines, another alternative that calls out
+to the OpenSSL library for the encryption routines,
+and a demonstration module that does
+not do real encryption but merely XORs the key against the text.
+
+
+<h2>License</h2>
+
+The core SQLite library is in the public domain.  However, the extensions
+needed to read and write an encrypted database file are licensed
+software.  You should only be able to see this software if you have
+a license.
+
+Your license is perpetual.  You have paid a one-time fee that allows you
+to use and modify the software forever.  You can ship as many copied of
+the software to your customers as you want so long as you ensure that
+only compiled binaries are shipped (you cannot distribute source code)
+and that your customers cannot make additional copies of the software 
+to use for other purposes.
+
+You can create multiple products that use this software as long
+as all products are developed and maintained by the same team.
+For the purposes of this paragraph, a "team" is a work unit where
+everybody knows each others names.  If you are in a large company
+where this product is used by multiple teams, then each team should
+acquire their own separate license, or an enterprise license.
+
+
+<h2>How To Compile</h2>
+
+Your application sees SEE as a single large file of C-code that is a
+drop-in replacement for the 
+[https://sqlite.org/amalgamation.html|SQLite amalgamation].  The SEE
+source-code file works and compiles just like the public-domain "sqlite3.c"
+amalgamation.  If you already build your application using the
+public-domain "sqlite3.c" file, then to build using SEE you merely
+replace the public-domain "sqlite3.c" with an SEE-enabled "sqlite3.c"
+file and recompile.
+
+The SEE-enabled amalgamation is constructed from the public-domain
+"sqlite3.c" file by prepending and appending new code.
+
+<blockquote><table border=1 cellpadding=10><tbody>
+<tr><td style='background-color:lightblue;text-align:center;'>"see-prefix.txt"</td></tr>
+<tr><td style='background-color:lightgreen;text-align:center;'>
+public-domain<br>SQLite<br>"sqlite3.c"</td></tr>
+<tr><td style='background-color:lightblue;text-align:center;'>SEE
+implementation<br>"see.c"</td></tr>
+</tbody></table></blockquote>
+
+The bulk of SEE consists of the public-domain SQLite amalgamation - the
+part in the middle of the diagram above.  Ordinary public-domain unencrypted
+SQLite is transformed into the proprietary SEE-enabled SQLite by prepending
+the "see-prefix.txt" file and appending the "see.c" file, or one of
+the other variants listed below.
+
+The "see.c" file shown above can actually be any of 8 different variants,
+depending on which encryption algorithms you want to support.
+
+<ul>
+<li><b>see.c</b> &rarr;  AES-128, AES-256, and RC4
+<li><b>see-cccrypt.c</b> &rarr; AES-128 and AES-256 using the CCCrypt library
+<li><b>see-aes128-ofb.c</b> &rarr; AES-128
+<li><b>see-aes128-ccm.c</b> &rarr; AES-128 in CCM mode
+<li><b>see-aes256-ofb.c</b> &rarr; AES-256
+<li><b>see-aes256-openssl.c</b> &rarr; AES-256 using the OpenSSL EVP routines
+<li><b>see-rc.c</b> &rarr; RC4 (<i>legacy only - not secure</i>)
+<li><b>see-xor.c</b> &rarr; XOR (<i>demonstration only - not secure</i>)
+</ul>
+
+The recommended choice for the file to append is either "see.c" or
+"see-cccrypt.c".
+
+<h3>Source Code Files In The SEE Distribution</h3>
+
+The following are the source-code files used to implement
+the SQLite Encryption Extension.  The source-code repository
+for SEE contains many other files used for testing and analysis.
+Those other files can be safely ignored.  The following files
+are the only files you need to be concerned with:
+
+<nowiki><blockquote><dl>
+<dt><b>  see-prefix.txt </b>
+<dd><p>
+   This file contains initialization logic that must be
+   prepended to "sqlite3.c" in order to generate a version
+   of SQLite that supports encryption.
+
+<dt><b>  see-aes128-ofb.c </b>
+<dd><p>
+   This file contains the source code to the
+   SEE variant that uses AES-128 in OFB mode.
+   This file should be appended to "sqlite3.c"
+
+<dt><b>  see-cccrypt.c </b>
+<dd><p>
+   This file works just like see-aes128-ofb.c and/or
+   see-aes256-ofb.c and generates
+   compatible databases.  But in see-cccrypt.c, the encryption
+   is carried out by the CommonCrypto library found on Macs
+   and iPhones, rather than using the built-in Rijndael
+   implementation of AES.  The CommonCrypto library ties into
+   hardware acceleration on Apple platforms, and is thus much faster.
+   <p>The see-ccrypt.c module normally only does AES128 encryption.
+   However, when see-cccrypt is compiled with -DCCCRYPT256,
+   it will use AES256 if and only if the key is exactly 32 bytes long.
+
+<dt><b>  see-aes128-ccm.c </b>
+<dd><p>
+   This file contains the source code to the
+   SEE variant that uses AES-128 in CCM mode.
+   CCM mode includes a message authentication
+   code which provides authentication in addition to
+   confidentiality.
+   This file should be appended to "sqlite3.c"
+
+<dt><b> see-aes256-ofb.c </b>
+<dd><p>
+  This file contains the source code to the
+  SEE variant that uses AES-256 in OFB mode.
+   This file should be appended to "sqlite3.c"
+
+
+<dt><b>  see-aes256-openssl.c </b>
+<dd><p>
+   This file works just like see-aes256-ofb.c and generates
+   compatible databases.  But in see-aes256-openssl, the encryption
+   is carried out by the EVP routines from the separate OpenSSL
+   library, rather than using the built-in Rijndael
+   implementation of AES.
+
+<dt><b>  see-rc4.c  </b>
+<dd><p>
+   This file contains the source code to the
+   SEE variant that uses RC4.  The RC4 encryption algorithm
+   has lived and long and useful life, but its era has now
+   passed.  This module is maintained for historical
+   compatibility. New projects are encouraged to use
+   AES-128 instead.
+
+<dt><b> see.c </b>
+<dd><p>
+  This file contains the source code to the
+  SEE variant that uses any of the RC4, AES128-OFB,
+  or AES258-OFB algorithms based on a prefix of the
+  key.  This variation of the encryption extension
+  is recommended for all new projects.
+
+<dt><b> see-xor.c </b>
+<dd><p>
+  This file contains the source code to the
+  SEE variant that does weak XOR encryption.  Do not
+  take this file seriously.  It is for demonstration
+  purposes only.  XOR encryption is so weak that it
+  hardly qualifies as "encryption".
+
+<dt><b> sqlite3.c </b>
+<dd><p>
+  This file contains the complete source code to
+  the public-domain version of SQLite.  All of the
+  individual C-code files have been concatenated into
+  this one convenient package.  On the SQLite website,
+  this file is called the 
+  "<a href="http://www.sqlite.org/amalgamation.html">amalgamation</a>".
+
+<dt><b> sqlite3.h </b>
+<dd><p>
+  This file contains the interface definitions for
+  SQLite.  Other programs that link against SQLite
+  will need this file, and you will need this file
+  in order to compile the CLI, but you do not need
+  this file to compile SQLite itself.
+
+<dt><b> shell.c </b>
+<dd><p>
+  This file contains source code for the "CLI",
+  the Command Line Interface program named "sqlite3.exe"
+  that you can use to access and control SQLite
+  database files.  This file is different from the
+  "shell.c" file that comes with the public-domain
+  version of SQLite.  This shell.c has been enhanced
+  to make use of the encryption extension.
+</dl></blockquote></nowiki>
+
+<h3>Building And Compiling The SEE Code</h3>
+
+To compile SEE into a static library, prepend the see-prefix.txt
+file to the front of the sqlite3.c file, and append one of the
+see*.c files to the end of the sqlite3.c file, then compile
+the concatenation as a single source file.  Then compile the
+resulting concatentation just like you would compile an
+ordinary public-domain "sqlite3.c" source file. On unix systems,
+the command sequence would be something like this:
+
+<verbatim>
+    cat see-prefix.txt sqlite3.c see.c >sqlite3-see.c
+    gcc -c sqlite3-see.c
+    ar a sqlite3-see.a sqlite3-see.o
+</verbatim>
+
+On windows, the commands are more like this:
+
+<verbatim>
+    copy /y see-prefix.txt + sqlite3.c + see.c sqlite3-see.c
+    cl -c sqlite3-see.c
+    lib /out:libsee.lib sqlite3-see.obj
+</verbatim>
+
+We strongly encourage you to statically link SQLite against your
+application.  However, if you must use SQLite as a separate DLL or
+shared library, you can do so by adding the following compile-time
+option:
+
+<verbatim>
+   -DSQLITE_DLL=1
+</verbatim>
+
+To compile the CLI, just hand the shell.c source file to your
+C compiler together with either the static library prepared
+above, or the original source code files.  A typical command on
+Linux is:
+
+<verbatim>
+    gcc -o sqlite3 shell.c sqlite3-see.c -lpthreads -ldl
+</verbatim>
+
+On a Mac:
+
+<verbatim>
+    gcc -o sqlite3 shell.c sqlite3-see.c -ldl
+</verbatim>
+
+On Windows with MSVC:
+
+<verbatim>
+    cl /Fesqlite3.exe shell.c sqlite3-see.c
+</verbatim>
+
+For an added performance boost when building the CLI, consider
+adding the -DSQLITE_THREADSAFE=0 option.  The CLI is single
+threaded and SQLite runs faster if it doesn't have to use
+its mutexes.
+
+SEE can also be built for [./win8phone.wiki | Windows Phone 8],
+[./uwp10.wiki | UWP 10], and [http://www.sqlite.org/android | Android].
+
+
+<h2>Command-Line Usage</h2>
+
+The CLI is the same
+<a href="https://sqlite.org/cli.html">CLI used by public-domain SQLite</a>
+though with enhancements to support encryption.
+There are new command-line options ("-key", "-hexkey", and "-textkey")
+for specifying the encryption key.
+Examples:
+
+<verbatim>
+    sqlite3 -key secret database.db
+    sqlite3 -hexkey 736563726574 database.db
+    sqlite3 -textkey secret2 database.db
+</verbatim>
+
+If the key is omitted or is an empty string no encryption is 
+performed.
+
+There are three different key formats.  The first format (-key) takes
+the key string and repeats it over and over until it exceeds the number
+of bytes in the key of the underlying algorithm (16 bytes for AES128,
+32 bytes for AES256, or 256 bytes for RC4).  It then truncates the result
+to the algorithm key size.  The approach limits the key space since it
+does not allow 0x00 bytes in the key.  The second format (-hexkey)
+accepts the key as hexadecimal, so any key can be represented.  If the
+provided key is too long it is truncated.  If the provided key is too
+shorted, it is repeated to fill it out to the algorithm key length.
+The third format (-textkey) computes a strong hash on the input key
+material and uses that hash to key the algorithm.  The -textkey format
+is recommended for new applications.
+
+<h3>Changing the encryption key</h3>
+
+The SEE-enabled CLI also includes new
+<a href="https://sqlite.org/cli.html#dotcmd">dot-commands</a>
+".rekey", ".hex-rekey", and ".text-rekey" 
+for changing the encryption key:
+
+<verbatim>
+   .rekey OLD NEW NEW
+   .hex-rekey OLD NEW NEW
+   .text-rekey OLD NEW NEW
+</verbatim>
+
+The first argument is always the old password, in exactly the format
+as it was supplied to the "-key", "-hexkey", or "-textkey" options
+when the command-line tool was started.  If the the database was
+previously unencrypted, use an empty string "" as the key.  The
+2nd and 3rd arguments are the new encryption key.  You must
+enter the new key twice to check for typos - the rekey will not
+occur unless both instances of the new key are the same.  To
+encrypt a previously unencrypted database, do this:
+
+<verbatim>
+   .rekey "" new-key new-key
+   VACUUM
+</verbatim>
+
+The VACUUM step is not required to enable encryption but it is
+highly recommended.  The VACUUM command ensures that every page
+of the database file has a secure <a href="#nonce">nonce</a>.
+The VACUUM is only needed when an existing,
+non-empty database file is encrypted for the first time.
+
+To decrypt a database do this:
+
+<verbatim>
+   .rekey old-key "" ""
+</verbatim>
+
+The .rekey command only works with text keys.  To rekey a database
+that contains a binary key use the ".hex-rekey" command instead.
+The .hex-rekey command works just like .rekey except the new keyis
+entered as hexadecimal instead of text.  The ".text-rekey" command
+computes a hash of the NEW argument and uses that hash as the encryption
+key.
+
+<h2>5.0 C Interface</h2>
+
+If you deploy the SQLite encryption extension as a DLL or shared
+library then you must first activate the library by invoking:
+
+<verbatim>
+   sqlite3_activate_see("7bb07b8d471d642e");
+</verbatim>
+
+The argument is your product activation key.  The activation key
+is available as plain-text in the source code so you can clearly
+see what it is.  The purpose of the activation key is to prevent
+one of your customers from extracting the SQLite library and using
+it separately from your application.  Without knowledge of the
+activation key, which only you should know, your users will be
+unable to access the encryption features.
+
+If you are unable to invoke the C-interface to sqlite3_activate_see()
+(perhaps because you are accessing SQLite through a wrapper layer) then
+you can also alternatively activate the encryption features using a PRAGMA:
+
+<verbatim>
+  PRAGMA activate_extensions='see-7bb07b8d471d642e';
+</verbatim>
+
+Use the sqlite3_open() API to open an encrypted database
+or any database that you want to rekey.  Immediately after
+opening, specify the key using sqlite3_key_v2():
+
+<verbatim>
+   int sqlite3_key_v2(
+      sqlite3 *db,         /* The connection from sqlite3_open() */
+      const char *zDbName, /* Which ATTACHed database to key */
+      const void *pKey,    /* The key */
+      int nKey             /* Number of bytes in the key */
+   );
+</verbatim>
+
+If the pKey argument is NULL or nKey is 0, then the
+database is assumed to be unencrypted.  The nKey parameter can
+be arbitrarily large, though only the first 256 bytes (RC4) or
+16 bytes (AES128) or 32 bytes (AES256) will be used.  In SEE
+versions 3.15.0 and later, if nKey
+is negative, then pKey is assumed to be a zero-terminated passphrase
+string.  In that case the passphrase is hashed and the hash is
+used as the key to AES algorithm.  The passphrase itself is used
+as the key for RC4.
+
+<b>CAUTION:</b> The feature of using a passphrase hash when nKey&lt;0
+was added in version 3.15.0.  If you use nKey&lt;0 in any SEE version
+prior to 3.15.0, encryption will be silently disabled, just as if you
+had set nKey=0.
+
+The see-ccrypt.c module uses AES128 encryption by default.
+However, if see-ccrypt.c is compiled with -DCCCRYPT256 and if
+the sqlite3_key_v2() interface is called with nKey==32, then
+AES256 encryption is used instead.
+
+If you specify an incorrect key, you will not get an error message
+right away.  But the first time you try to access the database
+you will get an SQLITE_NOTADB error with a message of
+"file is encrypted or is not a database".
+
+The zDbName parameter specifies which ATTACH-ed database should get
+the key.  Usually this is "main".  You can pass in a NULL pointer as
+an alias for "main".  Unless you have a good reason to do otherwise,
+it is best to pass in a NULL pointer for the zDbName parameter.
+
+You can change the key on a database using the sqlite3_rekey() routine:
+
+<verbatim>
+   int sqlite3_rekey_v2(
+      sqlite *db,                    /* Database to be rekeyed */
+      const char *zDbName,           /* Which ATTACHed database to rekey */
+      const void *pKey, int nKey     /* The new key */
+   );
+</verbatim>
+
+A NULL key decrypts the database.
+
+Rekeying requires that every page of the database file be read,
+decrypted, reencrypted with the new key, then written out again.
+Consequently, rekeying can take a long time on a larger database.
+
+Most SEE variants allow you to encrypt an existing database that
+was created using the public domain version of SQLite.  This is
+not possible when using the authenticating version of the encryption
+extension in see-aes128-ccm.c.  If you do encrypt a database that
+was created with the public domain version of SQLite, no nonce
+will be used and the file will be vulnerable to a chosen-plaintext
+attach.  If you call sqlite3_key_v2() immediately after sqlite3_open()
+when you are first creating the database, space will be reserved
+in the database for a nonce and the encryption will be much stronger.
+If you do not want to encrypt right away, call sqlite3_key_v2() anyway,
+with a NULL key, and the space for the nonce will be reserved in the
+database even though no encryption is done initially.
+
+A public domain version of the SQLite library can read and write
+an encrypted database with a NULL key.  You only need the encryption
+extension if the key is non-NULL.
+
+
+<h2>Using the "key" PRAGMA </h2>
+
+As an alternative to calling sqlite3_key_v2() to set the decryption
+key for a database, you can invoke a pragma:
+
+<verbatim>
+    PRAGMA key='your-secret-key';
+</verbatim>
+
+You must invoke this pragma before trying to do any other 
+interaction with the database.  The key pragma only works with
+string keys.  If you use a binary key, use the hexkey pragma
+instead:
+
+<verbatim>
+    PRAGMA hexkey='796f75722d7365637265742d6b6579';
+</verbatim>
+
+For the equivalent of the --textkey option, in which the text
+passphrase is hashed to compute the actual encryption key, use:
+
+<verbatim>
+    PRAGMA textkey='your-secret-key';
+</verbatim>
+
+Use the rekey, hexrekey, or textrekey pragmas to change the key.
+So, for example, to change the key to 'demo2' use one of:
+
+<verbatim>
+    PRAGMA rekey='demo2';
+    PRAGMA hexrekey='64656d6f32';
+    PRAGMA textrekey='long-passphrase';
+</verbatim>
+
+Through the use of these pragmas, it is never necessary to directly
+invoke the sqlite3_key_v2() or sqlite3_rekey_v2() interfaces.  This means
+that SEE can be used with language wrappers that do not know about
+those interfaces.
+
+The "key", "hexkey", and "textkey" PRAGMA statements expect the same
+key strings as the "-key", "-hexkey", and "-textkey" arguments
+to the command-line shell, respectively.
+
+<h2>Using The ATTACH Command</h2>
+
+The key for an attached database is specified using the KEY clause
+at the end of the ATTACH statement.   Like this:
+
+<verbatim>
+    ATTACH DATABASE 'file2.db' AS two KEY 'xyzzy';
+</verbatim>
+
+If the KEY clause is omitted, the same key is used that is currently
+in use by the main database.  If the attached database is not
+encrypted, specify an empty string as the key.  The argument to
+the KEY keyword can be BLOB constant.  For example:
+
+<verbatim>
+    ATTACH DATABASE 'file2.db' AS two KEY X'78797a7a79';
+</verbatim>
+
+Using text as the KEY on an ATTACH statement expects the same key as
+one would provide to the "-key" option of the command-line shell.  A
+BLOB value for KEY is means to use the same key as would have been
+provided by the "-hexkey" option to the command-line shell.  There is
+no mechanism for specifying a passphrase to be hashed on an ATTACH
+statement.  If you are using a hashed key, you must compute the hash
+yourself and supply it as a BLOB.
+
+<h2>Key Material</h2>
+
+The amount of key material actually used by the encryption extension
+depends on which variant of SEE you are using.  With see-rc4.c, the
+first 256 byte of key are used.  With the see-aes128-ofb and
+and see-aes128-ccm variants, the first 16 bytes of the key are used.
+With see-aes256-ofb, the first 32 bytes of key are used.
+
+If you specify a key that is shorter than the maximum key length, then
+the key material is repeated as many times as necessary to complete the
+key.  If you specify a key that is larger than the maximum key length,
+then the excess key material is silently ignored.
+
+For the "-textkey" option, up to 256 bytes of the passphrase are hashed
+using RC4 and the hash value becomes the encryption key.
+Note that in this context the RC4 algorithm is being used as a hash
+function, not as a cryptographic function, so the fact that RC4 is
+a cryptographically weak algorithm is irrelevant.
+
+<h3>Encryption algorithm selection using a key prefix</h3>
+
+For the "see.c" SEE variant, the key may begin with a prefix
+to specify which algorithm to use.  The prefix must be <em>exactly</em>
+one of "rc4:", "aes128:", or "aes256:".  The prefix is not used as part of
+the key sent into the encryption algorithm.  So the real key should
+begin on the first byte after the prefix.  Take note of the following
+important details:
+<ul>
+<li><p>The prefix is case sensitive.  "aes256:" is a valid prefix but
+    "AES256:" is not.
+<li><p>If the key prefix is omitted or misspelled, then the encryption
+    algorithm defaults to "aes128" and the misspelled prefix becomes
+    part of the key.
+<li><p>The encryption algorithm can be changed using the sqlite3_rekey_v2()
+    interface or the .rekey command-line.  For example, to convert a
+    legacy RC4-encrypted database to use AES-256, enter:
+<verbatim>
+.rekey rc4:mykey aes256:mykey aes256:mykey
+</verbatim>
+<li><p>The algorithm prefix strings work on the "see.c" variant of SEE 
+    <em>only</em>.
+    For any of see-aes128-ofb.c, see-aes255-ofb.c, see-aes128-ccm.c, or
+    aes-rc4.c any prefix on the key is interpreted as part of the key.
+<li><p>The nKey parameter on sqlite3_key() and sqlite3_key_v2() must
+    include the size of the prefix in addition to the size of the key.
+<li><p>When using PRAGMA hexkey or PRAGMA hexrekey, the key prefix must
+    be hex encoded just like the rest of the key.
+<verbatim>
+PRAGMA hexkey='aes128:6d796b6579';         -- Wrong!!
+PRAGMA hexkey='6165733132383a6d796b6579';  -- correct
+</verbatim>
+</ul>
+
+<a name="nonce"></a>
+<h2>The Importance of a Nonce</h2>
+
+The encryption is much more secure if it has a random nonce value on
+each page of the database.  Without a nonce, the encryption can be broken
+using a chosen-plaintext attack.  Purists will argue (rightly) that
+the encryption is weak without a nonce.
+
+The number of bytes of nonce on each page of the database is determined
+by byte 20 of the database file.  This value is set to zero by default
+in databases created by the public-domain version of SQLite.  You can 
+change this byte to a positive value by running the
+<a href="https://www.sqlite.org/lang_vacuum.html">VACUUM</a> command
+using an SEE-enabled version of SQLite.
+
+You can check the size of the nonce for a database by using the 
+".dbinfo" command in an ordinary
+<a href="https://www.sqlite.org/cli.html">sqlite3.exe command-line shell</a>
+program.  
+The output of the ".dbinfo" command will look something like this:
+
+<blockquote><pre>
+database page size:  4096
+write format:        1
+read format:         1
+reserved bytes:      12    <font color="blue"><i>&larr; Nonce size</i></font>
+file change counter: 3504448735
+database page count: 14190
+freelist page count: 0
+schema cookie:       107
+schema format:       4
+default cache size:  0
+autovacuum top root: 0
+incremental vacuum:  0
+text encoding:       1 (utf8)
+user version:        0
+application id:      0
+software version:    3008008
+number of tables:    53
+number of indexes:   53
+number of triggers:  0
+number of views:     0
+schema size:         14257
+</pre></blockquote>
+
+Bytes 16 through 23 of the database are unencrypted.  Thus, you can
+always check to see how much nonce is being used, even on an encrypted
+database file, just by looking at byte 20.  It is recommended that
+any product that uses encryption check this byte to make sure it
+is being set to 4 or 12 or 32 and not 0.
+
+<h2>Security Checklist</h2>
+
+When using SEE in an application, it is recommended that you double-check
+that everything is implemented correctly, and that you are getting strong
+encryption, by performing the following tests, at a minimum:
+
+  1.  Use the SEE-enabled CLI to run the "sqlite3 $DATABASE .dbinfo"
+      command (adding an appropriate -key, -hexkey, or -textkey argument)
+      and verify that your encrypted database files contain a nonce.
+      The nonce should be at least 12 bytes.
+
+  2.  Use the SEE-enabled CLI to read an encrypted database, but
+      change the last character of the supplied key by a single character
+      value.
+      Verify that a minor change to the end of the key like this
+      renders the database unreadable.  The error message
+      should be "file is not a database".  Repeat this test with multiple
+      variations of the key.  Confirm that the database is only accessible
+      if the key is exactly correct.
+
+  3.  Try to compress an encrypted database file and verify that the
+      file is uncompressible.  In other words, run a program like "zip"
+      or "gzip" against the encrypted database and verify that compression
+      does not change the size of the file more than a few bytes smaller.
+
+<h2>Limitations</h2>
+
+  1.  TEMP tables are not encrypted.
+
+  2.  In-memory (":memory:") databases are not encrypted.
+
+  3.  Bytes 16 through 23 of the database file contain header
+      information which is not encrypted.
+
+
+<h2>How SEE Works</h2>
+
+Each page is encrypted separately. The key to encryption is a 
+combination of the page number, the random nonce (if any) and the 
+database key. The data is encrypted in both the main database and
+in the rollback journal or WAL file but is unencrypted when held in memory.  
+This means that if an adversary is able to view the memory used
+by your program, she will be able to see unencrypted data.
+
+The nonce value is changed by a rollback.
+
+The see-aes128-ccm.c variant uses AES in CCM mode with a 16-byte 
+randomly choosen nonce on each page and and 16-byte message
+authentication code (MAC).  Thus with crypto3ccm.c, 32 bytes
+of every database pages are taken up by encryption and
+authentication overhead.  Consequently, database files created
+using crypto3ccm.c may be a little larger.  Also, because the
+MAC is computed whenever a page is modified, and verified when
+a page is read, crypto3ccm.c will often be a little slower.
+Such is the cost of authentication.

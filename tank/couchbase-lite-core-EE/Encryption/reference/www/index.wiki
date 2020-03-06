@@ -1,0 +1,41 @@
+<h1 align="center">
+SQLite Encryption Extension<br>
+Software Configuration Management System
+</h1>
+
+This website ([https://www.sqlite.org/see]) is where all of the source code
+for the SQLite Encryption Extension (SEE) is stored and archived.  If you are
+an SEE licensee, this is where you come to view and/or download the latest
+SEE source code.  Selected precompile binaries are also available.
+
+Some of the documentation on this website is open to viewing by the general
+public.  However, access to the SEE source code and precompiled binaries
+requires a username and password, which is available only to licensees.
+Perpetual source-code licenses
+are [https://www.hwaci.com/cgi-bin/see-step1|available for purchase]
+separately.
+
+This is a <u>live</u> software configuration management system.  What you
+see here is exactly what the developers see.  There is no packaging.  There
+is no sugar-coating.  There are no secrets.  All of our mistakes are here
+in full view.  Just because code appears in this repository does not mean
+that it works.  Please restrict your attention to check-ins that are tagged
+with [/timeline?t=release | "release"].  
+You can see a list of tags for each check-in in the timeline
+and under the "Tags and Properties" subheading of the check-in information
+page.  If you are in doubt about what version of SEE you should be
+using, please ask.
+
+Key links:
+
+  *  [./readme.wiki | How To Compile And Use SEE]
+
+  *  [/timeline?t=release | Timeline of SEE releases]
+
+  *  [/tree?ci=release | Files in the latest release of SEE]
+
+  *  [/vinfo/release | Information about the latest release version of SEE]
+
+  *  [/zip/see-sources.zip?uuid=release | Download ZIP archive] or
+     a [/tarball/see-sources.tar.gz?uuid=release|Tarball] of the latest
+     source code.

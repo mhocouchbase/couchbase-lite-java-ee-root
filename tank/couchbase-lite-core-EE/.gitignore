@@ -1,0 +1,37 @@
+*~
+*.o
+.DS_Store
+bin/
+obj/
+
+# Xcode:
+*.xccheckout
+*.xcscmblueprint
+*.userprefs
+xcuserdata/
+build/
+DerivedData/
+
+# CMake:
+/build_cmake/*
+!/build_cmake/scripts
+stripopts
+empty.cpp
+
+# Visual Studio / C#
+*VC.*db
+!CSharp/prebuilt/README.txt
+.vscode/
+CSharp/native
+project.lock.json
+*.cs.template
+
+# SQLite log files:
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Misc / Uncategorized:
+*.sdf
+*.opensdf
+packages/
+*.pyc

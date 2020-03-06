@@ -1,0 +1,318 @@
+###############################################################################
+#
+# buildSds.eagle --
+#
+# Build script for System.Data.SQLite with the SQLite Encryption
+# Extension (SEE)
+#
+# Copyright (c) 2004-2008 Hipp, Wyrick & Company, Inc.
+# 6200 Maple Cove Lane, Charlotte, NC 28269 USA
+# +1.704.948.4565
+#
+# All rights reserved.
+#
+###############################################################################
+#
+# ----------------------
+# HOW TO USE THIS SCRIPT
+# ----------------------
+#
+#    1. First, a complete copy of the public System.Data.SQLite source tree is
+#       needed.  This can be obtained from "https://system.data.sqlite.org/".
+#
+#    2. Second, a copy of Eagle is also required; however, you should already
+#       have this if you have a complete copy of the public System.Data.SQLite
+#       source tree, because it is needed to run the primary System.Data.SQLite
+#       test suite.  Alternatively, it can be obtained from "https://eagle.to/".
+#
+#    3. By default, this script will look in the "..\dotnet" directory in order
+#       to locate the root of the System.Data.SQLite source tree.  This can be
+#       overridden in the first (optional) command line argument, for example:
+#
+#           EagleShell.exe -file buildSds.eagle "C:\path\to\sds\root"
+#
+#       In the above example, the directory specified must be the parent of the
+#       "SQLite.Interop" and "Setup" sub-directories.
+#
+#    4. By default, this script will build the "Release" configuration of the
+#       System.Data.SQLite binaries.  This can be overridden in the second
+#       (optional) command line argument, for example:
+#
+#           EagleShell.exe -file buildSds.eagle "" Debug
+#
+#       The specified base build configuration must be "Debug" or "Release".
+#       When building for Mono, the specified base build configuration must
+#       be "DebugMono" or "ReleaseMono".
+#
+#    5. By default, this script will build the "Win32" platform for the
+#       System.Data.SQLite binaries.  This can be overridden in the third
+#       (optional) command line argument, for example:
+#
+#           EagleShell.exe -file buildSds.eagle "" "" x64
+#
+#       The specified build platform must be "MSIL", "Win32", or "x64".  The
+#       managed-only components are (also) built automatically for "Win32".
+#
+#    This script makes certain assumptions about how the System.Data.SQLite
+#    source tree is laid out.  If that layout changes, this script will need
+#    to be updated as well.
+#
+###############################################################################
+
+proc usage { error } {
+  if {[string length $error] > 0} then {puts stdout $error}
+
+  puts stdout "usage:\
+[file tail [info nameofexecutable]]\
+[file tail [info script]] \[sdsRoot\] \[baseConfiguration\] \[platform\]\
+\[year\]"
+
+  exit 1
+}
+
+if {[llength $argv] >= 0 && [llength $argv] <= 4} then {
+  package require Eagle
+
+  #
+  # NOTE: Set the path to the one containing this script file.
+  #
+  set path [file normalize [file dirname [info script]]]
+
+  if {[llength $argv] >= 1 && [string length [lindex $argv 0]] > 0} then {
+    #
+    # NOTE: Use the specified directory as the root directory of the
+    #       System.Data.SQLite source tree.
+    #
+    set root_path [file normalize [lindex $argv 0]]
+  } else {
+    #
+    # NOTE: By default, use a directory named "dotnet" that is a peer
+    #       of the one containing this script as the root directory of
+    #       the System.Data.SQLite source tree.
+    #
+    set root_path [file join [file dirname $path] dotnet]
+  }
+
+  #
+  # NOTE: Build the "Release" configuration by default.  It should be noted
+  #       that the "ManagedOnly" and "NativeOnly" suffixes will be appended
+  #       to this base configuration in the arguments passed to the actual
+  #       build command (which is a batch file).
+  #
+  if {[llength $argv] >= 2 && [string length [lindex $argv 1]] > 0} then {
+    set baseConfiguration [lindex $argv 1]
+  } else {
+    set baseConfiguration Release
+  }
+
+  #
+  # NOTE: Build the "Win32" platform by default.
+  #
+  if {[llength $argv] >= 3 && [string length [lindex $argv 2]] > 0} then {
+    set platform [lindex $argv 2]
+  } else {
+    set platform ""
+  }
+
+  #
+  # NOTE: For Mono, default to using the Visual Studio 2013 project file.
+  #       The year argument is not used on other platforms.
+  #
+  if {[llength $argv] >= 4 && [string length [lindex $argv 3]] > 0} then {
+    set year [lindex $argv 3]
+  } else {
+    if {![info exists year]} then {
+      set year 2013
+    }
+  }
+
+  #
+  # NOTE: When building for Mono (on POSIX?), use special handling to build
+  #       the managed assembly and SQLite interop assembly.
+  #
+  if {[string range $baseConfiguration end-3 end] eq "Mono"} then {
+    set baseConfiguration [string range $baseConfiguration 0 end-4]
+    set isMono true
+  } else {
+    set isMono false
+  }
+
+  #
+  # NOTE: When building for .NET Core (on POSIX?), use special handling to
+  #       build the managed assembly and SQLite interop assembly.
+  #
+  if {$year eq "NetStandard20"} then {
+    if {![info exists native_year]} then {
+      set native_year 2015; # TODO: Keep this up-to-date.
+    }
+
+    set isDotNetCore true
+  } else {
+    if {![info exists native_year]} then {
+      set native_year $year
+    }
+
+    set isDotNetCore false
+  }
+
+  set props_count 0
+
+  if {!$isMono} then {
+    set props_pattern {SQLite\.Interop\.20\d\d\.(?:vs)?props}; # regex
+    set props_path [file join $root_path SQLite.Interop props]
+
+    foreach fileName [glob [file join $props_path *]] {
+      if {[regexp -- $props_pattern [file tail $fileName]]} then {
+        set data [readFile $fileName]; set count 0
+        set replacements(1) {INTEROP_INCLUDE_SEE=1}
+
+        if {![regexp -- {SQLITE_HAS_CODEC=1} $data]} then {
+          append replacements(1) {;SQLITE_HAS_CODEC=1}
+        }
+
+        if {![regexp -- $replacements(1) $data]} then {
+          incr count [regsub -all -- \
+              {INTEROP_CODEC=1} $data $replacements(1) data]
+
+          if {$count == 0} then {
+            append replacements(1) {;INTEROP_PLACEHOLDER=1}
+
+            incr count [regsub -all -- \
+                {INTEROP_PLACEHOLDER=1} $data $replacements(1) data]
+          }
+        }
+
+        if {$count > 0} then {
+          writeFile $fileName $data
+        }
+
+        incr props_count
+      }
+    }
+  }
+
+  #
+  # NOTE: Did we actually find one or more build properties files?  If not,
+  #       the root path is likely wrong.
+  #
+  if {$isMono || $props_count > 0} then {
+    #
+    # NOTE: This is the file name, without the directory, that contains the
+    #       SEE implementation to use.
+    #
+    set seePrefixFileName see-prefix.txt
+    set seeFileName see.c
+
+    #
+    # NOTE: These commands make assumptions about how the System.Data.SQLite
+    #       source tree is laid out.
+    #
+    file copy -force [file join $path $seePrefixFileName] \
+        [file join $root_path SQLite.Interop src ext $seePrefixFileName]
+
+    file copy -force [file join $path $seeFileName] \
+        [file join $root_path SQLite.Interop src ext $seeFileName]
+
+    set targetsFileName [file join $root_path Targets \
+        SQLite.NET.Settings.targets.extra]
+
+    set targetsFileTag "<!-- properties -->"
+
+    if {[file exists $targetsFileName]} then {
+      set data [readFile $targetsFileName]
+    } else {
+      set data [subst {
+        <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+          <PropertyGroup>
+            $targetsFileTag
+          </PropertyGroup>
+        </Project>
+      }]
+    }
+
+    #
+    # NOTE: The property "NetFx35 true" could be used here as well
+    #       (VS 2008, part 1).
+    #
+    set properties ""
+
+    foreach {propertyName propertyValue} \
+        [list InteropCodec false InteropIncludeSee true] {
+      append properties [subst {
+        <${propertyName} Condition="'\$(${propertyName})' == ''">${propertyValue}</${propertyName}>
+      }]
+    }
+
+    set data [string map [list \
+        $targetsFileTag [appendArgs $properties $targetsFileTag]] $data]
+
+    writeFile $targetsFileName $data
+
+    if {[isWindows]} then {
+      if {$isDotNetCore} then {
+        set buildManagedFileName build_net_standard_20.bat
+        set buildNativeFileName build.bat
+      } elseif {$isMono} then {
+        set buildManagedFileName build_mono.bat
+        set buildNativeFileName build_mono.bat
+      } else {
+        set buildManagedFileName build.bat
+        set buildNativeFileName build.bat
+      }
+
+      # set env(NOMSBUILD64) 1; set env(NETFX35ONLY) 1; # VS 2008, part 2.
+
+      if {[string tolower $platform] in [list msil ""]} then {
+        exec -nocapture -eventflags Wait -success Success -- \
+            $env(ComSpec) /c [file join $root_path Setup \
+            $buildManagedFileName] [appendArgs $baseConfiguration \
+            ManagedOnly]
+      }
+
+      if {!$isMono} then {
+        if {[string tolower $platform] in [list win32 x64 ""]} then {
+          exec -nocapture -eventflags Wait -success Success -- \
+              $env(ComSpec) /c [file join $root_path Setup \
+              $buildNativeFileName] [appendArgs $baseConfiguration \
+              NativeOnly] $platform
+        }
+      }
+    } else {
+      if {$isDotNetCore} then {
+        set env(SQLITE_NET_CONFIGURATION_SUFFIX) NetStandard20
+      } elseif {$isMono} then {
+        set env(SQLITE_NET_CONFIGURATION_SUFFIX) MonoOnPosix
+      } else {
+        unset -nocomplain env(SQLITE_NET_CONFIGURATION_SUFFIX)
+      }
+
+      if {[string tolower $platform] in [list msil ""]} then {
+        set projectFileName [appendArgs System.Data.SQLite. $year .csproj]
+
+        if {$isDotNetCore} then {
+          set buildManagedFileName [appendArgs build-netstandard20- \
+              [string tolower $baseConfiguration] .sh]
+        } else {
+          set buildManagedFileName [appendArgs build-mono- \
+              [string tolower $baseConfiguration] .sh]
+        }
+
+        exec -nocapture -eventflags Wait -success Success -- \
+            [file join $root_path Setup $buildManagedFileName]
+      }
+
+      if {[string tolower $platform] in [list win32 x64 ""]} then {
+        set buildNativeFileName [appendArgs compile-interop-assembly- \
+            [string tolower $baseConfiguration] .sh]
+
+        exec -nocapture -eventflags Wait -success Success -- \
+            [file join $root_path Setup $buildNativeFileName] \
+            -DSQLITE_HAS_CODEC=1 -DINTEROP_INCLUDE_SEE=1
+      }
+    }
+  } else {
+    usage "no build properties files were found (bad root path?)"
+  }
+} else {
+  usage ""
+}

@@ -1,0 +1,51 @@
+<title>Building SEE for System.Data.SQLite for Mono on Windows and/or Unix</title>
+
+These instructions are current as of 2018-04-09.
+
+Prior to being able to build System.Data.SQLite for Mono on either Windows or
+Unix, the following common prerequisites should be met:
+
+  1.  Working copy of [https://system.data.sqlite.org/|System.Data.SQLite source code].
+
+  2.  Working copy of [https://www.sqlite.org/see/|SEE source code].
+
+  3.  The directory structure for the source code is assumed to be as follows:
+
+<verbatim>
+      <baseDir>
+          |
+          +-------- "dotnet"
+          |
+          +-------- "see"
+</verbatim>
+
+The following are additional prerequisites for building System.Data.SQLite for
+Mono on Windows:
+
+  4.  Visual Studio 2012, Visual Studio 2013 or Visual Studio 2015.
+
+Building System.Data.SQLite for Mono on Windows with SEE requires the following
+steps:
+
+  5.  Open a Command Prompt window.
+
+  6.  Execute the following command from the working directory for the SEE
+      source code:
+
+<verbatim>
+       buildSdsMono.bat
+</verbatim>
+
+The following are additional prerequisites for building System.Data.SQLite for
+Mono on Unix:
+
+  7.  Mono 5.4 or higher.
+
+Building System.Data.SQLite for Mono on Unix with SEE requires the following steps:
+
+  8.  Execute the following command from the working directory for the SEE
+      source code:
+
+<verbatim>
+       mono ../dotnet/Externals/Eagle/bin/EagleShell.exe -file buildSds.eagle "" ReleaseMono
+</verbatim>

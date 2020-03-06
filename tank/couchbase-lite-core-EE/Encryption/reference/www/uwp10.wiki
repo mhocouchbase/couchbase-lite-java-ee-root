@@ -1,0 +1,59 @@
+<title>Building SEE for UWP 10.0</title>
+
+These instructions are current as of 2017-07-26.
+
+Prior to being able to build SQLite for UWP 10, the following
+prerequisites should be met:
+
+  1.  Visual Studio 2015 (RTM) or later.
+
+Building SQLite for UWP 10 with SEE requires the following steps:
+
+  4.  Open a "Developer Command Prompt for VS2015" command prompt window and
+      change the current directory to the one containing the core SQLite source
+      code.
+
+  5.  Execute the following commands to setup the environment variables used
+      by the SQLite MSVC makefile, using "%ProgramFiles(x86)%" instead of
+      "%ProgramFiles% when building on 64-bit Windows:
+
+<verbatim>
+       SET NSDKLIBPATH=%ProgramFiles%\Windows Kits\10\lib\10.0.10240.0\um\x86
+       SET NUCRTLIBPATH=%ProgramFiles%\Windows Kits\10\lib\10.0.10240.0\ucrt\x86
+       SET OPTS=-DSQLITE_HAS_CODEC=1
+</verbatim>
+
+   If the building for 32-bit x86, execute the following commands
+   to setup the environment variables used by the SQLite MSVC makefile:
+
+<verbatim>
+       SET PSDKLIBPATH=%ProgramFiles%\Windows Kits\10\lib\10.0.10240.0\um\x86
+</verbatim>
+
+   Otherwise, if the building for 64-bit x64, execute the following commands
+   to setup the environment variables used by the SQLite MSVC makefile:
+
+<verbatim>
+       SET PSDKLIBPATH=%ProgramFiles%\Windows Kits\10\lib\10.0.10240.0\um\x64
+</verbatim>
+
+  6.  <b>Skip this step if building from the SEE source code directory.</b><br>
+      Create the baseline "sqlite3.c" using the following NMAKE command from
+      the SQLite source code directory (this step may be skipped if you already
+      have a baseline "sqlite3.c" around that you would like to use):
+
+<verbatim>
+       nmake /F Makefile.msc sqlite3.c XCOMPILE=1 USE_NATIVE_LIBPATHS=1 NO_TCL=1
+       ATTRIB +r sqlite3.c
+       ATTRIB +r sqlite3.h
+</verbatim>
+
+   Marking the "sqlite3.c" and "sqlite3.h" files as read-only is required
+   here because it prevents the normal SQLite build process from replacing
+   them with their baseline versions.
+
+  7.  Execute the following NMAKE command to build the SQLite DLL for UWP 10:
+
+<verbatim>
+       nmake -f Makefile.msc sqlite3.dll /I XCOMPILE=1 USE_NATIVE_LIBPATHS=1 FOR_WINRT=1 FOR_UWP=1 DYNAMIC_SHELL=1
+</verbatim>

@@ -1,0 +1,67 @@
+<title>Building SEE for Windows Phone 8</title>
+
+These instructions are current as of 2013-12-11.
+
+Prior to being able to build SQLite for Windows Phone 8, the following
+prerequisites should be met:
+
+  1.  Visual Studio 2012 (RTM) or later.
+  2.  Tcl 8.5 installed to "C:\Tcl" (e.g. ActiveTcl, from
+      [http://www.activestate.com/ActiveTcl]).
+  3.  gawk.exe in the PATH (from
+      [http://unxutils.sourceforge.net/UnxUpdates.zip]).
+
+Building SQLite for Windows Phone 8 with SEE requires the following steps:
+
+  4.  Open a "Visual Studio 2012 x86 Phone Tools Command Prompt" or
+      "Visual Studio 2012 ARM Phone Tools Command Prompt" command prompt window
+      and change the current directory to the one containing the core SQLite
+      source code.
+
+  5.  If the machine is running 64-bit Windows, execute the following commands
+      to setup the environment variables used by the SQLite MSVC makefile:
+
+<verbatim>
+       SET NCRTLIBPATH=%ProgramFiles(x86)%\Microsoft Visual Studio 11.0\VC\WPSDK\WP80\lib
+       SET NSDKLIBPATH=%ProgramFiles(x86)%\Windows Phone Kits\8.0\lib\x86
+       SET USE_RC=0
+       SET OPTS=-DWINAPI_FAMILY=WINAPI_FAMILY_PHONE_APP -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_WIN32_FILEMAPPING_API=1 -DSQLITE_HAS_CODEC=1
+</verbatim>
+
+   If the machine is running 32-bit Windows, execute the following commands
+   to setup the environment variables used by the SQLite MSVC makefile:
+
+<verbatim>
+       SET NCRTLIBPATH=%ProgramFiles%\Microsoft Visual Studio 11.0\VC\WPSDK\WP80\lib
+       SET NSDKLIBPATH=%ProgramFiles%\Windows Phone Kits\8.0\lib\x86
+       SET USE_RC=0
+       SET OPTS=-DWINAPI_FAMILY=WINAPI_FAMILY_PHONE_APP -DSQLITE_OMIT_LOAD_EXTENSION=1 -DSQLITE_WIN32_FILEMAPPING_API=1 -DSQLITE_HAS_CODEC=1
+</verbatim>
+
+  6.  Create the baseline "sqlite3.c" using the following NMAKE command (this
+       step may be skipped if you already have a baseline "sqlite3.c" around
+       that you would like to use):
+
+<verbatim>
+       nmake /F Makefile.msc sqlite3.c XCOMPILE=1 USE_NATIVE_LIBPATHS=1 FOR_WINRT=1 NO_TCL=1
+</verbatim>
+
+  7.  Combine the baseline "sqlite3.c" with the chosen SEE source code file
+      using commands similar to the following (note that this overwrites the
+      original baseline "sqlite3.c" file):
+
+<verbatim>
+       COPY /B sqlite3.c + /B see.c sqlite3.c /B
+       ATTRIB +r sqlite3.c
+       ATTRIB +r sqlite3.h
+</verbatim>
+
+   Marking the "sqlite3.c" and "sqlite3.h" files as read-only is required
+   here because it prevents the normal SQLite build process from replacing
+   them with their baseline versions.
+
+  8.   Execute the following NMAKE command to build the SQLite DLL for Windows Phone 8:
+
+<verbatim>
+       nmake -f Makefile.msc sqlite3.dll /I XCOMPILE=1 USE_NATIVE_LIBPATHS=1 FOR_WINRT=1 NO_TCL=1
+</verbatim>

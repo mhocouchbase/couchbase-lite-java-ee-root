@@ -1,0 +1,12 @@
+//
+//  LiteCoreSync_EE.xcconfig
+//  LiteCore EE
+//
+//  Created by Jens Alfke on 5/23/17.
+//  Copyright © 2017 Couchbase. All rights reserved.
+//
+
+#include "dylib.xcconfig"
+
+EXPORTED_SYMBOLS_FILE   = $(LITECORE)/REST/c4REST.exp
+PRODUCT_NAME            = LiteCoreSync_EE

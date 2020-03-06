@@ -1,0 +1,24 @@
+[submodule "vendor/sqlite3-unicodesn"]
+	path = vendor/sqlite3-unicodesn
+	url = https://github.com/snej/sqlite3-unicodesn.git
+[submodule "vendor/fleece"]
+	path = vendor/fleece
+	url = https://github.com/couchbaselabs/fleece.git
+[submodule "vendor/SQLiteCpp"]
+	path = vendor/SQLiteCpp
+	url = https://github.com/couchbasedeps/SQLiteCpp.git
+[submodule "vendor/BLIP-Cpp"]
+	path = vendor/BLIP-Cpp
+    url=https://github.com/couchbaselabs/BLIP-Cpp.git
+[submodule "wiki"]
+	path = wiki
+	url = https://github.com/couchbase/couchbase-lite-core.wiki.git
+[submodule "vendor/mbedtls"]
+	path = vendor/mbedtls
+	url = https://github.com/couchbasedeps/mbedtls.git
+[submodule "vendor/ios-cmake"]
+	path = vendor/ios-cmake
+	url = https://github.com/leetal/ios-cmake.git
+[submodule "vendor/sockpp"]
+	path = vendor/sockpp
+	url = https://github.com/couchbasedeps/sockpp.git

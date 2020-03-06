@@ -1,0 +1,2 @@
+include ':couchbase-lite-android-ee:lib'
+include ':couchbase-lite-java-ee:lib'
