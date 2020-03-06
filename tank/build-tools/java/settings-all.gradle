@@ -1,2 +1,0 @@
-include ':couchbase-lite-java:lib'
-include ':couchbase-lite-java-ee:lib'
