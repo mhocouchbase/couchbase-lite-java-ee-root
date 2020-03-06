@@ -2,7 +2,7 @@
 	path = core
 	url = git://github.com/couchbase/couchbase-lite-core
 [submodule "build"]
-	path = build
+	path = build-tools
 	url = git://github.com/couchbase/couchbase-lite-build
 [submodule "legal"]
 	path = legal
