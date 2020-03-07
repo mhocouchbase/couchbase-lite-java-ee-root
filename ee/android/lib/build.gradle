@@ -68,7 +68,7 @@ ext {
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
-    ETC_DIR = "${PROJECT_DIR}/etc"
+    ETC_DIR = "${CBL_COMMON_ROOT_DIR}/etc"
     LIB_MODULE_DIR = "${PROJECT_DIR}/lib"
     REPORTS_DIR = "${buildDir}/reports"
 }
@@ -85,7 +85,7 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 
 // local.properties
 Properties properties = new Properties()
-properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
+properties.load(project.rootProject.file("${ROOT_DIR}/local.properties").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -521,7 +521,7 @@ clean.doLast {
 def getLicenseVersion() {
     def version = "master"
     try {
-        version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/product-texts")).text.trim()
+        version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/legal")).text.trim()
     }
     catch (Exception ignore) {
     }
