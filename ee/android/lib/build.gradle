@@ -43,6 +43,7 @@ plugins {
 // Constants
 // ----------------------------------------------------------------
 
+println("ROOT DIR: ${ROOT_DIR}")
 ext {
     CBL_ORG = 'couchbase'
     CBL_GROUP = 'com.couchbase.lite'
@@ -60,12 +61,12 @@ ext {
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
     BUILD_COMMIT = getBuildCommit()
 
-    CBL_CORE_DIR = "${ROOT_DIR}/couchbase-lite-core"
-    CBL_JAVA_DIR = "${ROOT_DIR}/couchbase-lite-java"
-    CBL_JNI_DIR = "${CBL_JAVA_DIR}/lib"
-    CBL_JAVA_EE_DIR = "${ROOT_DIR}/couchbase-lite-java-ee"
-    CBL_ANDROID_DIR = "${ROOT_DIR}/couchbase-lite-android"
-    CBL_ANDROID_SRC_DIR = "${CBL_ANDROID_DIR}/lib/src"
+    CBL_CORE_DIR = "${ROOT_DIR}/core"
+    CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
+    CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
+    CBL_COMMON_DIR= "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
+    CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
     ETC_DIR = "${PROJECT_DIR}/etc"
     LIB_MODULE_DIR = "${PROJECT_DIR}/lib"
@@ -84,7 +85,7 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 
 // local.properties
 Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
+properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -171,30 +172,30 @@ android {
         cmake {
             // if you change this, be sure to update /etc/jenkins/build.sh
             version "3.10.2"
-            path "${CBL_JNI_DIR}/CMakeLists.txt"
+            path "${CBL_COMMON_DIR}/CMakeLists.txt"
         }
     }
 
     sourceSets {
         main {
             java.srcDirs = [
-                "${CBL_JNI_DIR}/src/shared/main/java",          // Common
-                "${CBL_JAVA_EE_DIR}/lib/src/shared/main/java",  // EE Common
-                "${CBL_ANDROID_SRC_DIR}/main/java",             // Common Android
+                "${CBL_COMMON_DIR}/main/java",                   // Common
+                "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
+                "${CBL_COMMON_ANDROID_DIR}/main/java",           // Common Android
             ]
             res.srcDirs = [
-                "${CBL_ANDROID_SRC_DIR}/main/res",              // shared resources
+                "${CBL_COMMON_ANDROID_DIR}/main/res",            // shared resources
             ]
         }
         androidTest {
             java.srcDirs = [
-                "${CBL_ANDROID_SRC_DIR}/androidTest/java",      // android specific code
-                "${CBL_JNI_DIR}/src/shared/test/java",          // shared test code
-                "${CBL_JAVA_EE_DIR}/lib/src/shared/test/java"   // shared EE test code
+                "${CBL_COMMON_DIR}/test/java",                   // Common tests
+                "${CBL_EE_COMMON_DIR}/lib/src/shared/test/java", // EE Common tests
+                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
             ]
             assets.srcDirs = [
-                "${CBL_CORE_DIR}/C/tests/data",                 // lite-core test assets
-                "${CBL_JNI_DIR}/src/shared/test/assets"         // shared assets
+                "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
+                "${CBL_COMMON_DIR}/test/assets",                 // shared assets
             ]
         }
     }
