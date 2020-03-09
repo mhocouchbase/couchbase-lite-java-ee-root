@@ -38,12 +38,10 @@ plugins {
     id 'com.github.kt3k.coveralls'
 }
 
-
 // ----------------------------------------------------------------
 // Constants
 // ----------------------------------------------------------------
 
-println("ROOT DIR: ${ROOT_DIR}")
 ext {
     CBL_ORG = 'couchbase'
     CBL_GROUP = 'com.couchbase.lite'

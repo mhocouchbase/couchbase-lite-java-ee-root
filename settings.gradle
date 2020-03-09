@@ -1,4 +1,4 @@
-include ':couchbase-lite-android-ee:lib'
-include ':couchbase-lite-android:lib'
-include ':couchbase-lite-java:lib'
-include ':couchbase-lite-java-ee:lib'
+//include ':ce:java:lib'
+include ':ee:java:lib'
+//include ':ce:android:lib'
+include ':ee:android:lib'
