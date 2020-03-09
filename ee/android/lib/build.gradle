@@ -176,20 +176,22 @@ android {
 
     sourceSets {
         main {
+            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/main/AndroidManifest.xml"
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/main/java",                   // Common
-                "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
                 "${CBL_COMMON_ANDROID_DIR}/main/java",           // Common Android
+                "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
             ]
             res.srcDirs = [
                 "${CBL_COMMON_ANDROID_DIR}/main/res",            // shared resources
             ]
         }
         androidTest {
+            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/main/AndroidManifest.xml"
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
-                "${CBL_EE_COMMON_DIR}/lib/src/shared/test/java", // EE Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
+                "${CBL_EE_COMMON_DIR}/lib/src/shared/test/java", // EE Common tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
@@ -445,7 +447,7 @@ project.afterEvaluate {
     publishing {
         publications {
             mavenJava(MavenPublication) {
-                groupId group
+                groupId CBL_GROUP
                 artifactId CBL_ARTIFACT_ID
                 version BUILD_VERSION
 

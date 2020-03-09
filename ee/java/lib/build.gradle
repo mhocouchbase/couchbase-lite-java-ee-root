@@ -498,7 +498,7 @@ artifacts {
 publishing {
     publications {
         couchbaseLiteJava(MavenPublication) {
-            groupId group
+            groupId CBL_GROUP
             artifactId CBL_ARTIFACT_ID
             version BUILD_VERSION
 
