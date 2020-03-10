@@ -51,11 +51,11 @@ ext {
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
     CBL_LICENSE_URL = "https://raw.githubusercontent.com/couchbase/product-texts/${getLicenseVersion()}/mobile/couchbase-lite/license/LICENSE_enterprise.txt"
-    CBL_PROJECT_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git'
-    CBL_ISSUES_URL = 'https://github.com:couchbaselabs/couchbase-lite-java.git/issues'
+    CBL_PROJECT_URL = 'https://github.com/couchbaselabs/couchbase-lite-java-ee-root'
+    CBL_ISSUES_URL = 'https://github.com/couchbaselabs/couchbase-lite-java-ee-root/issues'
     CBL_SITE_URL = 'https://developer.couchbase.com/mobile/'
 
-    BUILD_RELEASE = file("$ROOT_DIR/version.txt").text.trim()
+    BUILD_RELEASE = file("${ROOT_DIR}/version.txt").text.trim()
     BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
     BUILD_COMMIT = getBuildCommit()
@@ -94,14 +94,13 @@ properties.load(project.rootProject.file("${ROOT_DIR}/local.properties").newData
 
 
 // ----------------------------------------------------------------
-// Build Java
+// Build
 // ----------------------------------------------------------------
 
 group = CBL_GROUP
+version = BUILD_VERSION
 
 java {
-    version = BUILD_VERSION
-
     targetCompatibility JavaVersion.VERSION_1_8
     sourceCompatibility JavaVersion.VERSION_1_8
 
@@ -121,12 +120,12 @@ java {
         test {
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
-                "${CBL_COMMON_JAVA_DIR}test/java",               // Common Android tests
+                "${CBL_COMMON_JAVA_DIR}/test/java",               // Common Java tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
             ]
             resources.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
-                "${CBL_COMMON_DIR}/shared/test/assets",          // Common test assets
+                "${CBL_COMMON_DIR}/test/assets",                 // Common test assets
             ]
         }
     }
@@ -141,14 +140,13 @@ dependencies {
     compileOnly 'com.android.support:support-annotations:28.0.0'
     compileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
 
-    implementation 'com.squareup.okhttp3:okhttp:3.9.1'
+    implementation 'com.squareup.okhttp3:okhttp:3.14.4'
 
     implementation 'org.json:json:20180813'
 
     testCompileOnly 'com.android.support:support-annotations:28.0.0'
 
     testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
-
     testImplementation 'junit:junit:4.12'
 }
 
@@ -318,7 +316,7 @@ javadoc {
 // Static analysis
 // ----------------------------------------------------------------
 
-def fileFilter = ['**/gen/**', "okhttp3/**"]
+def FILE_FILTER = ['**/gen/**', "okhttp3/**"]
 
 /////// Checkstyle
 checkstyle {
@@ -335,7 +333,7 @@ task checkstyle(type: Checkstyle) {
 
     source sourceSets.main.java.srcDirs
     include '**/*.java'
-    exclude fileFilter
+    exclude FILE_FILTER
 
     classpath = files()
 
@@ -364,7 +362,7 @@ task pmd(type: Pmd) {
 
     source = sourceSets.main.java.srcDirs
     include '**/*.java'
-    exclude fileFilter
+    exclude FILE_FILTER
 
     reports {
         xml {
@@ -382,7 +380,7 @@ task pmd(type: Pmd) {
 spotbugs { toolVersion = '3.1.12' }
 ['Html', 'Xml'].each { reportType ->
     task("spotbugs${reportType}", type: SpotBugsTask) {
-        description "Spotbugs with $reportType report"
+        description "Spotbugs with ${reportType} report"
         group 'verification'
 
         dependsOn 'compileJava'
@@ -393,7 +391,7 @@ spotbugs { toolVersion = '3.1.12' }
 
         source = sourceSets.main.java.srcDirs
 
-        classes = fileTree(dir: "${buildDir}/classes/java/main", excludes: fileFilter)
+        classes = fileTree(dir: "${buildDir}/classes/java/main", excludes: FILE_FILTER)
         classpath = files()
 
         excludeFilter = file("${ETC_DIR}/spotbugs/spotbugs.xml")
@@ -439,14 +437,14 @@ test {
 
 
 // ----------------------------------------------------------------
-// jar
+// Jar
 // ----------------------------------------------------------------
 
 jar { archivesBaseName = "${CBL_ARTIFACT_ID}" }
 
 
 // ----------------------------------------------------------------
-// java-library-distribution
+// Distribution
 // ----------------------------------------------------------------
 
 distributions {
@@ -554,10 +552,12 @@ publishing {
 // Tasks
 // ----------------------------------------------------------------
 
+///////// Dev tasks
 task smokeTest(dependsOn: ['compileJava', 'checkstyle', 'pmd', 'spotbugsHtml'])
 task unitTest(dependsOn: ['smokeTest', 'test'])
 task fullTest(dependsOn: ['unitTest'])
 
+///////// CI tasks
 task ciCheck(dependsOn: ['checkstyle', 'pmd', 'spotbugsXml', 'test'])
 task ciCheckWindows(dependsOn: ['pmd', 'spotbugsXml', 'test'])
 task ciPublish(dependsOn: ['generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
@@ -576,6 +576,23 @@ project.afterEvaluate {
 // ----------------------------------------------------------------
 // Extensions
 // ----------------------------------------------------------------
+
+def getLicenseVersion() { return getGitCommit("${ROOT_DIR}/legal", "master") }
+
+def getBuildCommit() {
+    def commit = getGitCommit(PROJECT_DIR, "unknown")
+    try {
+        if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) { commit += "+" }
+    }
+    catch (Exception ignore) { }
+    return commit
+}
+
+def getGitCommit(repo, dflt) {
+    try { return 'git rev-parse --short HEAD'.execute([], file(repo).text.trim()) }
+    catch (Exception ignore) { }
+    return dflt
+}
 
 def setupJNILibraryBuildTasks(library, platform) {
     tasks.whenTaskAdded { task ->
@@ -630,21 +647,3 @@ def getNativeLibraryResourcePath(platform) {
         os = platform.operatingSystem.name
     return "${os}/x86_64"
 }
-
-def getLicenseVersion() {
-    def version = "master"
-    try { version = 'git rev-parse --short HEAD'.execute([], file("${ROOT_DIR}/product-texts")).text.trim() }
-    catch (Exception ignore) { }
-    return version
-}
-
-def getBuildCommit() {
-    def commit = "unknown"
-    try {
-        commit = 'git rev-parse --short HEAD'.execute([], file(PROJECT_DIR)).text.trim()
-        if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) { commit += "+" }
-    }
-    catch (Exception ignore) { }
-    return commit
-}
-
