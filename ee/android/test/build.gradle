@@ -69,7 +69,7 @@ android {
     defaultConfig {
         minSdkVersion ANDROID_MIN_SDK
         targetSdkVersion ANDROID_TARGET_SDK
-        versionCode 208
+        versionCode 20800
         versionName BUILD_VERSION
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -84,15 +84,21 @@ android {
     }
 
     sourceSets {
+        main {
+            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/androidTest/AndroidManifest.xml"
+            assets.srcDirs = [
+                "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
+                "${CBL_COMMON_DIR}/test/assets",                 // Common assets
+            ]
+        }
         androidTest {
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
             ]
-            assets.srcDirs = [
-                "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
-                "${CBL_COMMON_DIR}/test/assets",                 // Common assets
+            res.srcDirs = [
+                "${CBL_COMMON_ANDROID_DIR}/androidTest/res",     // Common test resources
             ]
         }
     }

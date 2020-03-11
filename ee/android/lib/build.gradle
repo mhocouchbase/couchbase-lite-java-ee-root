@@ -103,7 +103,7 @@ android {
         minSdkVersion ANDROID_MIN_SDK
         //noinspection OldTargetApi
         targetSdkVersion ANDROID_TARGET_SDK
-        versionCode 208
+        versionCode 20800
         versionName BUILD_VERSION
         project.archivesBaseName = "${CBL_ARTIFACT_ID}-${versionName}"
 
@@ -468,7 +468,7 @@ project.afterEvaluate {
                     // maven-publish workaround to include dependencies
                     def dependenciesNode = asNode().appendNode('dependencies')
 
-                    //Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
+                    // Iterate over the compile dependencies (we don't want the test ones), adding a <dependency> node for each
                     configurations.implementation.allDependencies.each {
                         def dependencyNode = dependenciesNode.appendNode('dependency')
                         dependencyNode.appendNode('groupId', it.group)

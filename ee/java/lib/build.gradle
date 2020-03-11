@@ -120,7 +120,7 @@ java {
         test {
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
-                "${CBL_COMMON_JAVA_DIR}/test/java",               // Common Java tests
+                "${CBL_COMMON_JAVA_DIR}/test/java",              // Common Java tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
             ]
             resources.srcDirs = [
