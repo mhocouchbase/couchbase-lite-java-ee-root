@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
-    protected static final int STD_TIMEOUT_SECS = 15;
+    protected static final int STD_TIMEOUT_SECS = 5;
 
 
     // helper method allows kotlin to call isDocumentPending(null)

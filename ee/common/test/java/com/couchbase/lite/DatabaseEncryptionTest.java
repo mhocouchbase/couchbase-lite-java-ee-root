@@ -65,7 +65,7 @@ public class DatabaseEncryptionTest extends BaseTest {
 
         // Custom
         config = new DatabaseConfiguration();
-        String dbDir = getScratchDirectoryPath(getUniqueName());
+        String dbDir = getScratchDirectoryPath(getUniqueName("create-config-dir"));
         config.setDirectory(dbDir);
         EncryptionKey key = getEncryptionKey(TEST_PWD);
         config.setEncryptionKey(key);
@@ -76,7 +76,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     @Test
     public void testGetSetConfiguration() throws CouchbaseLiteException {
         final EncryptionKey key = getEncryptionKey(TEST_PWD);
-        final String path = getScratchDirectoryPath(getUniqueName());
+        final String path = getScratchDirectoryPath(getUniqueName("get-set-config-dir"));
 
         final DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(key).setDirectory(path);
         createTestDbWithConfig(config);
@@ -185,7 +185,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     public void testCopyEncryptedDatabase() throws CouchbaseLiteException {
         // Create encrypted database:
         final DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(getEncryptionKey(TEST_PWD));
-        encryptionTestDb = createDb(config);
+        encryptionTestDb = createDb("copy-encrypted-1-db", config);
         assertNotNull(encryptionTestDb);
 
         final File dbDir = encryptionTestDb.getFilePath();
@@ -197,7 +197,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         encryptionTestDb.close();
 
         // Copy
-        final String newName = getUniqueName();
+        final String newName = getUniqueName("copy-encrypted-2-db");
         Database.copy(dbDir, newName, config);
         Database newDb = null;
         try {
@@ -235,7 +235,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         final DatabaseConfiguration config
             = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
 
-        encryptionTestDb = createDb(config);
+        encryptionTestDb = createDb("key-gen-db", config);
 
         final Document doc = createDocInTestDb();
 
@@ -297,7 +297,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     }
 
     private void createTestDbWithConfig(DatabaseConfiguration config) throws CouchbaseLiteException {
-        encryptionTestDb = createDb(config);
+        encryptionTestDb = createDb("test-w-config", config);
         assertNotNull(encryptionTestDb);
     }
 
@@ -353,7 +353,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     }
 
     private String createAndVerifyEncryptedBlob(String password) throws CouchbaseLiteException, IOException {
-        final String docId = getUniqueName();
+        final String docId = getUniqueName("create-encrypted-blob-doc");
 
         // Create database with the password:
         createEncryptedTestDbWithPassword(password);

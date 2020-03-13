@@ -1006,11 +1006,9 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         long total = status.getProgress().getTotal();
         AbstractReplicator.ActivityLevel level = status.getActivityLevel();
 
-        String activity = ACTIVITY_NAMES.get(level.getValue());
-
         Report.log(
             LogLevel.INFO,
-            "ReplicatorChangeListener.changed(): " + activity + "(" + completed + "/" + total + "), error: " + error);
+            "ReplicatorChangeListener.changed(): " + level + "(" + completed + "/" + total + "), error: " + error);
 
         if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
 

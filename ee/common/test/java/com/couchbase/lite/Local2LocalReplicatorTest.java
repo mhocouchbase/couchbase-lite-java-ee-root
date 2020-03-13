@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
@@ -330,7 +331,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test
     public void testPushDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        Database anotherDB = createDb();
+        Database anotherDB = createDb("push-cont-db");
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -385,7 +386,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        Database anotherDB = createDb();
+        Database anotherDB = createDb("pull-cont-db");
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -532,7 +533,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final CountDownLatch latch = new CountDownLatch(1);
         baseTestReplicator = new Replicator(config);
         ListenerToken token = baseTestReplicator.addChangeListener(testSerialExecutor, change -> {
-            if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
+            if (change.getStatus().getActivityLevel() == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch.countDown();
             }
         });
@@ -588,7 +589,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPushBlob() throws CouchbaseLiteException, IOException {
-        Database anotherDB = createDb();
+        Database anotherDB = createDb("push-blob-db");
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -619,7 +620,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullBlob() throws CouchbaseLiteException, IOException {
-        Database anotherDB = createDb();
+        Database anotherDB = createDb("pull-blob-db");
         try {
             try (InputStream is = getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
@@ -643,6 +644,33 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         finally {
             deleteDb(anotherDB);
         }
+    }
+
+    @Test
+    public void testDbCanBeClosed() throws CouchbaseLiteException {
+        MutableDocument doc1 = new MutableDocument("doc1");
+        doc1.setString("species", "Tiger");
+        doc1.setString("name", "Hobbes");
+        baseTestDb.save(doc1);
+
+        ReplicatorConfiguration config = makeConfig(true, false, false);
+        Replicator repl = new Replicator(config);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        repl.addChangeListener(change -> {
+            if (change.getStatus().getActivityLevel() == AbstractReplicator.ActivityLevel.STOPPED) {
+                latch.countDown();
+            }
+        });
+
+        repl.start();
+
+        try { assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)); }
+        catch (InterruptedException ignore) { }
+
+
+        baseTestDb.delete();
+        otherDB.delete();
     }
 
     /*
@@ -754,7 +782,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             testSerialExecutor,
             replicationEvents::add);
         ListenerToken changeToken = baseTestReplicator.addChangeListener(change -> {
-            if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
+            if (change.getStatus().getActivityLevel() == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch.countDown();
             }
         });
@@ -881,7 +909,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         final CountDownLatch latch3 = new CountDownLatch(1);
         token = baseTestReplicator.addChangeListener(change -> {
-            if (AbstractReplicator.ActivityLevel.STOPPED == change.getStatus().getActivityLevel()) {
+            if (change.getStatus().getActivityLevel() == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch3.countDown();
             }
         });
