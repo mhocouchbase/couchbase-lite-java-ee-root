@@ -36,11 +36,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.utils.Report;
 
+import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -653,23 +653,25 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         doc1.setString("name", "Hobbes");
         baseTestDb.save(doc1);
 
-        ReplicatorConfiguration config = makeConfig(true, false, false);
-        Replicator repl = new Replicator(config);
+        Replicator repl = new Replicator(
+            new ReplicatorConfiguration(baseTestDb, new DatabaseEndpoint(otherDB)).setReplicatorType(PUSH));
 
         CountDownLatch latch = new CountDownLatch(1);
-        repl.addChangeListener(change -> {
+        final ListenerToken token = repl.addChangeListener(change -> {
             if (change.getStatus().getActivityLevel() == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch.countDown();
             }
         });
 
         repl.start();
-
         try { assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)); }
         catch (InterruptedException ignore) { }
+        finally { repl.removeChangeListener(token); }
 
-
+        // should work
         baseTestDb.delete();
+
+        // should also work
         otherDB.delete();
     }
 

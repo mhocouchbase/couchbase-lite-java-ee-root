@@ -45,7 +45,7 @@ $ touch local.properties
 **MacOS / Linux**
 
 ```
-$ ../couchbase-lite-java/scripts/build_litecore.sh -e EE 
+$ ../../common/tools/build_litecore.sh -e EE 
 ```
 
 **Windows**

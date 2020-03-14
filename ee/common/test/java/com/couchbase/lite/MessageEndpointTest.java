@@ -5,8 +5,6 @@ import android.support.annotation.NonNull;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,17 +26,20 @@ import static org.junit.Assert.fail;
 
 public class MessageEndpointTest extends BaseReplicatorTest {
     private static final long LONG_DELAY_SEC = 10;
-    private static final long SHORT_DELAY_MS = 100;
-    private static final List<String> ACTIVITY_NAMES
-        = Collections.unmodifiableList(Arrays.asList("stopped", "offline", "connecting", "idle", "busy"));
 
     private enum MockConnectionLifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
+
+
+    ///////////////////////////////////// MOCK CONNECTION ERROR LOGIC /////////////////////////////////////
 
     private interface MockConnectionErrorLogic {
         boolean shouldClose(MockConnectionLifecycleLocation location);
 
         MessagingError createError();
     }
+
+
+    /////////////////////////////////////  ERROR LOGIC /////////////////////////////////////
 
     private static final class NoErrorLogic implements MockConnectionErrorLogic {
         public NoErrorLogic() { }
@@ -56,17 +57,13 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         private int current;
         private int total;
 
-        public TestErrorLogic(MockConnectionLifecycleLocation locations) {
-            this.location = locations;
-        }
+        public TestErrorLogic(MockConnectionLifecycleLocation locations) { this.location = locations; }
 
         public static TestErrorLogic failWhen(MockConnectionLifecycleLocation locations) {
             return new TestErrorLogic(locations);
         }
 
-        public void withRecoverableException() {
-            withRecoverableException(1);
-        }
+        public void withRecoverableException() { withRecoverableException(1); }
 
         public void withRecoverableException(int count) {
             error = new MessagingError(new SocketException("Test Recoverable Exception"), true);
@@ -90,7 +87,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////  LISTENER AWAITER  /////////////////////////////////////
 
     private static final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
         private ListenerToken token;
@@ -113,36 +111,32 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         @Override
         public void changed(@NotNull @NonNull MessageEndpointListenerChange change) {
-            if (change.getStatus().getError() != null) {
-                exceptions.add(change.getStatus().getError());
-            }
+            if (change.getStatus().getError() != null) { exceptions.add(change.getStatus().getError()); }
 
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                listener.removeChangeListener(token);
-                token = null;
-                latch.countDown();
-            }
+            if (change.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
+
+            listener.removeChangeListener(token);
+            token = null;
+            latch.countDown();
         }
 
-        public void waitForListener() throws InterruptedException {
-            latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
-        }
+        public void waitForListener() throws InterruptedException { latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
 
-        public void validate() {
-            assert (exceptions.isEmpty());
-        }
+        public void validate() { assert (exceptions.isEmpty()); }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
 
     private static abstract class MockConnection implements MessageEndpointConnection {
-        private final ProtocolType protocolType;
-
         protected MockConnection remoteConnection;
 
         protected ReplicatorConnection replicatorConnection;
 
         protected final ScheduledExecutorService queue;
+
+        private final boolean isClient;
+        private final ProtocolType protocolType;
 
         private MockConnectionErrorLogic errorLogic;
 
@@ -152,12 +146,11 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         private boolean isClosing;
 
-        protected MockConnection(ProtocolType protocolType) {
+        protected MockConnection(boolean isClient, ProtocolType protocolType) {
+            this.isClient = isClient;
             this.protocolType = protocolType;
             queue = Executors.newSingleThreadScheduledExecutor();
         }
-
-        protected abstract boolean isClient();
 
         @Override
         public void open(
@@ -216,16 +209,14 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             });
         }
 
+        protected boolean isClient() { return isClient; }
+
         protected MockConnectionErrorLogic getErrorLogic() {
-            if (errorLogic == null) {
-                errorLogic = new NoErrorLogic();
-            }
+            if (errorLogic == null) { errorLogic = new NoErrorLogic(); }
             return errorLogic;
         }
 
-        protected void setErrorLogic(MockConnectionErrorLogic errorLogic) {
-            this.errorLogic = errorLogic;
-        }
+        protected void setErrorLogic(MockConnectionErrorLogic errorLogic) { this.errorLogic = errorLogic; }
 
         protected void acceptBytes(final byte[] data) {
             queue.submit(() -> {
@@ -265,13 +256,14 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////  MOCK CLIENT CONNECTION  /////////////////////////////////////
 
     private final class MockClientConnection extends MockConnection {
         private final MockServerConnection server;
 
         public MockClientConnection(MessageEndpoint endpoint) {
-            super(endpoint.getProtocolType());
+            super(true, endpoint.getProtocolType());
             server = (MockServerConnection) endpoint.getTarget();
             remoteConnection = server;
         }
@@ -279,37 +271,26 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         @Override
         public void open(@NonNull ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
             super.open(connection, (success, error) -> {
-                if (success) {
-                    server.clientOpened(MockClientConnection.this);
-                }
+                if (success) { server.clientOpened(MockClientConnection.this); }
                 completion.complete(success, error);
             });
         }
-
-        @Override
-        protected boolean isClient() {
-            return true;
-        }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////  MOCK SERVER CONNECTION  /////////////////////////////////////
 
     private final class MockServerConnection extends MockConnection {
         private final MessageEndpointListener listener;
 
         public MockServerConnection(MessageEndpointListener listener, ProtocolType protocolType) {
-            super(protocolType);
+            super(false, protocolType);
             this.listener = listener;
         }
 
         public MockServerConnection(Database database, ProtocolType protocolType) {
             this(new MessageEndpointListener(
                 new MessageEndpointListenerConfiguration(database, protocolType)), protocolType);
-        }
-
-        @Override
-        protected boolean isClient() {
-            return false;
         }
 
         protected void clientOpened(MockClientConnection client) {
@@ -1008,7 +989,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         Report.log(
             LogLevel.INFO,
-            "ReplicatorChangeListener.changed(): " + level + "(" + completed + "/" + total + "), error: " + error);
+            "Verify state @" + domain + "/" + code + " #" + level + " (" + completed + "/" + total + "): " + error);
 
         if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
 
@@ -1033,9 +1014,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
         run(createFailureP2PConfig(ProtocolType.BYTE_STREAM, location, recoverable), expectedCode, expectedDomain);
-
-        // !!! This is wrong: should wait for the replication to complete.
-        try { Thread.sleep(SHORT_DELAY_MS); } catch (InterruptedException ignore) { }
 
         Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");
         run(
