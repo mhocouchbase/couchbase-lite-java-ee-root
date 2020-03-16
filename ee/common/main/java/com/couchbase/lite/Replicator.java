@@ -28,7 +28,6 @@ public final class Replicator extends AbstractReplicator {
      */
     public Replicator(ReplicatorConfiguration config) { super(config); }
 
-
     @Override
     protected C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
         final Endpoint target = config.getTarget();

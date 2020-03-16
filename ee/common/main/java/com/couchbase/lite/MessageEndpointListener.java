@@ -16,6 +16,7 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 
 import java.util.ArrayList;
@@ -63,26 +64,26 @@ public class MessageEndpointListener {
 
     private final Executor dispatcher = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
-    // protected by lock.
+    @GuardedBy("lock")
     private final Map<C4Replicator, MessageEndpointConnection> replicators = new HashMap<>();
 
+    @GuardedBy("lock")
     private final ChangeNotifier<MessageEndpointListenerChange> changeNotifier = new ChangeNotifier<>();
 
     private final MessageEndpointListenerConfiguration config;
+
+    //---------------------------------------------
+    // Constructor
+    //---------------------------------------------
 
     public MessageEndpointListener(@NonNull MessageEndpointListenerConfiguration config) {
         Preconditions.assertNotNull(config, "config");
         this.config = config;
     }
 
-    /**
-     * The active connections from peers.
-     *
-     * @return a list of active connections
-     */
-    List<MessageEndpointConnection> getConnections() {
-        synchronized (lock) { return new ArrayList<>(replicators.values()); }
-    }
+    //---------------------------------------------
+    // Public methods
+    //---------------------------------------------
 
     /**
      * Accept a new connection.
@@ -106,9 +107,11 @@ public class MessageEndpointListener {
         final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
         C4Replicator replicator = null;
         C4ReplicatorStatus status;
-        synchronized (config.getDatabase().getLock()) {
+
+        final Database db = config.getDatabase();
+        synchronized (db.getLock()) {
             try {
-                replicator = config.getDatabase().getC4Database().createTargetReplicator(
+                replicator = db.getC4Database().createTargetReplicator(
                     new MessageSocket(connection, config.getProtocolType()),
                     passiveMode,
                     passiveMode,
@@ -192,8 +195,17 @@ public class MessageEndpointListener {
     }
 
     //---------------------------------------------
-    // Protected visibility
+    // Package visibility
     //---------------------------------------------
+
+    /**
+     * The active connections from peers.
+     *
+     * @return a list of active connections
+     */
+    List<MessageEndpointConnection> getConnections() {
+        synchronized (lock) { return new ArrayList<>(replicators.values()); }
+    }
 
     void statusChanged(C4Replicator replicator, C4ReplicatorStatus status) {
         final boolean stopped;
