@@ -659,7 +659,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 .or(prediction.propertyPath("avg").equalTo(Expression.value(8))));
 
         String explain = q.explain();
-        System.out.println("explain: " + explain);
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 

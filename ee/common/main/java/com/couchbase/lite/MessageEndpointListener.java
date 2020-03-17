@@ -18,6 +18,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,12 +49,20 @@ public class MessageEndpointListener {
         ReplicatorListener() {}
 
         @Override
-        public void statusChanged(C4Replicator repl, C4ReplicatorStatus status, Object context) {
+        public void statusChanged(
+            @Nullable C4Replicator repl,
+            @NonNull C4ReplicatorStatus status,
+            @Nullable Object context) {
+            if (!(context instanceof MessageEndpointListener)) { return; }
             dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
 
         @Override
-        public void documentEnded(C4Replicator u1, boolean u2, C4DocumentEnded[] u3, Object u4) { /* Not used */ }
+        public void documentEnded(
+            @NonNull C4Replicator repl,
+            boolean pushing,
+            @Nullable C4DocumentEnded[] documents,
+            @Nullable Object context) { /* Not used */ }
     }
 
     //---------------------------------------------
