@@ -169,7 +169,9 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        changed.forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) } }
+        changed.forEach { id ->
+            baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
+        }
 
         validatePendingDocumentIds(changed)
     }
@@ -303,10 +305,8 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         validateIsDocumentPending(unfiltered, filtered, config)
     }
 
-    private fun createDocs(n: Int): Set<String> = createDocs(0, n)
-
-    private fun createDocs(start: Int, count: Int): Set<String> {
-        val ids = (start until (start + count)).map { "doc-${it}" }
+    private fun createDocs(n: Int): Set<String> {
+        val ids = (0 until n).map { "doc-${it}" }
         ids.map { MutableDocument(it) }
             .forEach {
                 it.setString(TEST_KEY, "souffle")
@@ -357,7 +357,9 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             replicator.removeChangeListener(token)
         }
 
-        if (err != null) { throw AssertionError("Unexpected error", err); }
+        if (err != null) {
+            throw AssertionError("Unexpected error", err);
+        }
         assertEquals(changed, pendingIdBefore)
         assertEquals(0, pendingIdAfter?.size ?: -1)
 
@@ -426,5 +428,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         pending?.map { docId -> repl.isDocumentPending(docId) }
             ?.fold(true) { acc: Boolean, isPending: Boolean -> acc && (isPending == expected) }
             ?: true
+
+    private fun pushPull() = run(Replicator(makeConfigTargetingOtherDb(true, true)))
 }
 
