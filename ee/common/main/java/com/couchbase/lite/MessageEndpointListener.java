@@ -225,8 +225,6 @@ public class MessageEndpointListener {
         }
 
         if (connection != null) { changeNotifier.postChange(new MessageEndpointListenerChange(connection, status)); }
-
-        if (stopped) { replicator.free(); }
     }
 }
 

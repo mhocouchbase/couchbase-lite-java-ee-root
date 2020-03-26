@@ -29,17 +29,15 @@ public final class Replicator extends AbstractReplicator {
     public Replicator(ReplicatorConfiguration config) { super(config); }
 
     @Override
-    protected C4Replicator getC4ReplicatorLocked() throws LiteCoreException {
-        final Endpoint target = config.getTarget();
-
-        if (target instanceof URLEndpoint) { return getRemoteC4ReplicatorLocked(((URLEndpoint) target).getURL()); }
+    protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {
+        if (target instanceof URLEndpoint) { return getRemoteC4Replicator(((URLEndpoint) target).getURL()); }
 
         if (target instanceof DatabaseEndpoint) {
-            return getLocalC4ReplicatorLocked(((DatabaseEndpoint) target).getDatabase());
+            return getLocalC4Replicator(((DatabaseEndpoint) target).getDatabase());
         }
 
         if (target instanceof MessageEndpoint) {
-            return getMessageC4ReplicatorLocked(
+            return getMessageC4Replicator(
                 (((MessageEndpoint) target).getProtocolType() != ProtocolType.BYTE_STREAM)
                     ? C4Socket.NO_FRAMING
                     : C4Socket.WEB_SOCKET_CLIENT_FRAMING
