@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
@@ -41,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public class PredictiveQueryTest extends BaseQueryTest {
-     private static abstract class TestPredictiveModel implements PredictiveModel {
+    private static abstract class TestPredictiveModel implements PredictiveModel {
         private boolean allowCalls = true;
         private int numberOfCalls;
 
@@ -96,7 +97,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             int min = Integer.MAX_VALUE;
             int max = Integer.MIN_VALUE;
             int sum = 0;
-            for (Object o : numbers) {
+            for (Object o: numbers) {
                 int n = ((Number) o).intValue();
                 min = Math.min(min, n);
                 max = Math.max(max, n);
@@ -156,9 +157,8 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
     }
 
-    @Override
-    public void setUp() throws CouchbaseLiteException {
-        super.setUp();
+    @Before
+    public void setUpPredictiveQueryTest() {
         Database.prediction.unregisterModel(AggregateModel.NAME);
         Database.prediction.unregisterModel(TextModel.NAME);
         Database.prediction.unregisterModel(EchoModel.NAME);
@@ -195,7 +195,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
     @Test
     public void testRegisterMultipleModelsWithSameName() throws Exception {
-        final Document doc = createDocument(new int[] {1, 2, 3, 4, 5});
+        createDocument(new int[] {1, 2, 3, 4, 5});
 
         String model = "TheModel";
         AggregateModel aggregateModel = new AggregateModel();
@@ -317,7 +317,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             "Clocks on fox tick. Clocks on Knox tock. Six sick bricks tick. Six sick chicks tock."
         };
 
-        for (String text : texts) {
+        for (String text: texts) {
             MutableDocument doc = new MutableDocument();
             doc.setBlob("text", new Blob("text/plain", text.getBytes(StandardCharsets.UTF_8)));
             baseTestDb.save(doc);
@@ -1074,7 +1074,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             {Arrays.asList(1, 2), "foo", null},
         };
 
-        for (Object[] test : tests) {
+        for (Object[] test: tests) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
@@ -1110,7 +1110,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             {Arrays.asList(1, 2), "foo", null},
         };
 
-        for (Object[] test : tests) {
+        for (Object[] test: tests) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
@@ -1147,7 +1147,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             {Arrays.asList(1, 2), "foo", null},
         };
 
-        for (Object[] test : tests) {
+        for (Object[] test: tests) {
             MutableDocument doc = new MutableDocument();
             doc.setValue("v1", test[0]);
             doc.setValue("v2", test[1]);
@@ -1176,7 +1176,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     private MutableDocument createDocument(int[] numbers) throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument();
         List<Object> list = new ArrayList<>();
-        for (int n : numbers) {
+        for (int n: numbers) {
             list.add(n);
         }
         doc.setArray("numbers", new MutableArray(list));

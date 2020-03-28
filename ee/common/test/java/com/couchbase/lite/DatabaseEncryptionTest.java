@@ -49,11 +49,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     private Database encryptionTestDb;
 
     @After
-    @Override
-    public void tearDown() {
-        try { deleteDb(encryptionTestDb); }
-        finally { super.tearDown(); }
-    }
+    public final void tearDownDatabaseEncryptionTest() { deleteDb(encryptionTestDb); }
 
     @Test
     public void testCreateConfiguration() {
@@ -226,7 +222,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         encryptionTestDb = reopenDb(encryptionTestDb, config);
         Document doc2 = encryptionTestDb.getDocument(doc.getId());
         assertNotNull(doc2);
-        for (String key : doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
+        for (String key: doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
     }
 
     @Test
@@ -243,7 +239,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         encryptionTestDb = reopenDb(encryptionTestDb, config);
         Document doc2 = encryptionTestDb.getDocument(doc.getId());
         assertNotNull(doc2);
-        for (String key : doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
+        for (String key: doc.getKeys()) { assertEquals(doc.getString(key), doc2.getString(key)); }
     }
 
     @Test
@@ -349,7 +345,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         ResultSet rs = query.execute();
         assertNotNull(rs);
         int i = 0;
-        for (Result r : rs) { assertEquals(i++, r.getInt(0)); }
+        for (Result r: rs) { assertEquals(i++, r.getInt(0)); }
     }
 
     private String createAndVerifyEncryptedBlob(String password) throws CouchbaseLiteException, IOException {

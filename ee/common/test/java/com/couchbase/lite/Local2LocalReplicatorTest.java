@@ -28,7 +28,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -448,18 +447,24 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Replicator r = new Replicator(makeConfig(true, true, true, otherDB));
 
         final CountDownLatch latch = new CountDownLatch(1);
-        ListenerToken token = r.addChangeListener(testSerialExecutor, change -> {
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                Report.log(LogLevel.INFO, "*****Replicator stopped");
-                latch.countDown();
-            }
-            else if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.CONNECTING
-                || change.getStatus().getActivityLevel() == Replicator.ActivityLevel.BUSY
-                || change.getStatus().getActivityLevel() == Replicator.ActivityLevel.IDLE) {
-                Report.log(LogLevel.INFO, "***** Stopping replicator");
-                change.getReplicator().stop();
-            }
-        });
+        ListenerToken token = r.addChangeListener(
+            testSerialExecutor,
+            change -> {
+                Report.log(LogLevel.DEBUG, "Continuous replicator state change: " + change);
+                switch (change.getStatus().getActivityLevel()) {
+                    case STOPPED:
+                        latch.countDown();
+                        break;
+
+                    case CONNECTING:
+                    case BUSY:
+                    case IDLE:
+                        change.getReplicator().stop();
+                        break;
+
+                    default:
+                }
+            });
 
         try {
             r.start();
@@ -551,14 +556,15 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Replicator repl = new Replicator(makeConfig(true, true, true));
         repl.start();
 
-        while (repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.IDLE) {
-            Report.log(LogLevel.WARNING, String.format(
-                Locale.ENGLISH,
-                "Replicator status is still %s, waiting for idle...",
-                repl.getStatus().getActivityLevel()));
+        int n = 0;
+        while (n++ < 20) {
+            AbstractReplicator.ActivityLevel level = repl.getStatus().getActivityLevel();
+            if (level == Replicator.ActivityLevel.IDLE) { break; }
 
+            Report.log(LogLevel.WARNING, "Replicator status waiting for IDLE in state: " + level);
             Thread.sleep(500);
         }
+        assertTrue(n < 20);
 
         try { baseTestDb.close(); }
         catch (CouchbaseLiteException e) {
@@ -568,16 +574,15 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         repl.stop();
 
-        int attemptCount = 0;
-        while (attemptCount++ < 20 && repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) {
-            Report.log(
-                LogLevel.WARNING,
-                "Replicator status is still %s, waiting for stopped (remaining attempts %d)...",
-                repl.getStatus().getActivityLevel(), 10 - attemptCount);
+        n = 0;
+        while (n++ < 20) {
+            AbstractReplicator.ActivityLevel level = repl.getStatus().getActivityLevel();
+            if (level == Replicator.ActivityLevel.STOPPED) { break; }
 
+            Report.log(LogLevel.WARNING, "Replicator status waiting for STOPPED in state: " + level);
             Thread.sleep(500);
         }
-        assertTrue(attemptCount < 20);
+        assertTrue(n < 20);
     }
 
     /*
@@ -825,7 +830,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         ListenerToken token = r.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
-            for (ReplicatedDocument doc : update.getDocuments()) { docs.put(doc.getID(), doc); }
+            for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch1.countDown();
         });
 
@@ -873,7 +878,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         final CountDownLatch latch2 = new CountDownLatch(1);
         token = baseTestReplicator.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
-            for (ReplicatedDocument doc : update.getDocuments()) { docs.put(doc.getID(), doc); }
+            for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch2.countDown();
         });
 
@@ -945,7 +950,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         ListenerToken token = r.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
-                for (ReplicatedDocument d : update.getDocuments()) {
+                for (ReplicatedDocument d: update.getDocuments()) {
                     docs.add(d);
                     latch.countDown();
                 }
@@ -987,7 +992,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         ListenerToken token = r.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
-                for (ReplicatedDocument d : update.getDocuments()) {
+                for (ReplicatedDocument d: update.getDocuments()) {
                     docs.add(d);
                     latch.countDown();
                 }
@@ -1026,7 +1031,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         ListenerToken token = r.addDocumentReplicationListener(
             testSerialExecutor,
             update -> {
-                for (ReplicatedDocument d : update.getDocuments()) {
+                for (ReplicatedDocument d: update.getDocuments()) {
                     docs.add(d);
                     latch.countDown();
                 }
