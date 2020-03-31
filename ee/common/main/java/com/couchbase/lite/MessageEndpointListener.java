@@ -102,16 +102,13 @@ public class MessageEndpointListener {
     public void accept(@NonNull MessageEndpointConnection connection) {
         Preconditions.assertNotNull(connection, "connection");
 
-        final FLEncoder encoder = new FLEncoder();
-        encoder.beginDict(1);
-        encoder.writeKey(C4Socket.REPLICATOR_OPTION_NO_INCOMING_CONFLICTS);
-        encoder.writeValue(true);
-        encoder.endDict();
-
-        byte[] options = null;
-        try { options = encoder.finish(); }
-        catch (LiteCoreException e) { Log.e(DOMAIN, "Failed to encode", e); }
-        finally { encoder.free(); }
+        final byte[] options;
+        try { options = getOptions(); }
+        catch (LiteCoreException e) {
+            Log.e(DOMAIN, "Failed encoding options", e);
+            // ??? shouldn't this be an exception or something?
+            return;
+        }
 
         final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
         C4Replicator replicator = null;
@@ -151,7 +148,7 @@ public class MessageEndpointListener {
         Preconditions.assertNotNull(connection, "connection");
 
         synchronized (lock) {
-            for (Map.Entry<C4Replicator, MessageEndpointConnection> entry : replicators.entrySet()) {
+            for (Map.Entry<C4Replicator, MessageEndpointConnection> entry: replicators.entrySet()) {
                 if (connection.equals(entry.getValue())) {
                     entry.getKey().stop();
                     break;
@@ -165,7 +162,7 @@ public class MessageEndpointListener {
      */
     public void closeAll() {
         synchronized (lock) {
-            for (C4Replicator replicator : replicators.keySet()) { replicator.stop(); }
+            for (C4Replicator replicator: replicators.keySet()) { replicator.stop(); }
         }
     }
 
@@ -225,6 +222,18 @@ public class MessageEndpointListener {
         }
 
         if (connection != null) { changeNotifier.postChange(new MessageEndpointListenerChange(connection, status)); }
+    }
+
+    private byte[] getOptions() throws LiteCoreException {
+        final FLEncoder encoder = new FLEncoder();
+        try {
+            encoder.beginDict(1);
+            encoder.writeKey(C4Socket.REPLICATOR_OPTION_NO_INCOMING_CONFLICTS);
+            encoder.writeValue(true);
+            encoder.endDict();
+            return encoder.finish();
+        }
+        finally { encoder.free(); }
     }
 }
 
