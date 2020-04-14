@@ -22,6 +22,7 @@ import android.support.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.DbContext;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Prediction;
 import com.couchbase.lite.internal.core.C4PredictiveModel;
@@ -46,10 +47,10 @@ public final class Prediction {
 
         @Override
         public long predict(long input, long c4db) {
-            final DocContext context = new DocContext(new Database(new C4Database(c4db, true)));
-            final Dictionary output
-                = model.predict((Dictionary) new MRoot(context, new FLValue(input), false).asNative());
-            return encode(output).getHandle();
+            return encode(model.predict((Dictionary) new MRoot(
+                new DbContext(new Database(new C4Database(c4db, true))),
+                new FLValue(input), false).asNative()))
+                .getHandle();
         }
 
         private FLSliceResult encode(Dictionary prediction) {
