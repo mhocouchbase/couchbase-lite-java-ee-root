@@ -496,7 +496,7 @@ task unitTest(dependsOn: ['smokeTest', 'testDebugUnitTest'])
 task fullTest(dependsOn: ['unitTest', 'connectedDebugAndroidTest'])
 
 ///////// CI tasks
-task ciCheck(dependsOn: ['compileDebugSources', 'checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
+task ciBuild(dependsOn: ['compileDebugSources', 'checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
 task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
