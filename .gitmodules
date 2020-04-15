@@ -1,12 +1,12 @@
 [submodule "legal"]
 	path = legal
-	url = git://github.com/couchbase/product-texts
+	url = https://github.com/couchbase/product-texts
 [submodule "core"]
 	path = core
-	url = git://github.com/couchbase/couchbase-lite-core
+	url = https://github.com/couchbase/couchbase-lite-core
 [submodule "couchbase-lite-core-EE"]
 	path = couchbase-lite-core-EE
-	url = ssh://git@github.com/couchbase/couchbase-lite-core-EE
+	url = https://github.com/couchbase/couchbase-lite-core-EE
 [submodule "common"]
 	path = common
 	url = https://github.com/couchbase/couchbase-lite-java-common
@@ -17,7 +17,7 @@
 	master = master
 [core "core"]
 	master = master
-[ouchbase-lite-core-EE "ouchbase-lite-core-EE"]
+[couchbase-lite-core-EE "couchbase-lite-core-EE"]
 	master = master
 [common "common"]
 	master = master
