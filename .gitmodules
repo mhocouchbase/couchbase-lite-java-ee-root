@@ -6,7 +6,7 @@
 	url = https://github.com/couchbase/couchbase-lite-core
 [submodule "couchbase-lite-core-EE"]
 	path = couchbase-lite-core-EE
-	url = https://github.com/couchbase/couchbase-lite-core-EE
+	url = ssh://git@github.com/couchbase/couchbase-lite-core-EE
 [submodule "common"]
 	path = common
 	url = https://github.com/couchbase/couchbase-lite-java-common
