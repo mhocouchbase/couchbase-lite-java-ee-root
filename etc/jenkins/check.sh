@@ -27,7 +27,7 @@ fi
 
 SDK_MGR="${SDK_HOME}/tools/bin/sdkmanager"
 
-echo "======== CHECK Couchbase Lite Java, Enterprise Edition v`cat ../version.txt`"
+echo "======== CHECK Couchbase Lite Java, Enterprise Edition v`cat version.txt`"
 
 echo "======== Install Toolchain"
 yes | ${SDK_MGR} --licenses > /dev/null 2>&1
@@ -41,10 +41,7 @@ ndk.dir=${SDK_HOME}/ndk/${NDK_VERSION}
 cmake.dir=${SDK_HOME}/cmake/${CMAKE_VERSION}
 EOF
 
-echo "======== Build Core"
-common/tools/build_litecore.sh -e EE
-
 echo "======== Check"
-./gradlew ciBuild || exit 1
+./gradlew ciCheck -PtargetAbis=arm64-v8a || exit 1
 
 echo "======== CHECK COMPLETE"
