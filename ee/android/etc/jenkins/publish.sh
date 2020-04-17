@@ -50,8 +50,8 @@ echo "======== Publish candidate build to internal maven"
 
 echo "======== Copy artifacts to staging directory"
 POM_FILE='pom.xml'
-cp lib/build/outputs/aar/*.aar "${ARTIFACTS}/"
-cp lib/build/libs/*.jar "${ARTIFACTS}/"
+cp lib/build/outputs/aar/*.aar "${ARTIFACTS}"
+cp lib/build/libs/*.jar "${ARTIFACTS}"
 cp -a lib/build/reports "${ARTIFACTS}"
 cp lib/build/publications/mavenJava/pom-default.xml "${ARTIFACTS}/${POM_FILE}"
 
@@ -74,7 +74,7 @@ rm -rf "${ZIP_STAGING}"
 mkdir -p "${ZIP_STAGING}"
 pushd "${ZIP_STAGING}"
 cp "${ZIP_BUILD}/target/dependency/"*.jar . || exit 1
-cp "${WORKSPACE}/legal/mobile/couchbase-lite/license/LICENSE_${EDITION}.txt" ./LICENSE.TXT || exit 1
+cp "${WORKSPACE}/cbl-java/legal/mobile/couchbase-lite/license/LICENSE_${EDITION}.txt" ./LICENSE.TXT || exit 1
 cp "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-release.aar" "./${PRODUCT}-${VERSION}.aar" || exit 1
 zip -r "${ARTIFACTS}/${PRODUCT}-${VERSION}-android_${EDITION}.zip" * || exit 1
 popd
