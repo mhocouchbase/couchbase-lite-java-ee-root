@@ -14,10 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+buildscript {
+    ext { KOTLIN_VERSION = '1.3.71' }
 
-// Just a placeholder: the real build scripts are in the subdirectories:
-// ee/android
-// ee/java
-// ce/android
-// ce/java
-buildscript { }
+    repositories {
+        google()
+        jcenter()
+    }
+
+    // Kotlin has to be here or its plugin throws a fit
+    // Android has to be here or gradle thows a fit.
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$KOTLIN_VERSION"
+        classpath 'com.android.tools.build:gradle:3.6.1'
+    }
+}
+
+task clean(type: Delete) { delete rootProject.buildDir }

@@ -18,14 +18,14 @@ pipeline {
         stage('Setup') {
             steps {
                 sh """ 
+                    set +x
                     echo "======== Environment"
                     env
                     javac -version
                 """
 
                 script {
-                    JOB_NAME = "${env.CHANGE_BRANCH.replace("/","_")}_${env.CHANGE_ID}"
-                    currentBuild.displayName = "verify-cbl-java-${JOB_NAME}"
+                    currentBuild.displayName = "cbl-java-verify-${env.JOB_BASE_NAME} #${env.CHANGE_ID}"
                     currentBuild.description = "${CHANGE_TITLE}"
                     ANDROID_SDK = "${env.ANDROID_HOME}"
                     SDK_MGR="${ANDROID_SDK}/tools/bin/sdkmanager"
@@ -36,6 +36,7 @@ pipeline {
         stage('Download source') {
             steps {
                 sh """ 
+                    set +x
                     echo "======== Checkout Source `pwd`"
                     git checkout -b "${env.CHANGE_BRANCH}"
                     git submodule update --init --recursive
@@ -46,6 +47,7 @@ pipeline {
         stage('Setup Toolchain') {
             steps {
                 sh """ 
+                    set +x
                     echo "======== Install Toolchain"
                     echo "yes" | ${SDK_MGR} --licenses > /dev/null 2>&1
                     ${SDK_MGR} --install "build-tools;${BUILD_TOOLS_VERSION}"
@@ -55,6 +57,7 @@ pipeline {
 
                 // must be done after the source is downloaded
                 sh """
+                    set +x
                     echo "======== Setup local.properties"
                     touch local.properties
                     cp local.properties ee/java
@@ -72,7 +75,8 @@ pipeline {
         stage('Verify') {
             steps {
                 sh """
-                    echo "======== VERIFY Couchbase Lite Java Family, v`cat version.txt` ${JOB_NAME}"
+                    set +x
+                    echo "======== VERIFY Couchbase Lite Java Family v`cat version.txt` (${env.CHANGE_BRANCH}) ${env.CHANGE_URL}"
                     ./gradlew ciCheck -PtargetAbis=arm64-v8a || exit 1
                     echo "======== VERIFY COMPLETE"
                 """
