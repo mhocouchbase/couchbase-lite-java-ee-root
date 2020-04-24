@@ -1,9 +1,7 @@
+#!/bin/bash -e
 #
-# CI Build script for Enterprise Android
+# Build Couchbase Lite Android, Enterprise Edition
 #
-GROUP='com.couchbase.lite'
-PRODUCT='coucbase-lite-android-ee'
-EDITION='enterprise'
 
 # These versions must match the versions in lib/build.gradle
 NDK_VERSION='20.1.5948944'
