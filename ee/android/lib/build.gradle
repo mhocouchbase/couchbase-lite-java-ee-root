@@ -102,6 +102,7 @@ android {
     // if you change this, be sure to update /etc/jenkins/build.sh
     ndkVersion '20.1.5948944'
 
+
     defaultConfig {
         minSdkVersion ANDROID_MIN_SDK
         //noinspection OldTargetApi
@@ -496,8 +497,8 @@ task unitTest(dependsOn: ['smokeTest', 'testDebugUnitTest'])
 task fullTest(dependsOn: ['unitTest', 'connectedDebugAndroidTest'])
 
 ///////// CI tasks
-task ciCheck(dependsOn: ['checkstyle', 'lint', 'pmd', 'spotbugsXml'])
-task ciBuild(dependsOn: ['ciCheck', 'test', 'assembleRelease'])
+task ciCheck(dependsOn: ['checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
+task ciBuild(dependsOn: ['assembleRelease'])
 task ciPublish(dependsOn: ['generatePomFileForMavenJavaPublication', 'publishMavenJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)

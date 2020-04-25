@@ -563,10 +563,10 @@ task fullTest(dependsOn: ['unitTest'])
 
 ///////// CI tasks
 task ciCheck(dependsOn: ['checkstyle', 'pmd', 'spotbugsXml'])
-task ciBuild(dependsOn: ['ciCheck', 'assemble', 'test'])
-task ciPublish(dependsOn: ['generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
-task ciCheckWindows(dependsOn: ['pmd', 'spotbugsXml', 'test'])
-
+task ciCheckWindows(dependsOn: ['pmd', 'spotbugsXml'])
+task ciBuild(dependsOn: ['assemble'])
+task ciTest(dependsOn: ['test'])
+task ciPublish(dependsOn: ['distZip', 'generatePomFileForCouchbaseLiteJavaPublication', 'publishCouchbaseLiteJavaPublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {
