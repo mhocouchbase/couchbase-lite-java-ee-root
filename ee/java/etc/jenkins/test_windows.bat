@@ -1,4 +1,4 @@
-@echo ON
+@echo on
 
 :: Build Couchbase Lite Java, Enterprise Edition for Windows
 
@@ -15,8 +15,8 @@ set reportsDir=%1%
 echo ======== TEST Couchbase Lite Java, Enterprise Edition 
 call gradlew.bat ciTest || goto error
 
-echo "======== Copy test reports"
-copy "lib\build\reports" *.*  "%reportsDir%"
+echo ======== Copy test reports
+copy lib\build\reports %reportsDir%
 
 echo ======== TEST COMPLETE
 

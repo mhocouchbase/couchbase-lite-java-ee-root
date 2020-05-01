@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Build Couchbase Lite Java, Enterprise Edition for MacOS, Windows, Linux
 # This script assumes the the OSX and Windows builds are available on latestbuilds
