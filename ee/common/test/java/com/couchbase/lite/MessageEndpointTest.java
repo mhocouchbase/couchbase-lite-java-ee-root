@@ -692,7 +692,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             }
         });
 
-        replicator.start();
+        replicator.start(false);
 
         latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
         awaiter.waitForListener();
@@ -767,8 +767,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             }
         });
 
-        replicator1.start();
-        replicator2.start();
+        replicator1.start(false);
+        replicator2.start(false);
 
         idleLatch1.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
         idleLatch2.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
@@ -965,9 +965,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 }
             });
 
-        if (reset) { baseTestReplicator.resetCheckpoint(); }
-
-        baseTestReplicator.start();
+        baseTestReplicator.start(reset);
 
         boolean success = false;
         try { success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }

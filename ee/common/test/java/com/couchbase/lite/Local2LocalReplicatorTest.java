@@ -467,7 +467,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             });
 
         try {
-            r.start();
+            r.start(false);
             assertTrue(latch.await(10, TimeUnit.SECONDS));
         }
         finally {
@@ -541,7 +541,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         });
 
         try {
-            baseTestReplicator.start();
+            baseTestReplicator.start(false);
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
         }
         finally {
@@ -554,7 +554,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testCloseDatabaseWithActiveReplicator() throws InterruptedException {
         Replicator repl = new Replicator(makeConfig(true, true, true));
-        repl.start();
+        repl.start(false);
 
         int n = 0;
         while (n++ < 20) {
@@ -665,7 +665,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             }
         });
 
-        repl.start();
+        repl.start(false);
         try { assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)); }
         catch (InterruptedException ignore) { }
         finally { repl.removeChangeListener(token); }
@@ -792,7 +792,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         });
 
         try {
-            baseTestReplicator.start();
+            baseTestReplicator.start(false);
             baseTestReplicator.removeChangeListener(documentToken);
 
             assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
@@ -1213,7 +1213,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         // Run the replicator
         try {
-            baseTestReplicator.start();
+            baseTestReplicator.start(false);
             assertTrue(doneLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
 
             // Check documents passed to the filter

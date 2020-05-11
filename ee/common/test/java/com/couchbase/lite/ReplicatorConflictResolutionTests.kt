@@ -461,8 +461,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             }
         }
 
-        repl1.start()
-        repl2.start()
+        repl1.start(false)
+        repl2.start(false)
 
         assertTrue(latch.stdWait())
 
@@ -1069,7 +1069,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         }
         var docRepl1: DocumentReplication? = null
         val token1e = repl1.addDocumentReplicationListener { repl -> docRepl1 = repl }
-        repl1.start()
+        repl1.start(false)
         assertTrue(latch1.stdWait())
 
         // the first replicator is running but stuck.
@@ -1083,7 +1083,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         }
         var docRepl2: DocumentReplication? = null
         val token2e = repl2.addDocumentReplicationListener { repl -> docRepl2 = repl }
-        repl2.start()
+        repl2.start(false)
 
         assertTrue(latch3.stdWait())
         // the second replicator is complete.
