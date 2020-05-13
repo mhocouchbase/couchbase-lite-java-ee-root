@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.couchbase.lite.internal.DbContext;
-import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Prediction;
 import com.couchbase.lite.internal.core.C4PredictiveModel;
 import com.couchbase.lite.internal.fleece.FLEncoder;
@@ -48,7 +47,7 @@ public final class Prediction {
         @Override
         public long predict(long input, long c4db) {
             return encode(model.predict((Dictionary) new MRoot(
-                new DbContext(new Database(new C4Database(c4db, true))),
+                new DbContext(new Database(c4db)),
                 new FLValue(input), false).asNative()))
                 .getHandle();
         }

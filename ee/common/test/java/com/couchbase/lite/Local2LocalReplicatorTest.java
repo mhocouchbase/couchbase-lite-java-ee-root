@@ -18,6 +18,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,6 +43,7 @@ import com.couchbase.lite.utils.Report;
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -552,37 +554,37 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     }
 
     @Test
-    public void testCloseDatabaseWithActiveReplicator() throws InterruptedException {
+    public void testCloseDatabaseWithActiveReplicator() throws InterruptedException, CouchbaseLiteException {
+        final CountDownLatch latch = new CountDownLatch(1);
         Replicator repl = new Replicator(makeConfig(true, true, true));
+        ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
         repl.start(false);
 
-        int n = 0;
-        while (n++ < 20) {
-            AbstractReplicator.ActivityLevel level = repl.getStatus().getActivityLevel();
-            if (level == Replicator.ActivityLevel.IDLE) { break; }
-
-            Report.log(LogLevel.WARNING, "Replicator status waiting for IDLE in state: " + level);
-            Thread.sleep(500);
+        try {
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+            baseTestDb.close();
         }
-        assertTrue(n < 20);
+        finally { repl.removeChangeListener(token); }
 
-        try { baseTestDb.close(); }
-        catch (CouchbaseLiteException e) {
-            assertEquals(CBLError.Domain.CBLITE, e.getDomain());
-            assertEquals(CBLError.Code.BUSY, e.getCode());
+        assertEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+    }
+
+    @Test
+    public void testDeleteDatabaseWithActiveReplicator() throws InterruptedException, CouchbaseLiteException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        Replicator repl = new Replicator(makeConfig(true, true, true));
+        ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
+        repl.start(false);
+
+        try {
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+            baseTestDb.delete();
         }
+        finally { repl.removeChangeListener(token); }
 
-        repl.stop();
-
-        n = 0;
-        while (n++ < 20) {
-            AbstractReplicator.ActivityLevel level = repl.getStatus().getActivityLevel();
-            if (level == Replicator.ActivityLevel.STOPPED) { break; }
-
-            Report.log(LogLevel.WARNING, "Replicator status waiting for STOPPED in state: " + level);
-            Thread.sleep(500);
-        }
-        assertTrue(n < 20);
+        assertEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
     }
 
     /*
@@ -649,7 +651,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     }
 
     @Test
-    public void testDbCanBeClosed() throws CouchbaseLiteException {
+    public void testDbCanBeDeletedAfterReplicatorFinishes() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setString("species", "Tiger");
         doc1.setString("name", "Hobbes");
@@ -1051,6 +1053,82 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertNull(docs.get(0).getError());
         assertTrue(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsDeleted));
         assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+    }
+
+    @Test
+    public void testCloseDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        Replicator repl = new Replicator(makeConfig(true, true, true));
+
+        AbstractQuery query = (AbstractQuery) QueryBuilder
+            .select(SelectResult.expression(Meta.id))
+            .from(DataSource.database(baseTestDb));
+
+        ListenerToken queryToken = null;
+        ListenerToken replToken = null;
+        try {
+            queryToken = query.addChangeListener(testSerialExecutor, change -> latch.countDown());
+
+            replToken = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
+            repl.start(false);
+
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+            assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+
+            baseTestDb.close();
+            otherDB.close();
+        }
+        finally {
+            if (replToken != null) { repl.removeChangeListener(replToken); }
+            if (queryToken != null) { query.removeChangeListener(queryToken); }
+        }
+
+        assertEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+        assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+    }
+
+    @Test
+    public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
+        final CountDownLatch latch = new CountDownLatch(2);
+
+        File baseDbPath = new File(baseTestDb.getPath());
+        File otherDbPath = new File(otherDB.getPath());
+        assertTrue(baseDbPath.exists());
+        assertTrue(otherDbPath.exists());
+
+        Replicator repl = new Replicator(makeConfig(true, true, true));
+
+        AbstractQuery query = (AbstractQuery) QueryBuilder
+            .select(SelectResult.expression(Meta.id))
+            .from(DataSource.database(baseTestDb));
+
+        ListenerToken queryToken = null;
+        ListenerToken replToken = null;
+        try {
+            queryToken = query.addChangeListener(testSerialExecutor, change -> latch.countDown());
+
+            replToken = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
+            repl.start(false);
+
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+            assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+
+            baseTestDb.delete();
+            otherDB.delete();
+        }
+        finally {
+            if (replToken != null) { repl.removeChangeListener(replToken); }
+            if (queryToken != null) { query.removeChangeListener(queryToken); }
+        }
+
+        assertEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
+        assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+
+        assertFalse(baseDbPath.exists());
+        assertFalse(otherDbPath.exists());
     }
 
     private void testPushFilter(boolean continuous) throws CouchbaseLiteException, InterruptedException {

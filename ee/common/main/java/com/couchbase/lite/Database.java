@@ -23,7 +23,6 @@ import java.io.File;
 
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.C4Socket;
@@ -104,7 +103,7 @@ public final class Database extends AbstractDatabase {
         super(name, config);
     }
 
-    Database(C4Database c4db) { super(c4db); }
+    Database(long c4dbHandle) { super(c4dbHandle); }
 
     //---------------------------------------------
     // Public API
@@ -120,7 +119,7 @@ public final class Database extends AbstractDatabase {
      */
     public void changeEncryptionKey(EncryptionKey encryptionKey) throws CouchbaseLiteException {
         synchronized (getLock()) {
-            try { getC4Database().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
+            try { getC4DatabaseLocked().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
             catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
         }
     }
@@ -144,12 +143,14 @@ public final class Database extends AbstractDatabase {
         @Nullable C4ReplicatorListener listener,
         @NonNull Object replicatorContext)
         throws LiteCoreException {
-        return getC4Database().createTargetReplicator(
-            openSocket,
-            push,
-            pull,
-            options,
-            listener,
-            replicatorContext);
+        synchronized (getLock()) {
+            return getC4DatabaseLocked().createTargetReplicator(
+                openSocket,
+                push,
+                pull,
+                options,
+                listener,
+                replicatorContext);
+        }
     }
 }
