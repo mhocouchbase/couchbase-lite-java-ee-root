@@ -17,12 +17,16 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.File;
 
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Database;
+import com.couchbase.lite.internal.core.C4Replicator;
+import com.couchbase.lite.internal.core.C4ReplicatorListener;
+import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
@@ -83,7 +87,7 @@ public final class Database extends AbstractDatabase {
      * Construct a Database with a given name and the default config.
      * If the database does not yet exist it will be created.
      *
-     * @param name   The name of the database: May NOT contain capital letters!
+     * @param name The name of the database: May NOT contain capital letters!
      * @throws CouchbaseLiteException if any error occurs during the open operation.
      */
     public Database(@NonNull String name) throws CouchbaseLiteException { super(name, new DatabaseConfiguration()); }
@@ -116,21 +120,36 @@ public final class Database extends AbstractDatabase {
      */
     public void changeEncryptionKey(EncryptionKey encryptionKey) throws CouchbaseLiteException {
         synchronized (getLock()) {
-            mustBeOpen();
-            try { c4db.rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
-            catch (LiteCoreException e) {
-                throw CBLStatus.convertException(e);
-            }
+            try { getC4Database().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
+            catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
         }
     }
 
     //---------------------------------------------
-    // Package visible: Implementing abstract methods for Encryption
+    // Package visible
     //---------------------------------------------
 
+    // Implementation of abstract methods for Encryption
     @Override
     int getEncryptionAlgorithm() { return getEncryptionAlgorithm(config.getEncryptionKey()); }
 
     @Override
     byte[] getEncryptionKey() { return getEncryptionKey(config.getEncryptionKey()); }
+
+    C4Replicator createTargetReplicator(
+        @NonNull C4Socket openSocket,
+        int push,
+        int pull,
+        @Nullable byte[] options,
+        @Nullable C4ReplicatorListener listener,
+        @NonNull Object replicatorContext)
+        throws LiteCoreException {
+        return getC4Database().createTargetReplicator(
+            openSocket,
+            push,
+            pull,
+            options,
+            listener,
+            replicatorContext);
+    }
 }

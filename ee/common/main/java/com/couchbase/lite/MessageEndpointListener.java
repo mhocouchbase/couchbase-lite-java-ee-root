@@ -117,7 +117,7 @@ public class MessageEndpointListener {
         final Database db = config.getDatabase();
         synchronized (db.getLock()) {
             try {
-                replicator = db.getC4Database().createTargetReplicator(
+                replicator = db.createTargetReplicator(
                     new MessageSocket(connection, config.getProtocolType()),
                     passiveMode,
                     passiveMode,
