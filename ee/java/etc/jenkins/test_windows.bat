@@ -15,7 +15,11 @@ set reportsDir=%1%
 echo ======== TEST Couchbase Lite Java, Enterprise Edition 
 call gradlew.bat ciTest || goto error
 
-echo ======== Copy test reports
+echo ======== Copy NEW IMPROVED test reports
+dir 
+dir lib\build
+dir %reportsDir%
+echo copy lib\build\reports %reportsDir%
 copy lib\build\reports %reportsDir%
 
 echo ======== TEST COMPLETE
