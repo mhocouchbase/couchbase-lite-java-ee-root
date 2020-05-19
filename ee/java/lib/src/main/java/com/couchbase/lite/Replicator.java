@@ -1,6 +1,4 @@
 //
-// Replicator.java
-//
 // Copyright (c) 2018 Couchbase, Inc.  All rights reserved.
 //
 // Licensed under the Couchbase License Agreement (the "License");
@@ -16,17 +14,20 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4Socket;
 
 
 public final class Replicator extends AbstractReplicator {
+
     /**
      * Initializes a replicator with the given configuration.
      *
-     * @param config the configuration
+     * @param config replicator configuration
      */
-    public Replicator(ReplicatorConfiguration config) { super(config); }
+    protected Replicator(@NonNull ReplicatorConfiguration config) { super(config); }
 
     @Override
     protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {
@@ -46,4 +47,7 @@ public final class Replicator extends AbstractReplicator {
 
         throw new IllegalStateException("unrecognized endpoint type: " + target);
     }
+
+    protected void handleOffline(@NonNull ActivityLevel prevLevel, boolean nowOnline) { }
 }
+
