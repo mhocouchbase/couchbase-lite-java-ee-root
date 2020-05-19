@@ -14,14 +14,19 @@
 //
 package com.couchbase.lite;
 
+import android.support.annotation.Nullable;
+
 import java.lang.ref.WeakReference;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.replicator.AndroidConnectivityObserver;
+import com.couchbase.lite.internal.replicator.NetworkConnectivityManager;
 
 
 public final class Replicator extends AbstractReplicator {
+    @Nullable
     private final AndroidConnectivityObserver connectivityObserver;
 
     /**
@@ -35,17 +40,19 @@ public final class Replicator extends AbstractReplicator {
         // This little bit of hackery is necessary sot that:
         // 1) The gc can collect this Replicator, even if it is registered for connectivity events
         // 2) the connectivity observer can get the c4Replicator, even though the getter is not visible to it.
+        //    Note that the c4Replicator for this Replicator hasn't been created yet.
         final WeakReference<Replicator> weakThis = new WeakReference<>(this);
-        connectivityObserver = (!config.isContinuous())
+        final NetworkConnectivityManager mgr = CouchbaseLiteInternal.getNetworkConnectivityManager();
+        connectivityObserver = (!config.isContinuous() || (mgr == null))
             ? null
             : new AndroidConnectivityObserver(
+                mgr,
                 () -> {
                     final Replicator repl = weakThis.get();
                     if (repl == null) { return null; }
                     return repl.getC4Replicator();
                 });
     }
-
 
     @Override
     protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {

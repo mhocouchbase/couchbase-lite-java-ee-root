@@ -433,41 +433,38 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     @Test
     fun testConflictResolversRunConcurrently() {
         val barrier = CyclicBarrier(2)
-        val latch = CountDownLatch(2)
+        val latch1 = CountDownLatch(1)
+        val latch2 = CountDownLatch(1)
+        val latch3 = CountDownLatch(2)
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         val pullConfig1 = pullConfig()
         pullConfig1.conflictResolver = TestConflictResolver { conflict ->
-            barrier.stdWait()
+            barrier.await(30, TimeUnit.SECONDS)
+            Thread.sleep(100)
+            latch1.countDown()
+            latch2.await(2, TimeUnit.SECONDS)
+            latch3.countDown()
             conflict.localDocument
         }
         val repl1 = Replicator(pullConfig1)
-        val token1 = repl1.addChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
-                latch.countDown()
-            }
-        }
 
         val pullConfig2 = pullConfig()
         pullConfig2.conflictResolver = TestConflictResolver { conflict ->
-            barrier.stdWait()
+            barrier.await(30, TimeUnit.SECONDS)
+            latch1.await(2, TimeUnit.SECONDS)
+            Thread.sleep(100)
+            latch2.countDown()
+            latch3.countDown()
             conflict.localDocument
         }
-        val repl2 = Replicator(pullConfig1)
-        val token2 = repl2.addChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
-                latch.countDown()
-            }
-        }
+        val repl2 = Replicator(pullConfig2)
 
         repl1.start(false)
         repl2.start(false)
 
-        assertTrue(latch.stdWait())
-
-        repl1.removeChangeListener(token1)
-        repl2.removeChangeListener(token2)
+        assertTrue(latch3.await(2, TimeUnit.SECONDS))
     }
 
     /**
