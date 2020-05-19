@@ -1,6 +1,4 @@
 //
-// PredictiveModel.java
-//
 // Copyright (c) 2019 Couchbase, Inc.  All rights reserved.
 //
 // Licensed under the Couchbase License Agreement (the "License");

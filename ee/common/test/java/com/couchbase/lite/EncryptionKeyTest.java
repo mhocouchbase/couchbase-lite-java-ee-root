@@ -1,6 +1,4 @@
 //
-// EncryptionKeyTest.java
-//
 // Copyright (c) 2018 Couchbase, Inc.  All rights reserved.
 //
 // Licensed under the Couchbase License Agreement (the "License");
