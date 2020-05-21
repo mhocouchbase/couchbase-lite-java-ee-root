@@ -2,7 +2,6 @@
 #
 # Build Couchbase Lite Java, Enterprise Edition for MacOS
 #
-
 NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
 
 function usage() {
@@ -22,7 +21,6 @@ fi
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 TOOLS_DIR="${SCRIPT_DIR}/../../../../common/tools"
 
-
 echo "======== BUILD Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
 
 echo "======== Download Lite Core ..."
@@ -33,7 +31,7 @@ echo "======== Build mbedcrypto ..."
 
 echo "======== Build"
 touch local.properties
-./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}"
+./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 find lib/build/distributions
 echo "======== BUILD COMPLETE"

@@ -2,7 +2,6 @@
 #
 # Publish Couchbase Lite Java, Enterprise Edition
 #
-
 PRODUCT='couchbase-lite-java-ee'
 MAVEN_URL="http://mobile.maven.couchbase.com/maven2/internalmaven"
 
@@ -36,13 +35,13 @@ if [ -z "$WORKSPACE" ]; then
 fi
 
 echo "======== PUBLISH Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
-./gradlew ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL}
+./gradlew ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL} || exit 1
 
 echo "======== Add license to zip"
 LICENSE_DIR="${WORKSPACE}/license"
 rm -rf "${LICENSE_DIR}"
 mkdir -p "${LICENSE_DIR}"
-cp "${WORKSPACE}/cbl-java/legal/mobile/couchbase-lite/license/LICENSE_enterprise.txt" "${LICENSE_DIR}/LICENSE.TXT"
+cp "${WORKSPACE}/cbl-java/legal/mobile/couchbase-lite/license/LICENSE_enterprise.txt" "${LICENSE_DIR}/LICENSE.TXT" || exit 1
 
 pushd lib/build/distributions
 zip -u "${PRODUCT}-${VERSION}-${BUILD_NUMBER}.zip" "${LICENSE_DIR}/LICENSE.TXT"

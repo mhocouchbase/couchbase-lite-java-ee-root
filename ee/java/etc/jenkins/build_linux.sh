@@ -3,7 +3,6 @@
 # Build Couchbase Lite Java, Enterprise Edition for MacOS, Windows, Linux
 # This script assumes the the OSX and Windows builds are available on latestbuilds
 #
-
 PRODUCT="couchbase-lite-java"
 NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
 LATESTBUILDS_URL="http://latestbuilds.service.couchbase.com/builds/latestbuilds"
@@ -50,7 +49,7 @@ echo "======== Build mbedcrypto ..."
 
 echo "======== Check"
 touch local.properties
-./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}"
+./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 for PLATFORM in macos windows; do
   ARTIFACT="${PRODUCT}-ee-${VERSION}-${BUILD_NUMBER}-${PLATFORM}.zip"
@@ -64,7 +63,7 @@ for PLATFORM in macos windows; do
 done
 
 echo "======== Build"
-./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}"
+./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 find lib/build/distributions
 echo "======== BUILD COMPLETE"
