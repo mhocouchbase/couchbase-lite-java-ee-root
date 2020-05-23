@@ -3,8 +3,8 @@
 # Build Couchbase Lite Java, Enterprise Edition for MacOS, Windows, Linux
 # This script assumes the the OSX and Windows builds are available on latestbuilds
 #
-PRODUCT="couchbase-lite-java"
-NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
+PRODUCT="couchbase-lite-java-ee"
+NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore/couchbase-lite-java"
 LATESTBUILDS_URL="http://latestbuilds.service.couchbase.com/builds/latestbuilds"
 
 function usage() {
@@ -52,8 +52,8 @@ touch local.properties
 ./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
 
 for PLATFORM in macos windows; do
-  ARTIFACT="${PRODUCT}-ee-${VERSION}-${BUILD_NUMBER}-${PLATFORM}.zip"
-  REMOTE_ARTIFACT="${LATESTBUILDS_URL}/${PRODUCT}/${VERSION}/${BUILD_NUMBER}/${ARTIFACT}"
+  ARTIFACT="${PRODUCT}-${VERSION}-${BUILD_NUMBER}-${PLATFORM}.zip"
+  REMOTE_ARTIFACT="${LATESTBUILDS_URL}/${VERSION}/${BUILD_NUMBER}/${ARTIFACT}"
   LOCAL_ARTIFACT="${WORKSPACE}/${ARTIFACT}"
   echo "Downloading artifact: ${REMOTE_ARTIFACT}"
   curl -L "${REMOTE_ARTIFACT}" -o "${LOCAL_ARTIFACT}"

@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Publish Couchbase Lite Android, Enterprise Edition
 #
@@ -57,7 +57,6 @@ echo "======== Copy artifacts to staging directory"
 POM_FILE='pom-ee.xml'
 cp lib/build/outputs/aar/*.aar "${ARTIFACTS}/"
 cp lib/build/libs/*.jar "${ARTIFACTS}/"
-cp -a lib/build/reports "${ARTIFACTS}/reports-ee"
 cp lib/build/publications/mavenJava/pom-default.xml "${ARTIFACTS}/${POM_FILE}"
 
 echo "======== Pull dependencies for zip"

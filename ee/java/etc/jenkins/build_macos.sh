@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 #
 # Build Couchbase Lite Java, Enterprise Edition for MacOS
 #
