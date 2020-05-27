@@ -53,6 +53,3 @@ freeline_project_description.json
 # Others
 .DS_Store
 
-# Test db
-.couchbase
-
