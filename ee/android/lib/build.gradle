@@ -87,7 +87,7 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 // local.properties
 Properties properties = new Properties()
 properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
-
+properties.forEach { String k, String v -> println("${k} => ${v}")}
 
 // ----------------------------------------------------------------
 // Build
