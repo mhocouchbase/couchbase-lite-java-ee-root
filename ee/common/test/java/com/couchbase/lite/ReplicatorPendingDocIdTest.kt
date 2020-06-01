@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.utils.Report
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -358,7 +359,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         }
 
         if (err != null) {
-            throw AssertionError("Unexpected error", err);
+            throw AssertionError("Unexpected error", err)
         }
         assertEquals(changed, pendingIdBefore)
         assertEquals(0, pendingIdAfter?.size ?: -1)
@@ -380,11 +381,12 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         var expectedPendingAfter: Boolean? = null
         var expectedNotPendingAfter: Boolean? = null
 
-        val token = replicator.addChangeListener { change ->
+        val token = replicator.addChangeListener(testSerialExecutor, ReplicatorChangeListener { change ->
             try {
                 // Apparently the replicator doesn't actually promise that it will
                 // give us all of the state changes.  Running this test on a (slow) Nexus 4
                 // I never saw the CONNECTING state.  This is, so I am told, for my own good...
+                Report.log(LogLevel.INFO, "IsDocumentPending listener state: ${change.status.activityLevel}")
                 when (change.status.activityLevel) {
                     AbstractReplicator.ActivityLevel.CONNECTING ->
                         if (!beforeSet) {
@@ -392,12 +394,14 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
                             expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
                             beforeSet = true
                         }
+
                     AbstractReplicator.ActivityLevel.BUSY ->
                         if (!beforeSet) {
                             expectedPendingBefore = validatePending(change.replicator, expectedPending, true)
                             expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
                             beforeSet = true
                         }
+
                     AbstractReplicator.ActivityLevel.STOPPED -> {
                         expectedPendingAfter = validatePending(change.replicator, expectedPending, false)
                         expectedNotPendingAfter = validatePending(change.replicator, expectedNotPending, false)
@@ -408,7 +412,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             } catch (e: Exception) {
                 err = e
             }
-        }
+        })
 
         try {
             replicator.start(false)
