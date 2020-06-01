@@ -2,7 +2,7 @@
 
 // Used for the android builds.
 // Note that both flavors must use the same toolchain
-final NDK_VERSION='20.1.5948944'
+final NDK_VERSION='21.2.6472646'
 final CMAKE_VERSION='3.10.2.4988404'
 final BUILD_TOOLS_VERSION='29.0.3'
 

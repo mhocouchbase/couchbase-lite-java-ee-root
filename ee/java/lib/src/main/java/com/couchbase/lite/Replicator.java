@@ -27,7 +27,7 @@ public final class Replicator extends AbstractReplicator {
      *
      * @param config replicator configuration
      */
-    protected Replicator(@NonNull ReplicatorConfiguration config) { super(config); }
+    public Replicator(@NonNull ReplicatorConfiguration config) { super(config); }
 
     @Override
     protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {
