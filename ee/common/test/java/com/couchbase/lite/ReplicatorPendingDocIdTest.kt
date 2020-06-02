@@ -386,7 +386,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
                 // Apparently the replicator doesn't actually promise that it will
                 // give us all of the state changes.  Running this test on a (slow) Nexus 4
                 // I never saw the CONNECTING state.  This is, so I am told, for my own good...
-                Report.log(LogLevel.INFO, "IsDocumentPending listener state: ${change.status.activityLevel}")
+                Report.log(LogLevel.INFO, "IsDocumentPendingListener state: ${change.status.activityLevel}")
                 when (change.status.activityLevel) {
                     AbstractReplicator.ActivityLevel.CONNECTING ->
                         if (!beforeSet) {
