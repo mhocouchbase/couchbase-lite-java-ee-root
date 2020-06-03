@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.DateUtils;
@@ -373,33 +374,36 @@ public class PredictiveQueryTest extends BaseQueryTest {
         textModel.unregisterModel();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testPredictionWithNonSupportedInputTypes() throws Exception {
+    @Test(expected = CouchbaseLiteException.class)
+    public void testPredictionWithUnsupportedInputType1() throws CouchbaseLiteException {
+        loadNumberedDocs(10);
+
         EchoModel echoModel = new EchoModel();
         echoModel.registerModel();
+        try {
+            QueryBuilder
+                .select(SelectResult.expression(Function.prediction(EchoModel.NAME, Expression.value("string"))))
+                .from(DataSource.database(baseTestDb))
+                .execute();
+        }
+        finally { echoModel.unregisterModel(); }
+    }
 
-        // Query with non dictionary input:
-        String model = EchoModel.NAME;
-        Expression input = Expression.value("string");
-        PredictionFunction prediction = Function.prediction(model, input);
-
-        final Query q = QueryBuilder
-            .select(SelectResult.expression(prediction))
-            .from(DataSource.database(baseTestDb));
-
-        TestUtils.assertThrowsCBL("CouchbaseLite.SQLite", 1, q::execute);
+    @Test(expected = IllegalArgumentException.class)
+    public void testPredictionWithUnsupportedInputType2() throws CouchbaseLiteException {
+        loadNumberedDocs(10);
 
         Map<String, Object> map = new HashMap<>();
         map.put("key", this);
-        input = Expression.map(map);
-        prediction = Function.prediction(model, input);
 
-        final Query q2 = QueryBuilder
-            .select(SelectResult.expression(prediction))
-            .from(DataSource.database(baseTestDb));
-
-
-        try { q2.execute(); }
+        EchoModel echoModel = new EchoModel();
+        echoModel.registerModel();
+        try {
+            QueryBuilder
+                .select(SelectResult.expression(Function.prediction(EchoModel.NAME, Expression.map(map))))
+                .from(DataSource.database(baseTestDb))
+                .execute();
+        }
         finally { echoModel.unregisterModel(); }
     }
 
