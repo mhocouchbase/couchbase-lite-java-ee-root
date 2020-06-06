@@ -1045,8 +1045,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. The expected behavior would be the the duplicated ones that are resolved after should be ignored.
      *    There will be two document replication notifications without errors.
      */
-    // !!! This test is failing and needs to be fixed
-    @Ignore("This test is failing and needs to be fixed")
+    @Ignore("CBL-1050")
     @Test
     fun testConflictResolverSameConflictsTwice() {
         val latch1 = CountDownLatch(1)
@@ -1056,62 +1055,84 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val pullConfig1 = pullConfigWitResolver(TestConflictResolver { conflict ->
+        // This replicator uses a conflict resolver that prefers the local doce
+        // It will choose the version of the doc with KEY1->VAL1
+        val repl1 = Replicator(pullConfigWitResolver(TestConflictResolver { conflict ->
             latch1.countDown()
-            assertTrue(latch2.stdWait())
-            conflict.localDocument
-        })
-        val repl1 = Replicator(pullConfig1)
+            if (!latch2.stdWait()) null else conflict.localDocument
+        }))
+        // this is just here so that we can tell when this resolver is done.
         val token1c = repl1.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch4.countDown()
             }
         }
-        var docRepl1: DocumentReplication? = null
-        val token1e = repl1.addDocumentReplicationListener { repl -> docRepl1 = repl }
+        var doc1: ReplicatedDocument? = null
+        val token1e = repl1.addDocumentReplicationListener { repl ->
+            val docs = repl.documents
+            if (docs.size > 0) {
+                doc1 = docs[0]
+            }
+        }
         repl1.start(false)
         assertTrue(latch1.stdWait())
 
-        // the first replicator is running but stuck.
+        // At this point repl1 is running (latch #1 has popped)
+        // but is hung (on latch #2) in its conflict resolver
 
+        // This replicator will use the remote resolver
+        // It will choose the version of the doc with KEY2->VAL2
         val pullConfig2 = pullConfigWitResolver(RemoteResolver)
         val repl2 = Replicator(pullConfig2)
+        // Again, only here so that we know when this replicator is done
         val token2c = repl2.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
                 latch3.countDown()
             }
         }
-        var docRepl2: DocumentReplication? = null
-        val token2e = repl2.addDocumentReplicationListener { repl -> docRepl2 = repl }
+        var doc2: ReplicatedDocument? = null
+        val token2e = repl2.addDocumentReplicationListener { repl ->
+            val docs = repl.documents
+            var doc: ReplicatedDocument? = null
+            if (docs.size > 0) {
+                doc = docs[0]
+            }
+            doc2 = doc
+        }
         repl2.start(false)
 
         assertTrue(latch3.stdWait())
-        // the second replicator is complete.
+
+        // repl1 is still hung but repl2 has run to completion
+
         repl2.removeChangeListener(token2c)
         repl2.removeChangeListener(token2e)
 
-        assertNotNull(docRepl2)
-        assertEquals(1, docRepl2!!.documents.size)
-        assertEquals(DOC1, docRepl2!!.documents[0].id)
-        assertNull(docRepl2!!.documents[0].error)
+        assertNotNull(doc2)
+        assertEquals(DOC1, doc2!!.id)
+        assertNull(doc2!!.error)
 
+        // verify DOC1 was replicated and resolved to the remote version.
         var doc = baseTestDb.getDocument(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
 
-        // restart the first replicator.
+        // Unhang repl #1
         latch2.countDown()
 
         assertTrue(latch4.stdWait())
-        // first replicator is complete
+
+        // rrepl1 has now run to completion
+
         repl1.removeChangeListener(token1c)
         repl1.removeChangeListener(token1e)
 
-        assertNotNull(docRepl1)
-        assertEquals(1, docRepl1!!.documents.size)
-        assertEquals(DOC1, docRepl1!!.documents[0].id)
-        assertNull(docRepl1!!.documents[0].error)
+        assertNotNull(doc1)
+        assertEquals(DOC1, doc1!!.id)
+        assertNull(doc1!!.error)
 
+        // verify that the db has not been changed
+        // ??? CBL-1050: It *has* changed!
         doc = baseTestDb.getDocument(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
