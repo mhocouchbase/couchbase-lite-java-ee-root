@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import com.couchbase.lite.utils.FlakyTest;
 import com.couchbase.lite.utils.Report;
 
 import static org.junit.Assert.assertEquals;
@@ -630,11 +631,13 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockConnectionLifecycleLocation.CONNECT, true);
     }
 
+    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws Exception {
         testP2PError(MockConnectionLifecycleLocation.SEND, true);
     }
 
+    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws Exception {
         testP2PError(MockConnectionLifecycleLocation.RECEIVE, true);

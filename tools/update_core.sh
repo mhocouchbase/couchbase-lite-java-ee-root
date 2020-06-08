@@ -29,7 +29,7 @@ git remote prune origin
 echo "=== Rebuild core lib"
 cd "${ROOT_DIR}"
 rm -rf common/lite-core
-common/tools/build_litecore.sh -d -e EE
+common/tools/build_litecore.sh -e EE
 
 cd "${CUR_DIR}"
 
