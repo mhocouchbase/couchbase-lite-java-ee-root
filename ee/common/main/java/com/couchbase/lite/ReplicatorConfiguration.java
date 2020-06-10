@@ -16,12 +16,45 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
-    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) { super(config); }
+    @NonNull
+    private ServerCertificateVerificationMode certificateVerificationMode
+        = ServerCertificateVerificationMode.CA_CERT;
+
+
+    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
+        super(config);
+        this.certificateVerificationMode = config.certificateVerificationMode;
+    }
 
     public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
         super(database, target);
+    }
+
+    /**
+     * Sets the replicator verification mode.
+     * The default value is ServerCertificateVerificationMode.CA_CERT.
+     *
+     * @param mode Specifies the way the replicator verifies the server identity when using TLS communication
+     * @return this.
+     */
+    @NonNull
+    public ReplicatorConfiguration setServerCertificateVerificationMode(
+        @NonNull ServerCertificateVerificationMode mode) {
+        checkReadOnly();
+        this.certificateVerificationMode = Preconditions.assertNotNull(mode, "certificate verification mode");
+        return getReplicatorConfiguration();
+    }
+
+    /**
+     * Return the replicator verification mode.
+     */
+    @NonNull
+    public ServerCertificateVerificationMode getServerCertificateVerificationMode() {
+        return certificateVerificationMode;
     }
 
     @Override
