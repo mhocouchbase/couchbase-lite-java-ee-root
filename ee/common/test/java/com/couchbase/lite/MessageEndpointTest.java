@@ -658,6 +658,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockConnectionLifecycleLocation.RECEIVE, false);
     }
 
+    @FlakyTest
     @Test
     public void testP2PPassiveClose() throws Exception {
         MessageEndpointListener listener = new MessageEndpointListener(

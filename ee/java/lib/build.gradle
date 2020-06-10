@@ -642,9 +642,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
 
     task generateNativeLibraryMD5(dependsOn: ["copyJni", "copyLiteCore"]) {
         doFirst {
-            fileTree(dir: "${CBL_NATIVE_DIR}/libs", exclude: "**/*.MD5").each { File file ->
-                ant.checksum(file: file)
-            }
+            fileTree(dir: "${CBL_NATIVE_DIR}/libs", exclude: "**/*.MD5").each { File file -> ant.checksum(file: file) }
         }
     }
 
