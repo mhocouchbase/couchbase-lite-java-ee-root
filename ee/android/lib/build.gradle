@@ -21,7 +21,7 @@ import com.android.build.gradle.tasks.LintGlobalTask
 import com.github.spotbugs.SpotBugsTask
 
 import java.time.Instant
-
+import java.util.regex.Pattern
 
 // ----------------------------------------------------------------
 // Plugins
@@ -60,12 +60,12 @@ ext {
     BUILD_RELEASE = file("${ROOT_DIR}/version.txt").text.trim()
     BUILD_NUMBER = (project.hasProperty("buildNumber") && buildNumber) ? buildNumber : "SNAPSHOT"
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
-    BUILD_COMMIT = getBuildCommit()
+    BUILD_COMMIT = getBuildId()
 
     CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
-    CBL_COMMON_DIR= "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
@@ -87,7 +87,7 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 // local.properties
 Properties properties = new Properties()
 properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
-properties.forEach { String k, String v -> println("${k} => ${v}")}
+
 
 // ----------------------------------------------------------------
 // Build
@@ -530,20 +530,37 @@ clean.doLast {
 // Extensions
 // ----------------------------------------------------------------
 
-def getLicenseVersion() { return getGitCommit("${ROOT_DIR}/legal", "master") }
+def getLicenseVersion() { return getCommit("product-texts", "master") }
 
-def getBuildCommit() {
-    def commit = getGitCommit(PROJECT_DIR, "unknown")
-    try {
-        if ('git status -uno --porcelain'.execute([], file(PROJECT_DIR)).text.length() <= 0) { commit += "+" }
-    }
+def getBuildId() {
+    def hostname = "rogue"
+    try { hostname = "hostname".execute().text.trim() }
     catch (Exception ignore) { }
-    return commit
+
+    return "${getCommit("couchbase-lite-java-ee-root", "unofficial").substring(0, 7)}@${hostname}"
 }
 
-def getGitCommit(repo, dflt) {
-    try { return 'git rev-parse --short HEAD'.execute([], file(repo).text.trim()) }
+def getCommit(project, dflt) {
+    def manifest = null
+    try {
+        manifest = new FileReader("${ROOT_DIR}/../manifest.xml")
+
+        def revEx = Pattern.compile("<project.* name=\"${project}\".* revision=\"([\\dabcdef]{40})\"")
+
+        def l
+        while ((l = manifest.readLine()) != null) {
+            def m = revEx.matcher(l)
+            if (m.find()) { return m.group(1) }
+        }
+    }
     catch (Exception ignore) { }
+    finally {
+        if (manifest != null) {
+            try { manifest.close() }
+            catch (Exception ignore) { }
+        }
+    }
+
     return dflt
 }
 

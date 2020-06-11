@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.utils.FlakyTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -431,6 +432,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * #9
      * 1. Test that there could be multiple conflicts resolver running at the same time without blocking each other.
      */
+    @FlakyTest
     @Test
     fun testConflictResolversRunConcurrently() {
         val barrier = CyclicBarrier(2)
