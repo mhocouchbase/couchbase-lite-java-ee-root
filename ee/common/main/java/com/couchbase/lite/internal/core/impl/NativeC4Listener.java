@@ -25,7 +25,7 @@ import com.couchbase.lite.internal.core.C4Listener;
 /**
  * The C4Listener companion object
  */
-public class NativeC4Listener implements C4Listener.Companion {
+public class NativeC4Listener implements C4Listener.NativeImpl {
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     @Override
@@ -33,14 +33,14 @@ public class NativeC4Listener implements C4Listener.Companion {
         long context,
         int port,
         String iFace,
-        int opts,
         String dbPath,
         boolean create,
         boolean delete,
         boolean push,
         boolean pull,
-        boolean deltaSync) throws LiteCoreException {
-        return startHttp(port, iFace, opts, context, dbPath, create, delete, push, pull, deltaSync);
+        boolean deltaSync)
+        throws LiteCoreException {
+        return startHttp(port, iFace, context, dbPath, create, delete, push, pull, deltaSync);
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -49,25 +49,20 @@ public class NativeC4Listener implements C4Listener.Companion {
         long context,
         int port,
         String iFace,
-        int opts,
         String dbPath,
         boolean create,
         boolean delete,
         boolean push,
         boolean pull,
         boolean deltaSync,
-        long keyMode,
-        byte[] keyPair,
         byte[] cert,
         boolean requireClientCerts,
-        byte[][] rootClientCerts) throws LiteCoreException {
+        byte[] rootClientCerts)
+        throws LiteCoreException {
         return startTls(
             port,
             iFace,
-            opts,
             context,
-            keyMode,
-            keyPair,
             cert,
             requireClientCerts,
             rootClientCerts,
@@ -89,9 +84,7 @@ public class NativeC4Listener implements C4Listener.Companion {
     public void nUnshareDb(long handle, long c4Db) throws LiteCoreException { unshareDb(handle, c4Db); }
 
     @Override
-    public List<String> nGetUrls(long handle, long c4Db, int api) throws LiteCoreException {
-        return getUrls(handle, c4Db, api);
-    }
+    public List<String> nGetUrls(long handle, long c4Db) throws LiteCoreException { return getUrls(handle, c4Db); }
 
     @Override
     public int nGetPort(long handle) { return getPort(handle); }
@@ -106,7 +99,6 @@ public class NativeC4Listener implements C4Listener.Companion {
     private static native long startHttp(
         int port,
         String networkInterface,
-        int opts,
         long context,
         String dbPath,
         boolean allowCreateDBs,
@@ -120,13 +112,10 @@ public class NativeC4Listener implements C4Listener.Companion {
     private static native long startTls(
         int port,
         String networkInterface,
-        int apis,
         long context,
-        long keyMode,
-        byte[] keyPair,
         byte[] cert,
         boolean requireClientCerts,
-        byte[][] rootClientCerts,
+        byte[] rootClientCerts,
         String dbPath,
         boolean allowCreateDBs,
         boolean allowDeleteDBs,
@@ -141,7 +130,7 @@ public class NativeC4Listener implements C4Listener.Companion {
 
     private static native void unshareDb(long handle, long c4Db) throws LiteCoreException;
 
-    private static native List<String> getUrls(long handle, long c4Db, int api) throws LiteCoreException;
+    private static native List<String> getUrls(long handle, long c4Db) throws LiteCoreException;
 
     private static native int getPort(long handle);
 

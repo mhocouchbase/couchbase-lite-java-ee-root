@@ -17,12 +17,9 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import java.security.cert.Certificate;
-import java.util.List;
-
 
 /**
- * "A foolish consistency..."
+ * Authenticator for HTTP Listener password authentication
  */
 public final class ListenerPasswordAuthenticator
     implements ListenerAuthenticator, ListenerPasswordAuthenticatorDelegate {
@@ -31,9 +28,8 @@ public final class ListenerPasswordAuthenticator
     // Static Factory Methods
     //-------------------------------------------------------------------------
 
-    public static ListenerCertificateAuthenticator newListenerCertificateAuthenticator(
-        @NonNull List<Certificate> rootCerts) {
-        return new ListenerCertificateAuthenticator.RootCertAuthenticator(rootCerts);
+    public static ListenerPasswordAuthenticator create(@NonNull ListenerPasswordAuthenticatorDelegate delegate) {
+        return new ListenerPasswordAuthenticator(delegate);
     }
 
     //-------------------------------------------------------------------------

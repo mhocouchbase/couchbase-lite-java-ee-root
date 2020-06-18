@@ -3,12 +3,15 @@ package com.couchbase.lite.internal.core;
 import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.couchbase.lite.internal.utils.MathUtils;
+
 
 // There should be a nanny thread cleaning out all the ref -> null
 public class NativeContext<T> {
@@ -26,21 +29,30 @@ public class NativeContext<T> {
         return key;
     }
 
-    public synchronized void bind(long key, @NonNull T listener) { contexts.put(key, new WeakReference<>(listener)); }
+    public synchronized void bind(long key, @NonNull T obj) { contexts.put(key, new WeakReference<>(obj)); }
 
     @Nullable
-    public synchronized T getListenerFromContext(long context) {
-        Long key = context;
+    public synchronized T getObjFromContext(long context) {
+        final Long key = context;
 
         final WeakReference<T> ref = contexts.get(key);
         if (ref == null) { return null; }
 
-        T javaCompanion = ref.get();
-        if (javaCompanion == null) {
+        final T obj = ref.get();
+        if (obj == null) {
             contexts.remove(key);
             return null;
         }
 
-        return javaCompanion;
+        return obj;
     }
+
+    @VisibleForTesting
+    synchronized int size() { return contexts.size(); }
+
+    @VisibleForTesting
+    synchronized void clear() { contexts.clear(); }
+
+    @VisibleForTesting
+    synchronized Set keySet() { return contexts.keySet(); }
 }
