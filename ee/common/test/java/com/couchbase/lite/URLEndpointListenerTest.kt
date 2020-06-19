@@ -14,19 +14,10 @@
 //
 package com.couchbase.lite
 
-import java.net.URL
-
 
 private const val WS_PORT = 4984
 private const val WSS_PORT = 4985
 private const val CLIENT_CERT_LABEL = "CBL-Client-Cert"
-
-fun URLEndpointListener.localURLEndpoint() = URL(
-    if (config.isTlsDisabled) "ws" else "wss",
-    "localhost",
-    port,
-    config.database.name
-)
 
 class URLEndpointListenerTest : BaseReplicatorTest() {
     private var listener: URLEndpointListener? = null
@@ -122,22 +113,25 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
     */
 
-    fun listen(): URLEndpointListener = listen(true, null)
+    fun listenHttp(): URLEndpointListener = listenHttp(true)
 
-    fun listen(tls: Boolean): URLEndpointListener = listen(tls, null)
+    fun listenHttp(tls: Boolean): URLEndpointListener = listenHttp(tls, null)
 
-    fun listen(tls: Boolean, auth: ListenerAuthenticator?): URLEndpointListener {
+    fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
         var localListener = listener;
 
         // Stop:
         listener?.stop()
 
         // Listener:
-        val config = URLEndpointListenerConfiguration(otherDB)
-        config.port = if (tls) WSS_PORT else WS_PORT
-        config.isTlsDisabled = !tls
-        config.authenticator = auth
-        localListener = URLEndpointListener(config)
+        val configBuilder = URLEndpointListenerConfiguration.buildHttpConfig(otherDB)
+            .setPort(if (tls) WSS_PORT else WS_PORT)
+            .setTlsDisabled(!tls)
+        if (auth != null) {
+            configBuilder.setAuthenticator(auth);
+        }
+
+        localListener = URLEndpointListener.createListener(configBuilder.build(), false)
 
         // Start:
         localListener.start()

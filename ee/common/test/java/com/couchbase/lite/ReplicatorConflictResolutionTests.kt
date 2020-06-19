@@ -1281,7 +1281,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         doc.setString(KEY1, VAL2)
         doc.setBlob(KEY2, Blob("text/plain", "i'm blob".toByteArray(Charsets.UTF_8)))
         baseTestDb.save(doc)
-        val expectedFlags = doc.c4doc!!.selectedFlags;
+        val expectedFlags = doc.c4doc!!.selectedFlags
         assertNotEquals(0, expectedFlags)
 
         // add a string in the remote
@@ -1291,7 +1291,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         otherDB.save(doc)
         assertNotEquals(expectedFlags, doc.c4doc!!.selectedFlags)
 
-        var localFlags: Int = 0;
+        var localFlags = 0
         val pullConfig = pullConfigWitResolver(TestConflictResolver { conflict ->
             localFlags = conflict.localDocument!!.c4doc!!.selectedFlags
             conflict.localDocument
@@ -1359,7 +1359,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         return docIds
     }
 
-    protected fun pullConfigWitResolver(resolver: ConflictResolver?): ReplicatorConfiguration {
+    private fun pullConfigWitResolver(resolver: ConflictResolver?): ReplicatorConfiguration {
         return makeConfigTargetingOtherDb(false, true, resolver)
     }
 }

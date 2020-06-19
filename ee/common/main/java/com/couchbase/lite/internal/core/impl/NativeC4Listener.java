@@ -15,6 +15,8 @@
 //
 package com.couchbase.lite.internal.core.impl;
 
+import android.support.annotation.NonNull;
+
 import java.util.List;
 
 import com.couchbase.lite.ConnectionStatus;
@@ -32,15 +34,16 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     public long nStartHttp(
         long context,
         int port,
-        String iFace,
-        String dbPath,
-        boolean create,
-        boolean delete,
+        @NonNull String iFace,
+        int apis,
+        @NonNull String dbPath,
+        boolean allowCreateDBs,
+        boolean allowDeleteDBs,
         boolean push,
         boolean pull,
         boolean deltaSync)
         throws LiteCoreException {
-        return startHttp(port, iFace, context, dbPath, create, delete, push, pull, deltaSync);
+        return startHttp(port, iFace, apis, context, dbPath, allowCreateDBs, allowDeleteDBs, push, pull, deltaSync);
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -48,27 +51,29 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     public long nStartTls(
         long context,
         int port,
-        String iFace,
-        String dbPath,
-        boolean create,
-        boolean delete,
+        @NonNull String iFace,
+        int apis,
+        @NonNull String dbPath,
+        boolean allowCreateDBs,
+        boolean allowDeleteDBs,
         boolean push,
         boolean pull,
         boolean deltaSync,
-        byte[] cert,
+        @NonNull byte[] cert,
         boolean requireClientCerts,
-        byte[] rootClientCerts)
+        @NonNull byte[] rootClientCerts)
         throws LiteCoreException {
         return startTls(
             port,
             iFace,
+            apis,
             context,
             cert,
             requireClientCerts,
             rootClientCerts,
             dbPath,
-            create,
-            delete,
+            allowCreateDBs,
+            allowDeleteDBs,
             push,
             pull,
             deltaSync);
@@ -78,27 +83,33 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     public void nFree(long handle) { free(handle); }
 
     @Override
-    public void nShareDb(long handle, String name, long c4Db) throws LiteCoreException { shareDb(handle, name, c4Db); }
+    public void nShareDb(long handle, @NonNull String name, long c4Db) throws LiteCoreException {
+        shareDb(handle, name, c4Db);
+    }
 
     @Override
     public void nUnshareDb(long handle, long c4Db) throws LiteCoreException { unshareDb(handle, c4Db); }
 
+    @NonNull
     @Override
     public List<String> nGetUrls(long handle, long c4Db) throws LiteCoreException { return getUrls(handle, c4Db); }
 
     @Override
     public int nGetPort(long handle) { return getPort(handle); }
 
+    @NonNull
     @Override
     public ConnectionStatus nGetConnectionStatus(long handle) { return getConnectionStatus(handle); }
 
+    @NonNull
     @Override
-    public String nGetUriFromPath(long handle, String path) { return getUriFromPath(handle, path); }
+    public String nGetUriFromPath(String path) { return getUriFromPath(path); }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     private static native long startHttp(
         int port,
         String networkInterface,
+        int apis,
         long context,
         String dbPath,
         boolean allowCreateDBs,
@@ -112,6 +123,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     private static native long startTls(
         int port,
         String networkInterface,
+        int apis,
         long context,
         byte[] cert,
         boolean requireClientCerts,
@@ -136,5 +148,5 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
 
     private static native ConnectionStatus getConnectionStatus(long handle);
 
-    private static native String getUriFromPath(long handle, String path);
+    private static native String getUriFromPath(String path);
 }

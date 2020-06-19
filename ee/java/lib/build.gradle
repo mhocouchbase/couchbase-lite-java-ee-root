@@ -434,7 +434,7 @@ test {
     testLogging {
         outputs.upToDateWhen { false }
 
-        events = [ "failed" ] 
+        events = [ "failed", "skipped" ] 
         //showStandardStreams = true
 
         showCauses = true

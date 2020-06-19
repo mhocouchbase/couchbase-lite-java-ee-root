@@ -25,6 +25,7 @@ import com.couchbase.lite.internal.utils.SecurityUtils
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -42,23 +43,25 @@ class C4ListenerTest : PlatformBaseTest() {
         override fun nStartHttp(
             context: Long,
             port: Int,
-            networkInterface: String,
+            iFace: String,
+            apis: Int,
             dbPath: String,
-            allowCreateDBs: Boolean,
-            allowDeleteDBs: Boolean,
-            allowPush: Boolean,
-            allowPull: Boolean,
-            enableDeltaSync: Boolean
+            allowCreateDb: Boolean,
+            allowDeleteDb: Boolean,
+            push: Boolean,
+            pull: Boolean,
+            deltaSync: Boolean
         ): Long = 666L
 
         @Throws(LiteCoreException::class)
         override fun nStartTls(
             context: Long,
             port: Int,
-            networkInterface: String,
+            iFace: String,
+            apis: Int,
             dbPath: String,
-            allowCreateDBs: Boolean,
-            allowDeleteDBs: Boolean,
+            allowCreateDb: Boolean,
+            allowDeleteDb: Boolean,
             allowPush: Boolean,
             allowPull: Boolean,
             enableDeltaSync: Boolean,
@@ -82,7 +85,7 @@ class C4ListenerTest : PlatformBaseTest() {
 
         override fun nGetConnectionStatus(handle: Long): ConnectionStatus = ConnectionStatus(0, 0)
 
-        override fun nGetUriFromPath(handle: Long, path: String?): String = ""
+        override fun nGetUriFromPath(path: String?): String = ""
     }
 
     private lateinit var cert: Certificate
@@ -112,10 +115,9 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             true,
-            true,
-            true,
-            ListenerPasswordAuthenticator.create { u, p -> true }
+            ListenerPasswordAuthenticator.create { _, _ -> true }
         )
+        assertNotNull(listener)
 
         assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
         assertEquals(0, C4Listener.TLS_LISTENER_CONTEXT.size())
@@ -125,8 +127,8 @@ class C4ListenerTest : PlatformBaseTest() {
     fun testHttpListenerAuthenticate() {
         val header = "Twas brillig and the slythy toves"
 
-        var opwd: CharArray? = null;
-        var pwd: CharArray? = null;
+        var opwd: CharArray? = null
+        var pwd: CharArray? = null
         var user: String? = null
         val listener = C4Listener.createHttpListener(
             2222,
@@ -135,15 +137,14 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
-                opwd = p;
+                opwd = p
                 pwd = p.copyOf()
                 user = u
                 true
             }
         )
+        assertNotNull(listener)
 
         assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
         val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Long
@@ -168,13 +169,12 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             true,
-            true,
-            true,
             cert,
             true,
             setOf(cert),
-            ListenerCertificateAuthenticator.create { certs -> true }
+            ListenerCertificateAuthenticator.create { true }
         )
+        assertNotNull(listener)
 
         assertEquals(0, C4Listener.HTTP_LISTENER_CONTEXT.size())
         assertEquals(1, C4Listener.TLS_LISTENER_CONTEXT.size())
@@ -193,16 +193,15 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             true,
-            true,
-            true,
             cert,
             true,
             setOf(cert),
             ListenerCertificateAuthenticator.create { certs ->
-                clientCert = cert
+                clientCert = certs[0]
                 true
             }
         )
+        assertNotNull(listener)
 
         assertEquals(1, C4Listener.TLS_LISTENER_CONTEXT.size())
         val key = C4Listener.TLS_LISTENER_CONTEXT.keySet().iterator().next() as Long

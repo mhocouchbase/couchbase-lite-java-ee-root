@@ -54,5 +54,5 @@ public class NativeContext<T> {
     synchronized void clear() { contexts.clear(); }
 
     @VisibleForTesting
-    synchronized Set keySet() { return contexts.keySet(); }
+    synchronized Set<Long> keySet() { return contexts.keySet(); }
 }
