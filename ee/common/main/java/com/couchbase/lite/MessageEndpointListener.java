@@ -49,9 +49,9 @@ public class MessageEndpointListener {
         @Override
         public void statusChanged(
             @Nullable C4Replicator repl,
-            @NonNull C4ReplicatorStatus status,
+            @Nullable C4ReplicatorStatus status,
             @Nullable Object context) {
-            if (!(context instanceof MessageEndpointListener)) { return; }
+            if ((!(context instanceof MessageEndpointListener)) || (status == null)) { return; }
             dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
 

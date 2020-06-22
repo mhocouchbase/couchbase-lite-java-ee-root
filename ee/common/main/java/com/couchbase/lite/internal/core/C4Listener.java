@@ -192,7 +192,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     static boolean httpAuthCallback(long context, @Nullable String authHeader) {
         final Http listener = HTTP_LISTENER_CONTEXT.getObjFromContext(context);
         if (listener == null) {
-            Log.i(LogDomain.NETWORK, "No listener for context: " + context);
+            Log.i(LogDomain.LISTENER, "No listener for context: " + context);
             return false;
         }
         return listener.authenticate(authHeader);
@@ -350,7 +350,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     @NonNull
     public ConnectionStatus getConnectionStatus() { return impl.nGetConnectionStatus(getPeer()); }
 
-    @NonNull
+    @Nullable
     public String getUriFromPath(String path) { return impl.nGetUriFromPath(path); }
 
     //-------------------------------------------------------------------------

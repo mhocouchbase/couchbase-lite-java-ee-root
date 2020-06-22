@@ -16,7 +16,6 @@ package com.couchbase.lite.internal.replicator;
 
 import android.support.annotation.NonNull;
 
-import java.util.Map;
 import java.util.concurrent.Executor;
 
 import com.couchbase.lite.Message;
@@ -160,7 +159,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         synchronized (this) {
             if (released()) { return; }
 
-            if (sendResponseStatus) { connectionGotResponse(200, null); }
+            if (sendResponseStatus) { connectionGotResponse(200); }
 
             opened();
         }
@@ -191,7 +190,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         }
     }
 
-    private void connectionGotResponse(int httpStatus, Map headers) {
+    private void connectionGotResponse(int httpStatus) {
         if (released()) { return; }
         gotHTTPResponse(httpStatus, null);
         sendResponseStatus = false;

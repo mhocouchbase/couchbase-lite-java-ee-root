@@ -487,6 +487,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", savedDoc.getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testPullDocContinuousWithStream() throws Exception {
         MutableDocument doc1 = new MutableDocument("doc1");
