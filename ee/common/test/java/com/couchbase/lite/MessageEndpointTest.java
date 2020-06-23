@@ -983,7 +983,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(success);
     }
 
-    private void verifyChangeStatus(ReplicatorChange change, int code, String domain) {
+    private void verifyChangeStatus(ReplicatorChange change, int expectedCode, String expectedDomain) {
         Replicator.Status status = change.getStatus();
         CouchbaseLiteException error = status.getError();
         long completed = status.getProgress().getCompleted();
@@ -992,18 +992,21 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         Report.log(
             LogLevel.INFO,
-            "Verify state @" + domain + "/" + code + " #" + level + " (" + completed + "/" + total + "): " + error);
+            "Verify state expecting " + expectedDomain + "/" + expectedCode + ": "
+                + level + " (" + completed + "/" + total + "): " + error);
 
         if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
 
-        if (code == 0) {
-            assertNull(error);
+        if (expectedCode == 0) {
+            if (error != null) { throw new RuntimeException("Unexpected replication error", error); }
             return;
         }
 
         assertNotNull(error);
-        assertEquals(code, error.getCode());
-        if (domain != null) { assertEquals(domain, error.getDomain()); }
+        if ((expectedCode != error.getCode())
+            || ((expectedDomain != null) && (!expectedDomain.equals(error.getDomain())))) {
+            throw new RuntimeException("Expected error " + expectedDomain + "/" + expectedCode + " but got:", error);
+        }
     }
 
     private void testP2PError(MockConnectionLifecycleLocation location, boolean recoverable)
