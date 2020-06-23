@@ -163,7 +163,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
                 certs.add(CertificateFactory.getInstance("X.509").generateCertificate(in));
             }
             catch (CertificateException | IOException e) {
-                Log.w(LogDomain.NETWORK, "Failed parsing certificate for: " + this);
+                Log.w(LogDomain.LISTENER, "Failed parsing certificate for: " + this);
                 return false;
             }
 
@@ -203,7 +203,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     static boolean certAuthCallback(long context, @Nullable byte[] clientCertData) {
         final Tls listener = TLS_LISTENER_CONTEXT.getObjFromContext(context);
         if (listener == null) {
-            Log.i(LogDomain.NETWORK, "No listener for context: " + context);
+            Log.i(LogDomain.LISTENER, "No listener for context: " + context);
             return false;
         }
         return listener.authenticate(clientCertData);
@@ -341,7 +341,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     @Nullable
     public List<String> getUrls(@NonNull C4Database db) {
         try { return impl.nGetUrls(getPeer(), db.getHandle()); }
-        catch (LiteCoreException e) { Log.w(LogDomain.NETWORK, "Failed getting URLs", e); }
+        catch (LiteCoreException e) { Log.w(LogDomain.LISTENER, "Failed getting URLs", e); }
         return null;
     }
 
@@ -362,7 +362,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     protected void finalize() throws Throwable {
         try {
             impl.nFree(getPeer());
-            Log.d(LogDomain.DATABASE, "Finalized without closing: " + this);
+            Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
         }
         finally { super.finalize(); }
     }

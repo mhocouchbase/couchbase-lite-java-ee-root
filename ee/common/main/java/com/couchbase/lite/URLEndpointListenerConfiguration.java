@@ -29,6 +29,10 @@ public abstract class URLEndpointListenerConfiguration {
     public static final int MIN_PORT = 0;
     public static final int MAX_PORT = 65535;
 
+    // ---------------------------------------------------------------------------------------------
+    // Builders
+    // ---------------------------------------------------------------------------------------------
+
     /**
      * Http Builder
      * Builder for Http endpoint listener configurations.
@@ -49,10 +53,18 @@ public abstract class URLEndpointListenerConfiguration {
 
         private boolean enableDeltaSync;
 
+        /**
+         * Create a Http Endpoint Listener Configuration Builder constructor.
+         * Prefer: {@link com.couchbase.lite.URLEndpointListenerConfiguration#buildHttpConfig(Database)}
+         */
         public HttpBuilder(@NonNull Database database) {
             this.database = Preconditions.assertNotNull(database, "database");
         }
 
+        /**
+         * Create a Http Endpoint Listener Configuration.
+         * @return the Http Endpoint Listener Configuration.
+         */
         @NonNull
         public URLEndpointListenerConfiguration.Http build() {
             return new Http(
@@ -91,9 +103,9 @@ public abstract class URLEndpointListenerConfiguration {
 
         /**
          * Disable TLS.
-         * The default is false, TLS is enabled.
+         * The default is false: TLS is enabled.
          *
-         * @param disableTls true to disable tls.
+         * @param disableTls true to disable TLS.
          * @return this
          */
         public HttpBuilder setTlsDisabled(boolean disableTls) {
@@ -103,7 +115,7 @@ public abstract class URLEndpointListenerConfiguration {
 
         /**
          * Enable delta-sync.
-         * The default is false, delta-sync is disabled.
+         * The default is false: delta-sync is disabled.
          *
          * @param enableDeltaSync true to enable delta-sync.
          * @return this
@@ -114,10 +126,10 @@ public abstract class URLEndpointListenerConfiguration {
         }
 
         /**
-         * Enable delta-sync.
-         * The default is false, delta-sync is disabled.
+         * Set the Authenticator.
+         * See: {@link com.couchbase.lite.ListenerPasswordAuthenticator}
          *
-         * @param authenticator true to enable delta-sync.
+         * @param authenticator Required: an authentication mechanism.
          * @return this
          */
         public HttpBuilder setAuthenticator(@NonNull ListenerPasswordAuthenticator authenticator) {
@@ -147,10 +159,18 @@ public abstract class URLEndpointListenerConfiguration {
 
         private boolean enableDeltaSync;
 
+        /**
+         * Create a TLS Endpoint Listener Configuration Builder constructor.
+         * Prefer: {@link com.couchbase.lite.URLEndpointListenerConfiguration#buildTlsConfig(Database)}
+         */
         public TlsBuilder(@NonNull Database database) {
             this.database = Preconditions.assertNotNull(database, "database");
         }
 
+        /**
+         * Create a TLS Endpoint configuration.
+         * @return the TLS Endpoint configuration.
+         */
         public URLEndpointListenerConfiguration.Tls build() {
             return new Tls(
                 database,
@@ -209,6 +229,10 @@ public abstract class URLEndpointListenerConfiguration {
         }
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // Protocol specific listeners
+    // ---------------------------------------------------------------------------------------------
+
     /**
      * URLEndpointListenerConfiguration.Http
      * Configuration information for an HTTP Url Endpoint listener
@@ -232,26 +256,40 @@ public abstract class URLEndpointListenerConfiguration {
             this.authenticator = authenticator;
         }
 
-        public Http(@NonNull Http config) {
-            super(config.database, config.networkInterface, config.port, config.enableDeltaSync);
-            this.disableTls = config.disableTls;
-            this.authenticator = config.authenticator;
-        }
 
+        //-------------------------------------------------------------------------
         // Public API
+        //-------------------------------------------------------------------------
 
-        public boolean isTlsDisabled() { return disableTls; }
-
+        /**
+         * Get the configuration's authenticator.
+         * Signature common to all authenticators.
+         *
+         * @return the authenticator for the associated listener.
+         */
         @Override
+        @NonNull
         public ListenerAuthenticator getAuthenticator() { return authenticator; }
 
+        /**
+         * Get the configuration's authenticator.
+         *
+         * @return the authenticator for the associated listener.
+         */
         @NonNull
         public ListenerPasswordAuthenticator getHttpAuthenticator() { return authenticator; }
+
+        /**
+         * Get TLS configuration state.
+         *
+         * @return true if this configuration will disable TLS in its associated listener.
+         */
+        public boolean isTlsDisabled() { return disableTls; }
     }
 
     /**
      * URLEndpointListenerConfiguration.Tls
-     * Configuration information for an TLS Url Endpoint listener
+     * Configuration information for a TLS Url Endpoint listener
      */
     public static final class Tls extends URLEndpointListenerConfiguration {
         @NonNull
@@ -273,31 +311,87 @@ public abstract class URLEndpointListenerConfiguration {
             this.authenticator = authenticator;
         }
 
-        public Tls(@NonNull Tls config) {
-            super(config.database, config.networkInterface, config.port, config.enableDeltaSync);
-            identity = config.identity;
-            authenticator = config.authenticator;
-        }
-
+        //-------------------------------------------------------------------------
         // Public API
+        //-------------------------------------------------------------------------
 
-        @NonNull
-        public TLSIdentity getTlsIdentity() { return identity; }
-
+        /**
+         * Get the configuration's authenticator.
+         * Signature common to all authenticators.
+         *
+         * @return the authenticator for the associated listener.
+         */
+        @Override
         @NonNull
         public ListenerAuthenticator getAuthenticator() { return authenticator; }
 
+        /**
+         * Get the configuration's authenticator.
+         *
+         * @return the authenticator for the associated listener.
+         */
         @NonNull
         public ListenerCertificateAuthenticator getCertAuthenticator() { return authenticator; }
+
+        /**
+         * Get TLS identity.
+         *
+         * @return the TLS identity for the associated listener.
+         */
+        @NonNull
+        public TLSIdentity getTlsIdentity() { return identity; }
     }
 
     //-------------------------------------------------------------------------
     // Public static methods
     //-------------------------------------------------------------------------
 
+    /**
+     * Convenience method to create a config builder for an HTTP Listener
+     *
+     * @param database the target database
+     * @return the config builder
+     */
     public static HttpBuilder buildHttpConfig(@NonNull Database database) { return new HttpBuilder(database); }
 
+    /**
+     * Convenience method to create a config builder for an TLS Listener
+     *
+     * @param database the target database
+     * @return the config builder
+     */
     public static TlsBuilder buildTlsConfig(@NonNull Database database) { return new TlsBuilder(database); }
+
+    /**
+     * Convenience method to create a config builder for an HTTP Listener from an existing config.
+     *
+     * @param config an existing HTTP listener config
+     * @return the config builder
+     */
+    public static HttpBuilder buildHttpConfig(@NonNull Http config) {
+        return new HttpBuilder(config.database)
+            .setNetworkInterface(config.networkInterface)
+            .setPort(config.port)
+            .setEnableDeltaSync(config.enableDeltaSync)
+            .setTlsDisabled(config.disableTls)
+            .setAuthenticator(config.authenticator);
+    }
+
+    /**
+     * Convenience method to create a config builder for an HTTP Listener from an existing config.
+     * The new builder will be initialized from the one passed as a parameter.
+     *
+     * @param config an existing TLS listener config
+     * @return the config builder
+     */
+    public static TlsBuilder buildTlsConfig(@NonNull Tls config) {
+        return new TlsBuilder(config.database)
+            .setNetworkInterface(config.networkInterface)
+            .setPort(config.port)
+            .setEnableDeltaSync(config.enableDeltaSync)
+            .setTlsIdentity(config.identity)
+            .setAuthenticator(config.authenticator);
+    }
 
     //-------------------------------------------------------------------------
     // Private static methods
@@ -344,6 +438,12 @@ public abstract class URLEndpointListenerConfiguration {
     //-------------------------------------------------------------------------
     // Public API
     //-------------------------------------------------------------------------
+
+    /**
+     * Get the configuration's database.
+     *
+     * @return the TLS identity for the associated listener.
+     */
 
     @NonNull
     public Database getDatabase() { return database; }
