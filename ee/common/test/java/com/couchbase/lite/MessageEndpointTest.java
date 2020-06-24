@@ -1,6 +1,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.net.SocketException;
 import java.util.ArrayList;
@@ -147,16 +148,25 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         private boolean isClosing;
 
-        protected MockConnection(boolean isClient, ProtocolType protocolType) {
+        protected MockConnection(boolean isClient, @NonNull ProtocolType protocolType) {
             this.isClient = isClient;
             this.protocolType = protocolType;
             queue = Executors.newSingleThreadScheduledExecutor();
+            Report.log(LogLevel.DEBUG,
+                "MockConnection.<init>(%s, %s)",
+                String.valueOf(isClient),
+                String.valueOf(protocolType));
         }
 
         @Override
         public void open(
             @NonNull final ReplicatorConnection connection,
             @NonNull final MessagingCompletion completion) {
+            Report.log(
+                LogLevel.DEBUG,
+                "MockConnection.open(%s, %s)",
+                String.valueOf(connection),
+                String.valueOf(completion));
             queue.submit(() -> {
                 this.error = null;
                 this.isClosing = false;
@@ -174,6 +184,11 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         @Override
         public void send(@NonNull final Message message, @NonNull final MessagingCompletion completion) {
+            Report.log(
+                LogLevel.DEBUG,
+                "MockConnection.send(%s, %s)",
+                String.valueOf(message),
+                String.valueOf(completion));
             queue.submit(() -> {
                 MockConnectionErrorLogic errorLogic = getErrorLogic();
                 if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.SEND)) {
@@ -193,7 +208,12 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         }
 
         @Override
-        public void close(final Exception e, @NonNull final MessagingCloseCompletion completion) {
+        public void close(@Nullable final Exception e, @NonNull final MessagingCloseCompletion completion) {
+            Report.log(
+                LogLevel.DEBUG,
+                "MockConnection.send(%s, %s)",
+                String.valueOf(e),
+                String.valueOf(completion));
             queue.submit(() -> {
                 isClosing = true;
                 if (disconnectCompletion != null) {
@@ -219,7 +239,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         protected void setErrorLogic(MockConnectionErrorLogic errorLogic) { this.errorLogic = errorLogic; }
 
-        protected void acceptBytes(final byte[] data) {
+        protected void acceptBytes(@NonNull final byte[] data) {
+            Report.log(LogLevel.DEBUG, "MockConnection.acceptBytes(%d)", data.length);
             queue.submit(() -> {
                 synchronized (this) {
                     MockConnectionErrorLogic errorLogic = getErrorLogic();
@@ -975,8 +996,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         boolean success = false;
         try { success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
         catch (InterruptedException ignore) { }
-
-        baseTestReplicator.removeChangeListener(token);
+        finally { baseTestReplicator.removeChangeListener(token); }
 
         if (fail[0] != null) { throw fail[0]; }
 
@@ -998,8 +1018,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
 
         if (expectedCode == 0) {
-            if (error != null) { throw new RuntimeException("Unexpected replication error", error); }
-            return;
+            if (error == null) { return; }
+            throw new RuntimeException("Unexpected replication error", error);
         }
 
         assertNotNull(error);
