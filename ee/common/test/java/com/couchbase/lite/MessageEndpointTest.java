@@ -16,8 +16,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.utils.FlakyTest;
 import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.utils.SlowTest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -26,322 +28,435 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class MessageEndpointTest extends BaseReplicatorTest {
-    private static final long LONG_DELAY_SEC = 10;
+/////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
 
-    private enum MockConnectionLifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
+abstract class MockConnection implements MessageEndpointConnection {
+    protected final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor();
+
+    private final String logName;
+
+    protected ReplicatorConnection replicatorConnection;
+    protected MessagingCloseCompletion onClose;
+    protected boolean closing;
+
+    MockConnection(@NonNull String logName) { this.logName = logName; }
+
+    abstract void doOpen(
+        @NonNull final ReplicatorConnection connection,
+        @NonNull final MessagingCompletion completion);
+
+    abstract void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion);
+
+    abstract void doClose(
+        @NonNull MessagingCloseCompletion completion,
+        @Nullable MessagingCloseCompletion closeCompletion);
+
+    abstract void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl);
+
+    abstract void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error);
+
+    abstract void doDisconnect(
+        @Nullable MessagingError error,
+        @NonNull MessagingCloseCompletion completion);
+
+    @Override
+    public void open(
+        @NonNull final ReplicatorConnection connection,
+        @NonNull final MessagingCompletion completion) {
+        synchronized (this) {
+            closing = false;
+            replicatorConnection = connection;
+        }
+
+        queue.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                logName + ".open(%s, %s)",
+                String.valueOf(connection),
+                String.valueOf(completion));
+
+            doOpen(connection, completion);
+        });
+    }
+
+    @Override
+    public void send(@NonNull final Message message, @NonNull final MessagingCompletion completion) {
+        final byte[] msg = message.toData();
+        final byte[] data = new byte[msg.length];
+        System.arraycopy(msg, 0, data, 0, data.length);
+
+        queue.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                logName + ".send(%s, %s)",
+                String.valueOf(data.length),
+                String.valueOf(completion));
+
+            doSend(data, completion);
+        });
+    }
+
+    @Override
+    public void close(@Nullable final Exception e, @NonNull final MessagingCloseCompletion completion) {
+        final MessagingCloseCompletion closeCompletion;
+        synchronized (this) {
+            closing = true;
+            closeCompletion = onClose;
+        }
+
+        queue.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                logName + ".close(%s, %s, %s)",
+                String.valueOf(e),
+                String.valueOf(completion),
+                String.valueOf(closeCompletion));
+
+            doClose(completion, closeCompletion);
+        });
+    }
+
+    public void acceptBytes(@NonNull final byte[] data) {
+        final byte[] msg = new byte[data.length];
+        System.arraycopy(data, 0, msg, 0, msg.length);
+        final Message message = Message.fromData(msg);
+
+        final ReplicatorConnection repl;
+        synchronized (this) { repl = replicatorConnection; }
+        queue.submit(() -> {
+            Report.log(LogLevel.DEBUG, logName + ".acceptBytes(%d)", data.length);
+            doAccept(message, repl);
+        });
+    }
+
+    // Tell the connection to disconnect.
+    public void disconnect(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+        final boolean disconnecting;
+        final ReplicatorConnection repl;
+        synchronized (this) {
+            disconnecting = !(closing || (replicatorConnection == null));
+            if (disconnecting) { onClose = completion; }
+            repl = replicatorConnection;
+        }
+
+        queue.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                logName + ".disconnect(%s, %s, %s)",
+                String.valueOf(disconnecting),
+                String.valueOf(error),
+                String.valueOf(completion));
+
+            if (disconnecting) { doCloseRepl(repl, error); }
+            else {doDisconnect(error, completion); }
+        });
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        queue.shutdown();
+    }
+}
 
 
-    ///////////////////////////////////// MOCK CONNECTION ERROR LOGIC /////////////////////////////////////
+/////////////////////////////////////  MOCK SERVER CONNECTION  /////////////////////////////////////
 
-    private interface MockConnectionErrorLogic {
-        boolean shouldClose(MockConnectionLifecycleLocation location);
+class MockServerConnection extends MockConnection {
+    @NonNull
+    private final MessageEndpointListener listener;
+
+    @Nullable
+    protected MockClientConnection client;
+
+    public MockServerConnection(Database database, ProtocolType protocolType) {
+        this(new MessageEndpointListener(new MessageEndpointListenerConfiguration(database, protocolType)));
+    }
+
+    public MockServerConnection(@NonNull MessageEndpointListener listener) {
+        super("MockServerConnection");
+
+        this.listener = listener;
+
+        Report.log(
+            LogLevel.DEBUG,
+            "MockServerConnection.<init>(%s, %s)",
+            String.valueOf(listener.getConfig().getProtocolType()),
+            String.valueOf(listener));
+    }
+
+    public void clientOpened(MockClientConnection clientConnection) {
+        synchronized (this) { client = clientConnection; }
+        listener.accept(this);
+    }
+
+    @Override
+    void doOpen(@NonNull final ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
+        completion.complete(true, null);
+    }
+
+    @Override
+    void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
+        final MockClientConnection clientConnection;
+        synchronized (this) { clientConnection = client;}
+
+        if (clientConnection != null) { clientConnection.acceptBytes(data); }
+        completion.complete(true, null);
+    }
+
+    @Override
+    void doClose(@NonNull MessagingCloseCompletion completion, @Nullable MessagingCloseCompletion closeCompletion) {
+        final MockClientConnection clientConnection;
+        synchronized (this) { clientConnection = client; }
+
+        if (closeCompletion != null) {
+            closeCompletion.complete();
+            completion.complete();
+            return;
+        }
+
+        if (clientConnection != null) { client.disconnect(null, completion); }
+    }
+
+    @Override
+    void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl) {
+        repl.receive(message);
+    }
+
+    @Override
+    void doDisconnect(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+        completion.complete();
+    }
+
+    @Override
+    void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+        repl.close(error);
+    }
+}
+
+
+/////////////////////////////////////  MOCK CLIENT CONNECTION  /////////////////////////////////////
+
+class MockClientConnection extends MockConnection {
+    public interface ErrorLogic {
+        enum LifecycleLocation {CONNECT, SEND, RECEIVE, CLOSE}
+
+        boolean shouldClose(LifecycleLocation location);
 
         MessagingError createError();
     }
 
+    @NonNull
+    protected final MockServerConnection server;
+    @NonNull
+    private final ErrorLogic errorLogic;
 
-    /////////////////////////////////////  ERROR LOGIC /////////////////////////////////////
+    private MessagingError error;
 
-    private static final class NoErrorLogic implements MockConnectionErrorLogic {
-        public NoErrorLogic() { }
+    public MockClientConnection(@NonNull MessageEndpoint endpoint, @Nullable ErrorLogic errorLogic) {
+        super("MockClientConnection");
 
-        @Override
-        public boolean shouldClose(MockConnectionLifecycleLocation location) { return false; }
+        server = (MockServerConnection) endpoint.getTarget();
+        this.errorLogic = (errorLogic != null) ? errorLogic : new NoErrorLogic();
 
-        @Override
-        public MessagingError createError() { return null; }
+        Report.log(
+            LogLevel.DEBUG,
+            "MockClientConnection.<init>(%s, %s)",
+            String.valueOf(endpoint),
+            String.valueOf(errorLogic));
     }
 
-    private static final class TestErrorLogic implements MockConnectionErrorLogic {
-        private final MockConnectionLifecycleLocation location;
-        private MessagingError error;
-        private int current;
-        private int total;
-
-        public TestErrorLogic(MockConnectionLifecycleLocation locations) { this.location = locations; }
-
-        public static TestErrorLogic failWhen(MockConnectionLifecycleLocation locations) {
-            return new TestErrorLogic(locations);
+    @Override
+    void doOpen(@NonNull ReplicatorConnection connection, @NonNull MessagingCompletion completion) {
+        final MessagingError err;
+        synchronized (this) {
+            error = null;
+            err = getLogicError(ErrorLogic.LifecycleLocation.CONNECT);
         }
 
-        public void withRecoverableException() { withRecoverableException(1); }
+        final boolean succeeded = err == null;
+        if (succeeded) { server.clientOpened(this); }
+        completion.complete(succeeded, err);
+    }
 
-        public void withRecoverableException(int count) {
-            error = new MessagingError(new SocketException("Test Recoverable Exception"), true);
-            total = count;
+    @Override
+    void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
+        final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.SEND);
+        final boolean succeeded = err == null;
+        if (succeeded) { server.acceptBytes(data); }
+        completion.complete(succeeded, err);
+    }
+
+    @Override
+    void doClose(
+        @NonNull MessagingCloseCompletion completion,
+        @Nullable MessagingCloseCompletion closeCompletion) {
+        if (closeCompletion != null) {
+            closeCompletion.complete();
+            completion.complete();
+            return;
         }
 
-        public void withPermanentException() {
-            error = new MessagingError(new SocketException("Test Permanent Exception"), false);
-            total = Integer.MAX_VALUE;
+        final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.CLOSE);
+
+        server.disconnect(err, completion);
+    }
+
+    @Override
+    void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl) {
+        final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.RECEIVE);
+        if (err != null) {
+            repl.close(error);
+            return;
         }
 
-        @Override
-        public boolean shouldClose(MockConnectionLifecycleLocation location) {
-            return current < total && this.location == location;
-        }
+        repl.receive(message);
+    }
 
-        @Override
-        public MessagingError createError() {
-            current++;
+    @Override
+    void doDisconnect(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+        setError(error);
+        completion.complete();
+    }
+
+    @Override
+    void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+        setError(error);
+        repl.close(error);
+    }
+
+    private void setError(@Nullable MessagingError error) {
+        synchronized (this) { this.error = error; }
+    }
+
+    private MessagingError getLogicError(ErrorLogic.LifecycleLocation loc) {
+        synchronized (this) {
+            if (errorLogic.shouldClose(loc)) { error = errorLogic.createError(); }
             return error;
         }
     }
+}
 
 
-    /////////////////////////////////////  LISTENER AWAITER  /////////////////////////////////////
+/////////////////////////////////////   CONNECTION FACTORY   /////////////////////////////////////
 
-    private static final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
-        private ListenerToken token;
-        private final CountDownLatch latch = new CountDownLatch(1);
-        private final ArrayList<Exception> exceptions = new ArrayList<>();
-        private final MessageEndpointListener listener;
-        private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+class MockConnectionFactory implements MessageEndpointDelegate {
+    private final MockClientConnection.ErrorLogic errorLogic;
 
-        public ListenerAwaiter(MessageEndpointListener listener) {
-            token = listener.addChangeListener(executorService, this);
-            this.listener = listener;
-        }
+    public MockConnectionFactory(MockClientConnection.ErrorLogic errorLogic) { this.errorLogic = errorLogic; }
 
-        @Override
-        protected void finalize() throws Throwable {
-            if (token != null) { listener.removeChangeListener(token); }
-            executorService.shutdown();
-            super.finalize();
-        }
+    @NonNull
+    @Override
+    public MessageEndpointConnection createConnection(@NonNull MessageEndpoint endpoint) {
+        return new MockClientConnection(endpoint, errorLogic);
+    }
+}
 
-        @Override
-        public void changed(@NotNull @NonNull MessageEndpointListenerChange change) {
-            if (change.getStatus().getError() != null) { exceptions.add(change.getStatus().getError()); }
 
-            if (change.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
+/////////////////////////////////////  ERROR LOGIC /////////////////////////////////////
 
-            listener.removeChangeListener(token);
-            token = null;
-            latch.countDown();
-        }
+final class NoErrorLogic implements MockClientConnection.ErrorLogic {
+    public NoErrorLogic() { }
 
-        public void waitForListener() throws InterruptedException { latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
+    @Override
+    public boolean shouldClose(LifecycleLocation location) { return false; }
 
-        public void validate() { assert (exceptions.isEmpty()); }
+    @Override
+    public MessagingError createError() { return null; }
+
+    @NonNull
+    @Override
+    public String toString() { return "NoErrorLogic"; }
+}
+
+final class TestErrorLogic implements MockClientConnection.ErrorLogic {
+    private final LifecycleLocation location;
+    private MessagingError error;
+    private int current;
+    private int total;
+
+    public TestErrorLogic(LifecycleLocation location) { this.location = location; }
+
+    public static TestErrorLogic failWhen(LifecycleLocation location) {
+        return new TestErrorLogic(location);
     }
 
+    public void withRecoverableException() { withRecoverableException(1); }
 
-    /////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
-
-    private static abstract class MockConnection implements MessageEndpointConnection {
-        protected MockConnection remoteConnection;
-
-        protected ReplicatorConnection replicatorConnection;
-
-        protected final ScheduledExecutorService queue;
-
-        private final boolean isClient;
-        private final ProtocolType protocolType;
-
-        private MockConnectionErrorLogic errorLogic;
-
-        private MessagingCloseCompletion disconnectCompletion;
-
-        private MessagingError error;
-
-        private boolean isClosing;
-
-        protected MockConnection(boolean isClient, @NonNull ProtocolType protocolType) {
-            this.isClient = isClient;
-            this.protocolType = protocolType;
-            queue = Executors.newSingleThreadScheduledExecutor();
-            Report.log(LogLevel.DEBUG,
-                "MockConnection.<init>(%s, %s)",
-                String.valueOf(isClient),
-                String.valueOf(protocolType));
-        }
-
-        @Override
-        public void open(
-            @NonNull final ReplicatorConnection connection,
-            @NonNull final MessagingCompletion completion) {
-            Report.log(
-                LogLevel.DEBUG,
-                "MockConnection.open(%s, %s)",
-                String.valueOf(connection),
-                String.valueOf(completion));
-            queue.submit(() -> {
-                this.error = null;
-                this.isClosing = false;
-                replicatorConnection = connection;
-                MockConnectionErrorLogic errorLogic = getErrorLogic();
-                if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.CONNECT)) {
-                    this.error = errorLogic.createError();
-                    completion.complete(false, this.error);
-                }
-                else {
-                    completion.complete(true, null);
-                }
-            });
-        }
-
-        @Override
-        public void send(@NonNull final Message message, @NonNull final MessagingCompletion completion) {
-            Report.log(
-                LogLevel.DEBUG,
-                "MockConnection.send(%s, %s)",
-                String.valueOf(message),
-                String.valueOf(completion));
-            queue.submit(() -> {
-                MockConnectionErrorLogic errorLogic = getErrorLogic();
-                if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.SEND)) {
-                    this.error = errorLogic.createError();
-                    completion.complete(false, this.error);
-                }
-                else {
-                    if (this.error == null) {
-                        remoteConnection.acceptBytes(message.toData());
-                        completion.complete(true, null);
-                    }
-                    else {
-                        completion.complete(false, this.error);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void close(@Nullable final Exception e, @NonNull final MessagingCloseCompletion completion) {
-            Report.log(
-                LogLevel.DEBUG,
-                "MockConnection.send(%s, %s)",
-                String.valueOf(e),
-                String.valueOf(completion));
-            queue.submit(() -> {
-                isClosing = true;
-                if (disconnectCompletion != null) {
-                    disconnectCompletion.complete();
-                    completion.complete();
-                }
-                else {
-                    MockConnectionErrorLogic errorLogic = getErrorLogic();
-                    if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.CLOSE)) {
-                        this.error = errorLogic.createError();
-                    }
-                    remoteConnection.disconnect(this.error, completion);
-                }
-            });
-        }
-
-        protected boolean isClient() { return isClient; }
-
-        protected MockConnectionErrorLogic getErrorLogic() {
-            if (errorLogic == null) { errorLogic = new NoErrorLogic(); }
-            return errorLogic;
-        }
-
-        protected void setErrorLogic(MockConnectionErrorLogic errorLogic) { this.errorLogic = errorLogic; }
-
-        protected void acceptBytes(@NonNull final byte[] data) {
-            Report.log(LogLevel.DEBUG, "MockConnection.acceptBytes(%d)", data.length);
-            queue.submit(() -> {
-                synchronized (this) {
-                    MockConnectionErrorLogic errorLogic = getErrorLogic();
-                    if (isClient() && errorLogic.shouldClose(MockConnectionLifecycleLocation.RECEIVE)) {
-                        this.error = errorLogic.createError();
-                        replicatorConnection.close(this.error);
-                    }
-                    else {
-                        if (this.error == null) {
-                            replicatorConnection.receive(Message.fromData(data));
-                        }
-                    }
-                }
-            });
-        }
-
-        // Tell the connection to disconnect.
-        protected void disconnect(MessagingError error, MessagingCloseCompletion completion) {
-            queue.submit(() -> {
-                this.error = error;
-                if (replicatorConnection != null && !isClosing) {
-                    disconnectCompletion = completion;
-                    replicatorConnection.close(this.error);
-                }
-                else {
-                    completion.complete();
-                }
-            });
-        }
-
-        @Override
-        public void finalize() throws Throwable {
-            super.finalize();
-            queue.shutdown();
-        }
+    public synchronized void withRecoverableException(int count) {
+        error = new MessagingError(new SocketException("Test Recoverable Exception"), true);
+        total = count;
     }
 
-
-    /////////////////////////////////////  MOCK CLIENT CONNECTION  /////////////////////////////////////
-
-    private final class MockClientConnection extends MockConnection {
-        private final MockServerConnection server;
-
-        public MockClientConnection(MessageEndpoint endpoint) {
-            super(true, endpoint.getProtocolType());
-            server = (MockServerConnection) endpoint.getTarget();
-            remoteConnection = server;
-        }
-
-        @Override
-        public void open(@NonNull ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
-            super.open(connection, (success, error) -> {
-                if (success) { server.clientOpened(MockClientConnection.this); }
-                completion.complete(success, error);
-            });
-        }
+    public synchronized void withPermanentException() {
+        error = new MessagingError(new SocketException("Test Permanent Exception"), false);
+        total = Integer.MAX_VALUE;
     }
 
-
-    /////////////////////////////////////  MOCK SERVER CONNECTION  /////////////////////////////////////
-
-    private final class MockServerConnection extends MockConnection {
-        private final MessageEndpointListener listener;
-
-        public MockServerConnection(MessageEndpointListener listener, ProtocolType protocolType) {
-            super(false, protocolType);
-            this.listener = listener;
-        }
-
-        public MockServerConnection(Database database, ProtocolType protocolType) {
-            this(new MessageEndpointListener(
-                new MessageEndpointListenerConfiguration(database, protocolType)), protocolType);
-        }
-
-        protected void clientOpened(MockClientConnection client) {
-            remoteConnection = client;
-            listener.accept(this);
-        }
+    @Override
+    public synchronized boolean shouldClose(LifecycleLocation location) {
+        return (current < total) && (this.location == location);
     }
 
-    private final class MockConnectionFactory implements MessageEndpointDelegate {
-        private final MockConnectionErrorLogic errorLogic;
-
-        public MockConnectionFactory(MockConnectionErrorLogic errorLogic) {
-            this.errorLogic = errorLogic;
-        }
-
-        @NonNull
-        @Override
-        public MessageEndpointConnection createConnection(@NonNull MessageEndpoint endpoint) {
-            MockClientConnection retVal = new MockClientConnection(endpoint);
-            retVal.setErrorLogic(errorLogic);
-            return retVal;
-        }
+    @Override
+    public synchronized MessagingError createError() {
+        current++;
+        return error;
     }
 
+    @NonNull
+    @Override
+    public String toString() { return "TestErrorLogic{" + location + "@" + total + "}"; }
+}
 
-    /////////////////////////////////   T E S T S   //////////////////////////////////////
+
+/////////////////////////////////////  LISTENER AWAITER  /////////////////////////////////////
+
+final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
+    private ListenerToken token;
+    private final CountDownLatch latch = new CountDownLatch(1);
+    private final ArrayList<Exception> exceptions = new ArrayList<>();
+    private final MessageEndpointListener listener;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    public ListenerAwaiter(MessageEndpointListener listener) {
+        token = listener.addChangeListener(executorService, this);
+        this.listener = listener;
+    }
+
+    @Override
+    public void changed(@NotNull @NonNull MessageEndpointListenerChange change) {
+        if (change.getStatus().getError() != null) { exceptions.add(change.getStatus().getError()); }
+
+        if (change.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
+
+        listener.removeChangeListener(token);
+        token = null;
+        latch.countDown();
+    }
+
+    public void waitForListener() throws InterruptedException {
+        latch.await(MessageEndpointTest.LONG_DELAY_SEC, TimeUnit.SECONDS);
+    }
+
+    public void validate() { assert (exceptions.isEmpty()); }
+
+    @Override
+    protected void finalize() throws Throwable {
+        if (token != null) { listener.removeChangeListener(token); }
+        executorService.shutdown();
+        super.finalize();
+    }
+}
+
+
+/////////////////////////////////   T E S T   S U I T E   //////////////////////////////////////
+
+public class MessageEndpointTest extends BaseReplicatorTest {
+    public static final long LONG_DELAY_SEC = 10;  // Core takes 5s to retry after a
 
     @Test
-    public void testPushDocWithMessage() throws Exception {
+    public void testPushDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -357,15 +472,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
     @Test
-    public void testPushDocWithStream() throws Exception {
+    public void testPushDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -381,15 +496,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
     @Test
-    public void testPushDocContinuousWithMessage() throws Exception {
+    public void testPushDocContinuousWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -405,15 +520,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
     @Test
-    public void testPushDocContinuousWithStream() throws Exception {
+    public void testPushDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -429,15 +544,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
     @Test
-    public void testPullDocWithMessage() throws Exception {
+    public void testPullDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -453,15 +568,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPullDocWithStream() throws Exception {
+    public void testPullDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -477,15 +592,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPullDocContinuousWithMessage() throws Exception {
+    public void testPullDocContinuousWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -501,16 +616,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
-    public void testPullDocContinuousWithStream() throws Exception {
+    public void testPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -524,17 +638,17 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
+        final ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPushPullDocWithMessage() throws Exception {
+    public void testPushPullDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -550,19 +664,18 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc1 = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc1.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc2 = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc2.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPushPullDocWithStream() throws Exception {
+    public void testPushPullDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -578,19 +691,18 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc1 = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc1.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc2 = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc2.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPushPullDocContinuousWithMessage() throws Exception {
+    public void testPushPullDocContinuousWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -604,24 +716,20 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true,
-            endpoint);
+        ReplicatorConfiguration config
+            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
 
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc1 = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc1.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc2 = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc2.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
     @Test
-    public void testPushPullDocContinuousWithStream() throws Exception {
+    public void testPushPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "Tiger");
         saveDocInBaseTestDb(doc1);
@@ -637,86 +745,81 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
-        Document savedDoc1 = otherDB.getDocument("doc1");
-        assertEquals("Tiger", savedDoc1.getString("name"));
+        assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
 
         assertEquals(2, baseTestDb.getCount());
-        Document savedDoc2 = baseTestDb.getDocument("doc2");
-        assertEquals("Cat", savedDoc2.getString("name"));
+        assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
+    }
+
+    @SlowTest
+    @Test
+    public void testP2PRecoverableFailureDuringOpen() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
+    }
+
+    @SlowTest
+    @Test
+    public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
+    }
+
+    @SlowTest
+    @Test
+    public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, true);
     }
 
     @Test
-    public void testP2PRecoverableFailureDuringOpen() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.CONNECT, true);
-    }
-
-    @FlakyTest
-    @Test
-    public void testP2PRecoverableFailureDuringSend() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.SEND, true);
-    }
-
-    @FlakyTest
-    @Test
-    public void testP2PRecoverableFailureDuringReceive() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.RECEIVE, true);
+    public void testP2PPermanentFailureDuringOpen() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, false);
     }
 
     @Test
-    public void testP2PPermanentFailureDuringOpen() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.CONNECT, false);
+    public void testP2PPermanentFailureDuringSend() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
     @Test
-    public void testP2PPermanentFailureDuringSend() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.SEND, false);
+    public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
+        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
     }
 
     @Test
-    public void testP2PPermanentFailureDuringReceive() throws Exception {
-        testP2PError(MockConnectionLifecycleLocation.RECEIVE, false);
-    }
-
-    @FlakyTest
-    @Test
-    public void testP2PPassiveClose() throws Exception {
+    public void testP2PPassiveClose() throws InterruptedException {
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
-        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
-        MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(
-            baseTestDb,
-            new MessageEndpoint(
-                "p2ptest1",
-                serverConnection,
-                ProtocolType.MESSAGE_STREAM,
-                new MockConnectionFactory(null)));
-        config.setContinuous(true);
 
+        MockServerConnection server = new MockServerConnection(listener);
+        MessageEndpoint endpoint
+            = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, endpoint).setContinuous(true);
         Replicator replicator = new Replicator(config);
 
-        final AtomicBoolean didCloseListener = new AtomicBoolean(false);
         final CountDownLatch latch = new CountDownLatch(3);
+        final AtomicBoolean didCloseListener = new AtomicBoolean(false);
         final ListenerToken token = replicator.addChangeListener(change -> {
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.IDLE) {
-                if (!didCloseListener.getAndSet(true)) {
+            switch (change.getStatus().getActivityLevel()) {
+                case IDLE:
+                    if (!didCloseListener.getAndSet(true)) {
+                        latch.countDown();
+                        listener.close(server);
+                    }
+                    break;
+                case OFFLINE:
                     latch.countDown();
-                    listener.close(serverConnection);
-                }
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
-                latch.countDown();
-                replicator.stop();
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                latch.countDown();
+                    replicator.stop();
+                    break;
+                case STOPPED:
+                    latch.countDown();
+                    break;
             }
         });
+
+        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
 
         replicator.start(false);
 
@@ -736,15 +839,25 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         final MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
-        final MockServerConnection serverConnection1 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
-        final ReplicatorConfiguration config1 = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
-            "p2ptest1", serverConnection1, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
+        final MockServerConnection serverConnection1 = new MockServerConnection(listener);
+        final ReplicatorConfiguration config1 = new ReplicatorConfiguration(
+            baseTestDb,
+            new MessageEndpoint(
+                "p2ptest1",
+                serverConnection1,
+                ProtocolType.MESSAGE_STREAM,
+                new MockConnectionFactory(null)));
         config1.setContinuous(true);
         final Replicator replicator1 = new Replicator(config1);
 
-        final MockServerConnection serverConnection2 = new MockServerConnection(listener, ProtocolType.MESSAGE_STREAM);
-        final ReplicatorConfiguration config2 = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
-            "p2ptest2", serverConnection2, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null)));
+        final MockServerConnection serverConnection2 = new MockServerConnection(listener);
+        final ReplicatorConfiguration config2 = new ReplicatorConfiguration(
+            baseTestDb,
+            new MessageEndpoint(
+                "p2ptest2",
+                serverConnection2,
+                ProtocolType.MESSAGE_STREAM,
+                new MockConnectionFactory(null)));
         config2.setContinuous(true);
         final Replicator replicator2 = new Replicator(config2);
 
@@ -764,32 +877,32 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         final CountDownLatch idleLatch1 = new CountDownLatch(1);
         final CountDownLatch stopLatch1 = new CountDownLatch(1);
         final ListenerToken token1 = replicator1.addChangeListener(change -> {
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.IDLE) {
-                idleLatch1.countDown();
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
-                replicator1.stop();
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                stopLatch1.countDown();
+            switch (change.getStatus().getActivityLevel()) {
+                case IDLE:
+                    idleLatch1.countDown();
+                    break;
+                case OFFLINE:
+                    replicator1.stop();
+                    break;
+                case STOPPED:
+                    stopLatch1.countDown();
+                    break;
             }
         });
 
         final CountDownLatch idleLatch2 = new CountDownLatch(1);
         final CountDownLatch stopLatch2 = new CountDownLatch(1);
         final ListenerToken token2 = replicator2.addChangeListener(change -> {
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.IDLE) {
-                idleLatch2.countDown();
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.OFFLINE) {
-                replicator2.stop();
-            }
-
-            if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) {
-                stopLatch2.countDown();
+            switch (change.getStatus().getActivityLevel()) {
+                case IDLE:
+                    idleLatch2.countDown();
+                    break;
+                case OFFLINE:
+                    replicator2.stop();
+                    break;
+                case STOPPED:
+                    stopLatch2.countDown();
+                    break;
             }
         });
 
@@ -808,52 +921,63 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         replicator1.removeChangeListener(token1);
         replicator2.removeChangeListener(token2);
 
-        // wait for all notifications to come it
+        // wait for all notifications to come in
         assertTrue(closeWait1.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
         assertTrue(closeWait2.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
     }
 
+    @FlakyTest
     @Test
-    public void testP2PChangeListener() throws Exception {
+    public void testP2PChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
-        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
-        MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
-            "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
-        config.setContinuous(true);
+        MockServerConnection serverConnection = new MockServerConnection(listener);
+        MessageEndpoint endpoint= new MessageEndpoint(
+            "p2ptest1",
+            serverConnection,
+            ProtocolType.BYTE_STREAM,
+            new MockConnectionFactory(null));
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, endpoint).setContinuous(true);
 
         listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
 
+        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
+
         run(config, 0, null);
+
         awaiter.waitForListener();
         awaiter.validate();
         assertTrue(statuses.size() > 1);
     }
 
     @Test
-    public void testRemoveChangeListener() throws Exception {
+    public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
-        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
-        MockServerConnection serverConnection = new MockServerConnection(listener, ProtocolType.BYTE_STREAM);
-        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, new MessageEndpoint(
-            "p2ptest1", serverConnection, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null)));
-        config.setContinuous(true);
+        MockServerConnection serverConnection = new MockServerConnection(listener);
+        MessageEndpoint endpoint = new MessageEndpoint(
+            "p2ptest1",
+            serverConnection,
+            ProtocolType.BYTE_STREAM,
+            new MockConnectionFactory(null));
+        ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, endpoint).setContinuous(true);
 
         ListenerToken token = listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
         listener.removeChangeListener(token);
 
+        ListenerAwaiter awaiter = new ListenerAwaiter(listener);
+
         run(config, 0, null);
+
         awaiter.waitForListener();
         awaiter.validate();
         assertEquals(0, statuses.size());
     }
 
     @Test
-    public void testPushWithDocIDsFilter() throws Exception {
+    public void testPushWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "doc1");
         saveDocInBaseTestDb(doc1);
@@ -872,6 +996,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
+
         run(config, 0, null);
 
         assertEquals(2, otherDB.getCount());
@@ -881,7 +1006,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     @Test
-    public void testPullWithDocIDsFilter() throws Exception {
+    public void testPullWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "doc1");
         otherDB.save(doc1);
@@ -900,6 +1025,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
+
         run(config, 0, null);
 
         assertEquals(2, baseTestDb.getCount());
@@ -909,7 +1035,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     @Test
-    public void testPushPullWithDocIDsFilter() throws Exception {
+    public void testPushPullWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setValue("name", "doc1");
         baseTestDb.save(doc1);
@@ -932,6 +1058,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         ReplicatorConfiguration config
             = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
+
         run(config, 0, null);
 
         assertEquals(3, baseTestDb.getCount());
@@ -949,6 +1076,68 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
 
     /////////////////////////////////   H E L P E R S   //////////////////////////////////////
+
+    Throwable onChange(
+        String expectedDomain,
+        int expectedCode,
+        CountDownLatch latch,
+        ReplicatorChange change) {
+        Replicator.Status status = change.getStatus();
+        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
+        CouchbaseLiteException error = status.getError();
+        final Replicator.Progress progress = status.getProgress();
+        long completed = progress.getCompleted();
+        long total = progress.getTotal();
+
+        Report.log(
+            LogLevel.INFO,
+            "Verify state expecting " + expectedDomain + "/" + expectedCode
+                + ClassUtils.objId(change.getReplicator())
+                + " #" + level + " (" + completed + "/" + total + "): " + error);
+
+        // Verify change status:
+        try { verifyChangeStatus(expectedDomain, expectedCode, change); }
+        catch (Throwable e) {
+            latch.countDown();
+            return e;
+        }
+
+        switch (level) {
+            // Stop a continuous replicator:
+            case IDLE:
+                if (baseTestReplicator.getConfig().isContinuous() && (completed >= total)) {
+                    baseTestReplicator.stop();
+                }
+                break;
+            case STOPPED:
+                latch.countDown();
+                break;
+        }
+
+        return null;
+    }
+
+    void verifyChangeStatus(
+        String expectedDomain,
+        int expectedCode, ReplicatorChange change)
+        throws CouchbaseLiteException {
+        Replicator.Status status = change.getStatus();
+
+        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
+        if (level != Replicator.ActivityLevel.STOPPED) { return; }
+
+        CouchbaseLiteException error = status.getError();
+        if (expectedCode == 0) {
+            if (error == null) { return; }
+            throw error;
+        }
+
+        assertNotNull(error);
+        if ((expectedCode != error.getCode())
+            || ((expectedDomain != null) && (!expectedDomain.equals(error.getDomain())))) {
+            throw new RuntimeException("Expected error " + expectedDomain + "/" + expectedCode + " but got:", error);
+        }
+    }
 
     private ReplicatorConfiguration makeConfig(
         ReplicatorConfiguration.ReplicatorType type,
@@ -968,28 +1157,10 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         baseTestReplicator = new Replicator(config);
         final CountDownLatch latch = new CountDownLatch(1);
 
-        final AssertionError[] fail = new AssertionError[1];
+        final Throwable[] fail = new Throwable[1];
         ListenerToken token = baseTestReplicator.addChangeListener(
             testSerialExecutor,
-            change -> {
-                // Verify change status:
-                try { verifyChangeStatus(change, code, domain); }
-                catch (AssertionError e) { fail[0] = e; }
-
-                // Stop continuous replicator:
-                Replicator.Status status = change.getStatus();
-                switch (status.getActivityLevel()) {
-                    case IDLE:
-                        if (baseTestReplicator.getConfig().isContinuous()
-                            && (status.getProgress().getCompleted() == status.getProgress().getTotal())) {
-                            baseTestReplicator.stop();
-                        }
-                        break;
-                    case STOPPED:
-                        latch.countDown();
-                        break;
-                }
-            });
+            change -> fail[0] = onChange(domain, code, latch, change));
 
         baseTestReplicator.start(reset);
 
@@ -998,38 +1169,12 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         catch (InterruptedException ignore) { }
         finally { baseTestReplicator.removeChangeListener(token); }
 
-        if (fail[0] != null) { throw fail[0]; }
+        if (fail[0] != null) { throw new AssertionError("Test failed with exception", fail[0]); }
 
         assertTrue(success);
     }
 
-    private void verifyChangeStatus(ReplicatorChange change, int expectedCode, String expectedDomain) {
-        Replicator.Status status = change.getStatus();
-        CouchbaseLiteException error = status.getError();
-        long completed = status.getProgress().getCompleted();
-        long total = status.getProgress().getTotal();
-        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
-
-        Report.log(
-            LogLevel.INFO,
-            "Verify state expecting " + expectedDomain + "/" + expectedCode + ": "
-                + level + " (" + completed + "/" + total + "): " + error);
-
-        if (status.getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
-
-        if (expectedCode == 0) {
-            if (error == null) { return; }
-            throw new RuntimeException("Unexpected replication error", error);
-        }
-
-        assertNotNull(error);
-        if ((expectedCode != error.getCode())
-            || ((expectedDomain != null) && (!expectedDomain.equals(error.getDomain())))) {
-            throw new RuntimeException("Expected error " + expectedDomain + "/" + expectedCode + " but got:", error);
-        }
-    }
-
-    private void testP2PError(MockConnectionLifecycleLocation location, boolean recoverable)
+    private void testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation location, boolean recoverable)
         throws CouchbaseLiteException {
         MutableDocument mdoc = new MutableDocument("livesindb");
         mdoc.setString("name", "db");
@@ -1051,9 +1196,10 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
     private ReplicatorConfiguration createFailureP2PConfig(
         ProtocolType protocolType,
-        MockConnectionLifecycleLocation location,
+        MockClientConnection.ErrorLogic.LifecycleLocation location,
         boolean recoverable) {
         TestErrorLogic errorLocation = TestErrorLogic.failWhen(location);
+
         if (recoverable) { errorLocation.withRecoverableException(); }
         else { errorLocation.withPermanentException(); }
 
@@ -1061,7 +1207,9 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         ReplicatorConfiguration config = new ReplicatorConfiguration(
             baseTestDb,
             new MessageEndpoint("p2ptest1", server, protocolType, new MockConnectionFactory(errorLocation)));
+
         config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
+
         return config;
     }
 }

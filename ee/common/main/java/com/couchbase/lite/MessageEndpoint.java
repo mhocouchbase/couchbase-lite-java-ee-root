@@ -102,4 +102,8 @@ public class MessageEndpoint implements Endpoint {
     public MessageEndpointDelegate getDelegate() {
         return delegate;
     }
+
+    @NonNull
+    @Override
+    public String toString() { return "MessageEndpoint{" + uid + "," + protocolType + "," + target + "}"; }
 }
