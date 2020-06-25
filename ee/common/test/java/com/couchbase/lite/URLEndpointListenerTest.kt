@@ -14,43 +14,67 @@
 //
 package com.couchbase.lite
 
+import org.junit.After
+import org.junit.Test
+
 
 private const val WS_PORT = 4984
 private const val WSS_PORT = 4985
 private const val CLIENT_CERT_LABEL = "CBL-Client-Cert"
 
+fun URLEndpointListener.localURLEndpoint() {
+
+}
+
 class URLEndpointListenerTest : BaseReplicatorTest() {
     private var listener: URLEndpointListener? = null
 
-    /*
     @After
     fun tearDown() {
         val localListener = listener
         localListener?.stop()
-        localListener?.config?.tlsIdentity?.deleteFromKeyChain()
+        //localListener?.config?.tlsIdentity?.deleteFromKeyChain()
+    }
+/*
+    @Test(expected = CBLErrorHTTPAuthRequired)
+    fun testPasswordAuthenticatorNoAutheticator() {
+        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
+            "daniel" == username && ("123" == String(password))
+        }
+
+        val listener = listenHttp(false, listenerAuth)
+
+        run(listener.localURLEndpoint, true, true, false, null)
+
+        listener.stop()
+    }
+
+    @Test(expected = CBLErrorHTTPAuthRequired)
+    fun testPasswordAuthenticatorBadPassword() {
+        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
+            "daniel" == username && ("123" == String(password))
+        }
+
+        val listener = listenHttp(false, listenerAuth)
+
+        run(listener.localURLEndpoint, true, true, false, BasicAuthenticator("daniel", "456"))
+
+        listener.stop()
     }
 
     @Test
     fun testPasswordAuthenticator() {
-        // Listener:
-        val listenerAuth = ListenerPasswordAuthenticator { username, password ->
-            "daniel" == username  && ("123" == String(password))
+        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
+            "daniel" == username && ("123" == String(password))
         }
-        val listener:URLEndpointListener = listen(false, listenerAuth)
 
-        // Replicator - No Authenticator:
-        run(listener.localURLEndpoint(), getReplicatorType(true, true), false, null, null, CBLErrorHTTPAuthRequired)
+        val listener = listenHttp(false, listenerAuth)
 
-        // Replicator - Wrong Credentials:
-        var auth = BasicAuthenticator("daniel", "456")
-        run(listener.localURLEndpoint(), getReplicatorType(true, true), false, auth, null, CBLErrorHTTPAuthRequired)
-
-        // Replicator - Success:
-        auth = BasicAuthenticator("daniel", "123")
-        run(listener.localURLEndpoint(), getReplicatorType(true, true), false, auth)
+        run(listener.localURLEndpoint, true, true, false, BasicAuthenticator("daniel", "123"))
 
         listener.stop()
     }
+
 
     @Test
     fun testClientCertAuthenticatorWithClosure() {
@@ -117,9 +141,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     fun listenHttp(tls: Boolean): URLEndpointListener = listenHttp(tls, null)
 
-    fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
-        var localListener = listener;
-
+    fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener.Http {
         // Stop:
         listener?.stop()
 
@@ -131,7 +153,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             configBuilder.setAuthenticator(auth);
         }
 
-        localListener = URLEndpointListener.createListener(configBuilder.build(), false)
+        val localListener = URLEndpointListener.createListener(configBuilder.build(), false)
 
         // Start:
         localListener.start()

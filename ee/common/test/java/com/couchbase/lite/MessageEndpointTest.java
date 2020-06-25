@@ -6,6 +6,9 @@ import android.support.annotation.Nullable;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +34,8 @@ import static org.junit.Assert.fail;
 /////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
 
 abstract class MockConnection implements MessageEndpointConnection {
-    protected final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor();
+    private final Deque<Message> messageQueue = new LinkedList<>();
 
     private final String logName;
 
@@ -41,21 +45,21 @@ abstract class MockConnection implements MessageEndpointConnection {
 
     MockConnection(@NonNull String logName) { this.logName = logName; }
 
-    abstract void doOpen(
+    abstract void openAsync(
         @NonNull final ReplicatorConnection connection,
         @NonNull final MessagingCompletion completion);
 
-    abstract void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion);
+    abstract void sendAsync(@NonNull byte[] data, @NonNull MessagingCompletion completion);
 
-    abstract void doClose(
+    abstract void closeAsync(
         @NonNull MessagingCloseCompletion completion,
         @Nullable MessagingCloseCompletion closeCompletion);
 
-    abstract void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl);
+    abstract void deliverAsync(@NonNull Message message, @NonNull ReplicatorConnection repl);
 
-    abstract void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error);
+    abstract void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error);
 
-    abstract void doDisconnect(
+    abstract void disconnectAsync(
         @Nullable MessagingError error,
         @NonNull MessagingCloseCompletion completion);
 
@@ -63,9 +67,12 @@ abstract class MockConnection implements MessageEndpointConnection {
     public void open(
         @NonNull final ReplicatorConnection connection,
         @NonNull final MessagingCompletion completion) {
+        List<Message> outstanding;
         synchronized (this) {
             closing = false;
             replicatorConnection = connection;
+            outstanding = new ArrayList<>(messageQueue);
+            messageQueue.clear();
         }
 
         queue.submit(() -> {
@@ -75,7 +82,9 @@ abstract class MockConnection implements MessageEndpointConnection {
                 String.valueOf(connection),
                 String.valueOf(completion));
 
-            doOpen(connection, completion);
+            openAsync(connection, completion);
+
+            for (Message message: outstanding) { deliver(message, connection); }
         });
     }
 
@@ -92,7 +101,7 @@ abstract class MockConnection implements MessageEndpointConnection {
                 String.valueOf(data.length),
                 String.valueOf(completion));
 
-            doSend(data, completion);
+            sendAsync(data, completion);
         });
     }
 
@@ -112,21 +121,25 @@ abstract class MockConnection implements MessageEndpointConnection {
                 String.valueOf(completion),
                 String.valueOf(closeCompletion));
 
-            doClose(completion, closeCompletion);
+            closeAsync(completion, closeCompletion);
         });
     }
 
-    public void acceptBytes(@NonNull final byte[] data) {
+    public void accept(@NonNull final byte[] data) {
         final byte[] msg = new byte[data.length];
         System.arraycopy(data, 0, msg, 0, msg.length);
         final Message message = Message.fromData(msg);
 
         final ReplicatorConnection repl;
-        synchronized (this) { repl = replicatorConnection; }
-        queue.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".acceptBytes(%d)", data.length);
-            doAccept(message, repl);
-        });
+        synchronized (this) {
+            repl = replicatorConnection;
+            if (repl == null) {
+                messageQueue.addLast(message);
+                return;
+            }
+        }
+
+        deliver(message, repl);
     }
 
     // Tell the connection to disconnect.
@@ -147,8 +160,8 @@ abstract class MockConnection implements MessageEndpointConnection {
                 String.valueOf(error),
                 String.valueOf(completion));
 
-            if (disconnecting) { doCloseRepl(repl, error); }
-            else {doDisconnect(error, completion); }
+            if (disconnecting) { closeReplAsync(repl, error); }
+            else {disconnectAsync(error, completion); }
         });
     }
 
@@ -156,6 +169,13 @@ abstract class MockConnection implements MessageEndpointConnection {
     protected void finalize() throws Throwable {
         super.finalize();
         queue.shutdown();
+    }
+
+    private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {
+        queue.submit(() -> {
+            Report.log(LogLevel.DEBUG, logName + ".deliver(%d, %s)", message.toData().length, ClassUtils.objId(repl));
+            deliverAsync(message, repl);
+        });
     }
 }
 
@@ -167,7 +187,7 @@ class MockServerConnection extends MockConnection {
     private final MessageEndpointListener listener;
 
     @Nullable
-    protected MockClientConnection client;
+    private MockClientConnection client;
 
     public MockServerConnection(Database database, ProtocolType protocolType) {
         this(new MessageEndpointListener(new MessageEndpointListenerConfiguration(database, protocolType)));
@@ -186,26 +206,32 @@ class MockServerConnection extends MockConnection {
     }
 
     public void clientOpened(MockClientConnection clientConnection) {
+        Report.log(
+            LogLevel.DEBUG,
+            "MockServerConnection.connected %s => %s",
+            ClassUtils.objId(this),
+            ClassUtils.objId(clientConnection));
+
         synchronized (this) { client = clientConnection; }
         listener.accept(this);
     }
 
     @Override
-    void doOpen(@NonNull final ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
+    void openAsync(@NonNull final ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
         completion.complete(true, null);
     }
 
     @Override
-    void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
+    void sendAsync(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
         final MockClientConnection clientConnection;
         synchronized (this) { clientConnection = client;}
 
-        if (clientConnection != null) { clientConnection.acceptBytes(data); }
+        if (clientConnection != null) { clientConnection.accept(data); }
         completion.complete(true, null);
     }
 
     @Override
-    void doClose(@NonNull MessagingCloseCompletion completion, @Nullable MessagingCloseCompletion closeCompletion) {
+    void closeAsync(@NonNull MessagingCloseCompletion completion, @Nullable MessagingCloseCompletion closeCompletion) {
         final MockClientConnection clientConnection;
         synchronized (this) { clientConnection = client; }
 
@@ -215,21 +241,21 @@ class MockServerConnection extends MockConnection {
             return;
         }
 
-        if (clientConnection != null) { client.disconnect(null, completion); }
+        if (clientConnection != null) { clientConnection.disconnect(null, completion); }
     }
 
     @Override
-    void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl) {
+    void deliverAsync(@NonNull Message message, @NonNull ReplicatorConnection repl) {
         repl.receive(message);
     }
 
     @Override
-    void doDisconnect(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+    void disconnectAsync(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
         completion.complete();
     }
 
     @Override
-    void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
         repl.close(error);
     }
 }
@@ -267,7 +293,7 @@ class MockClientConnection extends MockConnection {
     }
 
     @Override
-    void doOpen(@NonNull ReplicatorConnection connection, @NonNull MessagingCompletion completion) {
+    void openAsync(@NonNull ReplicatorConnection connection, @NonNull MessagingCompletion completion) {
         final MessagingError err;
         synchronized (this) {
             error = null;
@@ -280,15 +306,15 @@ class MockClientConnection extends MockConnection {
     }
 
     @Override
-    void doSend(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
+    void sendAsync(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
         final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.SEND);
         final boolean succeeded = err == null;
-        if (succeeded) { server.acceptBytes(data); }
+        if (succeeded) { server.accept(data); }
         completion.complete(succeeded, err);
     }
 
     @Override
-    void doClose(
+    void closeAsync(
         @NonNull MessagingCloseCompletion completion,
         @Nullable MessagingCloseCompletion closeCompletion) {
         if (closeCompletion != null) {
@@ -303,7 +329,7 @@ class MockClientConnection extends MockConnection {
     }
 
     @Override
-    void doAccept(@NonNull Message message, @NonNull ReplicatorConnection repl) {
+    void deliverAsync(@NonNull Message message, @NonNull ReplicatorConnection repl) {
         final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.RECEIVE);
         if (err != null) {
             repl.close(error);
@@ -314,13 +340,13 @@ class MockClientConnection extends MockConnection {
     }
 
     @Override
-    void doDisconnect(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+    void disconnectAsync(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
         setError(error);
         completion.complete();
     }
 
     @Override
-    void doCloseRepl(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
         setError(error);
         repl.close(error);
     }
@@ -933,7 +959,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         MockServerConnection serverConnection = new MockServerConnection(listener);
-        MessageEndpoint endpoint= new MessageEndpoint(
+        MessageEndpoint endpoint = new MessageEndpoint(
             "p2ptest1",
             serverConnection,
             ProtocolType.BYTE_STREAM,
@@ -954,6 +980,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
+
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         MockServerConnection serverConnection = new MockServerConnection(listener);
@@ -1082,18 +1109,18 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         int expectedCode,
         CountDownLatch latch,
         ReplicatorChange change) {
-        Replicator.Status status = change.getStatus();
-        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
-        CouchbaseLiteException error = status.getError();
+        final Replicator.Status status = change.getStatus();
+        final AbstractReplicator.ActivityLevel level = status.getActivityLevel();
+        final CouchbaseLiteException error = status.getError();
         final Replicator.Progress progress = status.getProgress();
-        long completed = progress.getCompleted();
-        long total = progress.getTotal();
+        final long completed = progress.getCompleted();
+        final long total = progress.getTotal();
 
         Report.log(
             LogLevel.INFO,
-            "Verify state expecting " + expectedDomain + "/" + expectedCode
-                + ClassUtils.objId(change.getReplicator())
-                + " #" + level + " (" + completed + "/" + total + "): " + error);
+            "State change " + ClassUtils.objId(change.getReplicator())
+                + " #" + level + "(" + completed + "/" + total
+                + ") expecting: " + expectedDomain + "/" + expectedCode + ", got: " + error);
 
         // Verify change status:
         try { verifyChangeStatus(expectedDomain, expectedCode, change); }
