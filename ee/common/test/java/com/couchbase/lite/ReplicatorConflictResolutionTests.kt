@@ -47,8 +47,7 @@ private const val VAL4 = "Pleasant"
 private const val KEY5 = "Oakland"
 private const val VAL5 = "Bay Forest"
 
-private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) :
-    ConflictResolver {
+private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) : ConflictResolver {
     override fun resolve(conflict: Conflict): Document? {
         return resolver(conflict)
     }
@@ -1057,12 +1056,19 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        // This replicator uses a conflict resolver that prefers the local doce
+        // This replicator uses a conflict resolver that prefers the local doc
         // It will choose the version of the doc with KEY1->VAL1
-        val repl1 = Replicator(pullConfigWitResolver(TestConflictResolver { conflict ->
-            latch1.countDown()
-            if (!latch2.stdWait()) null else conflict.localDocument
-        }))
+        val resolver1 = object : ConflictResolver {
+            var calls = 0;
+            override fun resolve(conflict: Conflict?): Document? {
+                calls++
+                latch1.countDown()
+                // if the latch times out, return null
+                // which will delete the doc an cause the test to fail
+                return if (!latch2.stdWait()) null else conflict?.localDocument
+            }
+        }
+        val repl1 = Replicator(pullConfigWitResolver(resolver1))
         // this is just here so that we can tell when this resolver is done.
         val token1c = repl1.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
@@ -1084,7 +1090,14 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         // This replicator will use the remote resolver
         // It will choose the version of the doc with KEY2->VAL2
-        val pullConfig2 = pullConfigWitResolver(RemoteResolver)
+        val resolver2 = object : ConflictResolver {
+            var calls = 0;
+            override fun resolve(conflict: Conflict?): Document? {
+                calls++
+                return conflict?.remoteDocument
+            }
+        }
+        val pullConfig2 = pullConfigWitResolver(resolver2)
         val repl2 = Replicator(pullConfig2)
         // Again, only here so that we know when this replicator is done
         val token2c = repl2.addChangeListener { change ->
@@ -1110,11 +1123,12 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         repl2.removeChangeListener(token2c)
         repl2.removeChangeListener(token2e)
 
+        // verify that repl2 replicated DOC1
         assertNotNull(doc2)
         assertEquals(DOC1, doc2!!.id)
         assertNull(doc2!!.error)
 
-        // verify DOC1 was replicated and resolved to the remote version.
+        // verify that DOC1 resolved to the remote version.
         var doc = baseTestDb.getDocument(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
@@ -1124,20 +1138,25 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertTrue(latch4.stdWait())
 
-        // rrepl1 has now run to completion
+        // repl1 has now run to completion
 
         repl1.removeChangeListener(token1c)
         repl1.removeChangeListener(token1e)
 
+        // verify that repl1 also replicated DOC1
         assertNotNull(doc1)
         assertEquals(DOC1, doc1!!.id)
         assertNull(doc1!!.error)
 
-        // verify that the db has not been changed
-        // ??? CBL-1050: It *has* changed!
+        // verify that the db contains the original local version
+        // and not the remote version
         doc = baseTestDb.getDocument(DOC1)
         assertEquals(1, doc.count())
-        assertEquals(VAL2, doc.getString(KEY2))
+        assertEquals(VAL1, doc.getString(KEY1))
+        assertNull(doc.getString(KEY2))
+
+        assertEquals(1, resolver1.calls)
+        assertEquals(1, resolver2.calls)
     }
 
     /**
