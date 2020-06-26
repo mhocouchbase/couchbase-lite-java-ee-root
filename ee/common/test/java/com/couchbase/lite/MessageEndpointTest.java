@@ -13,8 +13,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -34,7 +36,18 @@ import static org.junit.Assert.fail;
 /////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
 
 abstract class MockConnection implements MessageEndpointConnection {
-    private final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor();
+    private final ThreadFactory factory = new ThreadFactory() {
+        final AtomicInteger id = new AtomicInteger(1);
+        @Override
+        public Thread newThread(@NonNull Runnable runnable) {
+            final Thread thread = new Thread(runnable, "MockConnection #" + id.getAndIncrement());
+            thread.setUncaughtExceptionHandler((t, e) ->
+                Report.log(LogLevel.WARNING, "Uncaught exception on " + thread.getName(), e));
+            return thread;
+        }
+    };
+    private final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor(factory);
+
     private final Deque<Message> messageQueue = new LinkedList<>();
 
     private final String logName;

@@ -1327,4 +1327,23 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     private ReplicatorConfiguration makeConfig(boolean push, boolean pull, boolean continuous) {
         return makeConfig(push, pull, continuous, this.otherDB);
     }
+
+    private void stopContinuousReplicator(Replicator repl) throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        ListenerToken token = repl.addChangeListener(
+            testSerialExecutor,
+            change -> {
+                if (change.getStatus().getActivityLevel() == Replicator.ActivityLevel.STOPPED) { latch.countDown(); }
+            });
+
+        try {
+            repl.stop();
+            if (repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) {
+                assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            }
+        }
+        finally {
+            repl.removeChangeListener(token);
+        }
+    }
 }

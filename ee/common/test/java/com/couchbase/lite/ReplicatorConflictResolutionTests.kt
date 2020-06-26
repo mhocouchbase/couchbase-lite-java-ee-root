@@ -1045,8 +1045,11 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      *    the pending conflicts which could be duplicatied to the ones are currently in the queue.
      * 2. The expected behavior would be the the duplicated ones that are resolved after should be ignored.
      *    There will be two document replication notifications without errors.
+     *
+     *    NOTE!: The actual behavior is not as described in the spec, above.
+     *    This test, as currently written, documents expected behavior.
+     *    See: https://issues.couchbase.com/browse/CBL-1050
      */
-    @Ignore("CBL-1050")
     @Test
     fun testConflictResolverSameConflictsTwice() {
         val latch1 = CountDownLatch(1)
@@ -1155,6 +1158,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(VAL1, doc.getString(KEY1))
         assertNull(doc.getString(KEY2))
 
+        // Each of the resolvers is called once
         assertEquals(1, resolver1.calls)
         assertEquals(1, resolver2.calls)
     }
