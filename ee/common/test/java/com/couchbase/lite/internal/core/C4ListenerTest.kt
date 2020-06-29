@@ -437,9 +437,9 @@ class C4ListenerTest : PlatformBaseTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.TLS_LISTENER_CONTEXT.size())
-        val key = C4Listener.TLS_LISTENER_CONTEXT.keySet().iterator().next() as Long
+        val key = C4Listener.TLS_LISTENER_CONTEXT.keySet().iterator().next() as Int
 
-        C4Listener.certAuthCallback(key, certData)
+        C4Listener.certAuthCallback(key.toLong(), certData)
 
         assertEquals(cert, clientCert)
     }
