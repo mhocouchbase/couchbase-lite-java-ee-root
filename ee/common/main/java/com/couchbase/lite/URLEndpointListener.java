@@ -61,8 +61,8 @@ public abstract class URLEndpointListener {
                 config.port,
                 config.networkInterface,
                 config.database.getPath(),
-                !readOnly,
                 true,
+                !readOnly,
                 config.enableDeltaSync,
                 config.getHttpAuthenticator());
         }
@@ -97,8 +97,8 @@ public abstract class URLEndpointListener {
                 config.port,
                 config.networkInterface,
                 config.database.getPath(),
-                !readOnly,
                 true,
+                !readOnly,
                 config.enableDeltaSync,
                 null,
                 true,
@@ -107,9 +107,7 @@ public abstract class URLEndpointListener {
         }
     }
 
-    public static Http createListener(
-        @NonNull URLEndpointListenerConfiguration.Http config,
-        boolean readOnly) {
+    public static Http createListener(@NonNull URLEndpointListenerConfiguration.Http config, boolean readOnly) {
         return new URLEndpointListener.Http(config, readOnly);
     }
 
@@ -146,12 +144,9 @@ public abstract class URLEndpointListener {
     @NonNull
     public abstract URLEndpointListenerConfiguration getConfig();
 
-    @NonNull
-    protected abstract C4Listener startLocked() throws CouchbaseLiteException;
-
     public int getPort() {
         synchronized (lock) {
-            return (c4Listener == null) ? 0 : getCachedPort(c4Listener);
+            return (c4Listener == null) ? -1 : getCachedPort(c4Listener);
         }
     }
 
@@ -185,11 +180,15 @@ public abstract class URLEndpointListener {
     }
 
     public void start() throws CouchbaseLiteException {
+        final C4Listener listener;
         synchronized (lock) {
             if (c4Listener != null) { return; }
-
-            c4Listener = startLocked();
+            listener = startLocked();
+            c4Listener = listener;
         }
+
+        final Database db = getConfig().getDatabase();
+        listener.shareDb(db.getName(), db.getC4Database());
     }
 
     public void stop() throws CouchbaseLiteException {
@@ -201,9 +200,15 @@ public abstract class URLEndpointListener {
 
         if (listener == null) { return; }
 
-        try { listener.unshareDb(getConfig().getDatabase().getC4Database()); }
-        finally { listener.close(); }
+        listener.close();
     }
+
+    //-------------------------------------------------------------------------
+    // Protected methods
+    //-------------------------------------------------------------------------
+
+    @NonNull
+    protected abstract C4Listener startLocked() throws CouchbaseLiteException;
 
     //-------------------------------------------------------------------------
     // Private methods

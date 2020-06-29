@@ -69,7 +69,7 @@ public abstract class URLEndpointListenerConfiguration {
         public URLEndpointListenerConfiguration.Http build() {
             return new Http(
                 database,
-                Preconditions.assertNotNull(networkInterface, "network interface"),
+                networkInterface,
                 port,
                 disableTls,
                 enableDeltaSync,
@@ -78,13 +78,13 @@ public abstract class URLEndpointListenerConfiguration {
 
         /**
          * Set the network interface on which to listen.
-         * Must be set before calling <code>build()</code>.
+         * The default value, null, means that the Listener will listen on all interfaces
          *
          * @param networkInterface the name of a connected network interface
          * @return this
          */
-        public HttpBuilder setNetworkInterface(@NonNull String networkInterface) {
-            this.networkInterface = Preconditions.assertNotNull(networkInterface, "network interface");
+        public HttpBuilder setNetworkInterface(@Nullable String networkInterface) {
+            this.networkInterface = networkInterface;
             return this;
         }
 
@@ -183,12 +183,12 @@ public abstract class URLEndpointListenerConfiguration {
 
         /**
          * Set the network interface on which to listen.
-         * Must be set before calling <code>build()</code>.
+         * The default value, null, means that the Listener will listen on all interfaces
          *
          * @param networkInterface the name of a connected network interface
          * @return this
          */
-        public TlsBuilder setNetworkInterface(@NonNull String networkInterface) {
+        public TlsBuilder setNetworkInterface(@Nullable String networkInterface) {
             this.networkInterface = Preconditions.assertNotNull(networkInterface, "network interface");
             return this;
         }
@@ -246,10 +246,10 @@ public abstract class URLEndpointListenerConfiguration {
         // Accessible only from the builder
         Http(
             @NonNull Database database,
-            @NonNull String networkInterface,
+            @Nullable String networkInterface,
             int port,
-            boolean enableDeltaSync,
             boolean disableTls,
+            boolean enableDeltaSync,
             @NonNull ListenerPasswordAuthenticator authenticator) {
             super(database, networkInterface, port, enableDeltaSync);
             this.disableTls = disableTls;
@@ -413,7 +413,7 @@ public abstract class URLEndpointListenerConfiguration {
     @NonNull
     final Database database;
 
-    @NonNull
+    @Nullable
     final String networkInterface;
 
     final int port;
@@ -426,7 +426,7 @@ public abstract class URLEndpointListenerConfiguration {
 
     URLEndpointListenerConfiguration(
         @NonNull Database database,
-        @NonNull String networkInterface,
+        @Nullable String networkInterface,
         int port,
         boolean enableDeltaSync) {
         this.database = database;
@@ -448,7 +448,7 @@ public abstract class URLEndpointListenerConfiguration {
     @NonNull
     public Database getDatabase() { return database; }
 
-    @NonNull
+    @Nullable
     public String getNetworkInterface() { return networkInterface; }
 
     public int getPort() { return port; }

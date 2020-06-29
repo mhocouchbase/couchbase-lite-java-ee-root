@@ -14,71 +14,69 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.utils.Report
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
+import org.junit.Ignore
 import org.junit.Test
-import java.net.URL
+import java.net.URI
 
 
 private const val WS_PORT = 4984
 private const val WSS_PORT = 4985
 private const val CLIENT_CERT_LABEL = "CBL-Client-Cert"
 
-fun URLEndpointListener.Http.localURLEndpoint(): URL {
-    return URL(
-        if (httpConfig.isTlsDisabled) "ws" else "wss",
-        "localhost",
-        port,
-        config.database.name
-    )
-}
-
 class URLEndpointListenerTest : BaseReplicatorTest() {
-    private var listener: URLEndpointListener? = null
+    var testListener: URLEndpointListener? = null;
 
     @After
-    fun tearDown() {
-        val localListener = listener
-        localListener?.stop()
-        //localListener?.config?.tlsIdentity?.deleteFromKeyChain()
-    }
-
-    @Test
-    fun testPasswordAuthenticatorNoAutheticator() {
-        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
-            "daniel" == username && ("123" == String(password))
-        }
-
-        val listener = listenHttp(false, listenerAuth)
-
-        run(listener.localURLEndpoint(), true, true, false, null)
-
-        listener.stop()
-    }
-
-    @Test
-    fun testPasswordAuthenticatorBadPassword() {
-        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
-            "daniel" == username && ("123" == String(password))
-        }
-
-        val listener = listenHttp(false, listenerAuth)
-
-        run(listener.localURLEndpoint(), true, true, false, BasicAuthenticator("daniel", "456"))
-
-        listener.stop()
+    fun cleanupURLEndpointListenerTest() {
+        testListener?.stop();
     }
 
     @Test
     fun testPasswordAuthenticator() {
-        val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
-            "daniel" == username && ("123" == String(password))
+        val listener = listenHttp(
+            false,
+            ListenerPasswordAuthenticator.create { username, password ->
+                (username == "daniel") && (String(password) == "123")
+            })
+
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
+    }
+
+    @Ignore("Listener not closing")
+    @Test
+    fun testPasswordAuthenticatorNoAutheticator() {
+        try {
+            val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
+                "daniel" == username && ("123" == String(password))
+            }
+
+            val listener = listenHttp(false, listenerAuth)
+
+            run(listener.endpointUri(), true, true, false, null)
+            fail("Expected exception {CouchbaseLite,10401,'Unauthorized'}")
+        } catch (e: CouchbaseLiteException) {
+            assertEquals(10401, e.code)
         }
+    }
 
-        val listener = listenHttp(false, listenerAuth)
+    @Ignore("Listener not closing")
+    @Test
+    fun testPasswordAuthenticatorBadPassword() {
+        try {
+            val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
+                "daniel" == username && ("123" == String(password))
+            }
 
-        run(listener.localURLEndpoint(), true, true, false, BasicAuthenticator("daniel", "123"))
+            val listener = listenHttp(false, listenerAuth)
 
-        listener.stop()
+            run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "456"))
+        } catch (e: CouchbaseLiteException) {
+            assertEquals(10401, e.code)
+        }
     }
 
 /*
@@ -143,28 +141,39 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
     */
 
-    private fun listenHttp(): URLEndpointListener = listenHttp(true)
+    private fun listenHttp(): URLEndpointListener = listenHttp(false)
 
     private fun listenHttp(tls: Boolean): URLEndpointListener = listenHttp(tls, null)
 
     private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener.Http {
+
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.buildHttpConfig(otherDB)
-            .setPort(if (tls) WSS_PORT else WS_PORT)
+            .setPort(if (!tls) WS_PORT else WSS_PORT)
             .setTlsDisabled(!tls)
+
         if (auth != null) {
             configBuilder.setAuthenticator(auth);
         }
 
-        val localListener = URLEndpointListener.createListener(configBuilder.build(), false)
+        val listener = URLEndpointListener.createListener(configBuilder.build(), false)
+        testListener = listener
 
         // Start:
-        localListener.start()
+        listener.start()
 
-        return localListener
+        return listener
     }
+}
 
-    private fun run(url: URL, push: Boolean, pull: Boolean, continuous: Boolean, auth: Authenticator?) {
-        // !!! Write me!!!
-    }
+fun URLEndpointListener.Http.endpointUri(): URI {
+    return URI(
+        if (httpConfig.isTlsDisabled) "ws" else "wss",
+        null,
+        "localhost",
+        port,
+        "/${config.database.name}",
+        null,
+        null
+    )
 }

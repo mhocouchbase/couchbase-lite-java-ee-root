@@ -17,23 +17,29 @@ import com.couchbase.lite.internal.utils.MathUtils;
 public class NativeContext<T> {
     @NonNull
     @GuardedBy("this")
-    private final Map<Long, WeakReference<T>> contexts = new HashMap<>();
+    private final Map<Integer, WeakReference<T>> contexts = new HashMap<>();
 
-    public synchronized long reserveKey() {
-        long key;
+    public synchronized int reserveKey() {
+        int key;
 
-        do { key = MathUtils.RANDOM.get().nextLong(); }
+        do { key = MathUtils.RANDOM.get().nextInt(Integer.MAX_VALUE); }
         while (contexts.containsKey(key));
         contexts.put(key, null);
 
         return key;
     }
 
-    public synchronized void bind(long key, @NonNull T obj) { contexts.put(key, new WeakReference<>(obj)); }
+    public synchronized void bind(int key, @NonNull T obj) {
+        contexts.put(key, new WeakReference<>(obj));
+    }
 
     @Nullable
     public synchronized T getObjFromContext(long context) {
-        final Long key = context;
+        if ((context < 0) || (context > Integer.MAX_VALUE)) {
+            throw new IllegalArgumentException("Context out of bounds: " + context);
+        }
+
+        final Integer key = (int) context;
 
         final WeakReference<T> ref = contexts.get(key);
         if (ref == null) { return null; }
@@ -54,5 +60,5 @@ public class NativeContext<T> {
     synchronized void clear() { contexts.clear(); }
 
     @VisibleForTesting
-    synchronized Set<Long> keySet() { return contexts.keySet(); }
+    synchronized Set<Integer> keySet() { return contexts.keySet(); }
 }

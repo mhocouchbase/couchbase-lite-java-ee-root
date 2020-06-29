@@ -23,12 +23,12 @@ import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -44,8 +44,10 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Base64Utils;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.SecurityUtils;
+import com.couchbase.lite.internal.utils.StringUtils;
 
 
 public abstract class C4Listener extends C4NativePeer implements Closeable {
@@ -59,7 +61,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         long nStartHttp(
             long context,
             int port,
-            @NonNull String iFace,
+            @Nullable String iFace,
             int apis,
             @NonNull String dbPath,
             boolean allowCreateDBs,
@@ -73,7 +75,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         long nStartTls(
             long context,
             int port,
-            @NonNull String iFace,
+            @Nullable String iFace,
             int apis,
             @NonNull String dbPath,
             boolean allowCreateDBs,
@@ -110,6 +112,8 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
 
     @SuppressFBWarnings("SE_BAD_FIELD") // base class AtomicLong is Serializable
     static class Http extends C4Listener {
+        public static final String AUTH_MODE_BASIC = "Basic";
+
         @NonNull
         private final ListenerPasswordAuthenticator authenticator;
 
@@ -124,17 +128,35 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         }
 
         boolean authenticate(@Nullable String authHeader) {
-            // ??? Handle null header
-            if (authHeader == null) { throw new IllegalArgumentException("header is null"); }
+            // !!! The password is in a base64 encoded String
+            if (authHeader == null) { return false; }
 
-            // ??? parse headers
-            // ??? That password is in a String, here, anyway...
-            final char[] password = authHeader.toCharArray();
+            final String[] headers = authHeader.split("\\s+");
+            if (!headers[0].equals(AUTH_MODE_BASIC)) {
+                Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);
+                return false;
+            }
 
-            final boolean auth = authenticator.authenticate(authHeader, password);
-            Arrays.fill(password, ' ');
+            if (headers.length > 2) {
+                Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
+                return false;
+            }
 
-            return auth;
+            String[] creds = null;
+            if ((headers.length > 1) && (!StringUtils.isEmpty(headers[1]))) {
+                final byte[] material = Base64Utils.getDecoder().decodeString(headers[1]);
+                if (material == null) {
+                    Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
+                    return false;
+                }
+
+                creds = new String(material, StandardCharsets.UTF_8).split(":");
+                // !!! The password is now in plaintext String
+            }
+
+            return authenticator.authenticate(
+                StringUtils.getArrayString(creds, 0),
+                StringUtils.getArrayString(creds, 1).toCharArray());
         }
     }
 
@@ -213,21 +235,18 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     // Static Factory Methods
     //-------------------------------------------------------------------------
 
-
-
-
     @SuppressWarnings("PMD.ExcessiveParameterList")
     @NonNull
     public static C4Listener createHttpListener(
         int port,
-        @NonNull String iFace,
+        @Nullable String iFace,
         @NonNull String dbPath,
         boolean push,
         boolean pull,
         boolean deltaSync,
         @NonNull ListenerPasswordAuthenticator authenticator)
         throws CouchbaseLiteException {
-        final long context = HTTP_LISTENER_CONTEXT.reserveKey();
+        final int context = HTTP_LISTENER_CONTEXT.reserveKey();
 
         final long hdl;
         try {
@@ -237,8 +256,8 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
                 iFace,
                 NativeImpl.SYNC_API, // REST API not supported
                 dbPath,
-                false, // REST API not supported
-                false, // REST API not supported
+                false,               // REST API not supported
+                false,               // REST API not supported
                 push,
                 pull,
                 deltaSync);
@@ -255,7 +274,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     @NonNull
     public static C4Listener createTlsListener(
         int port,
-        @NonNull String iFace,
+        @Nullable String iFace,
         @NonNull String dbPath,
         boolean push,
         boolean pull,
@@ -265,7 +284,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         @NonNull Set<Certificate> rootClientCerts,
         @NonNull ListenerCertificateAuthenticator authenticator)
         throws CouchbaseLiteException {
-        final long context = TLS_LISTENER_CONTEXT.reserveKey();
+        final int context = TLS_LISTENER_CONTEXT.reserveKey();
 
         final long hdl;
         try {
@@ -361,8 +380,11 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     @Override
     protected void finalize() throws Throwable {
         try {
-            impl.nFree(getPeer());
-            Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
+            final long peer = getPeerUnchecked();
+            if (peer != 0) {
+                impl.nFree(peer);
+                Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
+            }
         }
         finally { super.finalize(); }
     }

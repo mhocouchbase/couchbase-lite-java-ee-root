@@ -21,11 +21,13 @@ import com.couchbase.lite.ListenerPasswordAuthenticator
 import com.couchbase.lite.LiteCoreException
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
+import com.couchbase.lite.internal.utils.Base64Utils
 import com.couchbase.lite.internal.utils.SecurityUtils
 import org.junit.After
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -37,13 +39,20 @@ import java.security.UnrecoverableKeyException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 
+
+
+private const val USER_NAME = "G’Kar"
+private const val PASSWORD = "!#*@£ᘺ"
+
 class C4ListenerTest : PlatformBaseTest() {
+
+
     private val impl = object : C4Listener.NativeImpl {
         @Throws(LiteCoreException::class)
         override fun nStartHttp(
             context: Long,
             port: Int,
-            iFace: String,
+            iFace: String?,
             apis: Int,
             dbPath: String,
             allowCreateDb: Boolean,
@@ -57,7 +66,7 @@ class C4ListenerTest : PlatformBaseTest() {
         override fun nStartTls(
             context: Long,
             port: Int,
-            iFace: String,
+            iFace: String?,
             apis: Int,
             dbPath: String,
             allowCreateDb: Boolean,
@@ -124,12 +133,86 @@ class C4ListenerTest : PlatformBaseTest() {
     }
 
     @Test
-    fun testHttpListenerAuthenticate() {
-        val header = "Twas brillig and the slythy toves"
+    fun testHttpListenerAuthenticateNoHeader() {
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { _, _ -> true }
+        )
+        assertNotNull(listener)
 
-        var opwd: CharArray? = null
-        var pwd: CharArray? = null
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        assertFalse(C4Listener.httpAuthCallback(key.toLong(), ""))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateUnrecognizedMode() {
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { _, _ -> true }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        assertFalse(C4Listener.httpAuthCallback(key.toLong(), "Foo"))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateExtraCredentials() {
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { _, _ -> true }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        assertFalse(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.Http.AUTH_MODE_BASIC} usr:pass foo"))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateJunkCredentials() {
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create{ _, _ -> true }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        assertFalse(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.Http.AUTH_MODE_BASIC} !$@£ᘺ"))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateNoCredentials() {
         var user: String? = null
+        var pwd: CharArray? = null
+
         val listener = C4Listener.createHttpListener(
             2222,
             "en0",
@@ -138,23 +221,173 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             ListenerPasswordAuthenticator.create { u, p ->
-                opwd = p
-                pwd = p.copyOf()
                 user = u
+                pwd = p
                 true
             }
         )
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
-        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Long
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
 
-        C4Listener.httpAuthCallback(key, header)
+        assertTrue(C4Listener.httpAuthCallback(key.toLong(), C4Listener.Http.AUTH_MODE_BASIC))
 
-        assertEquals(header.length, opwd?.size)
-        assertEquals(' ', opwd?.get(0))
-        assertArrayEquals(header.toCharArray(), pwd)
-        assertEquals(header, user)
+        assertEquals(0, user?.length)
+        assertEquals(0, pwd?.size)
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateEmptyCredentials() {
+        var user: String? = null
+        var pwd: CharArray? = null
+
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { u, p ->
+                user = u
+                pwd = p
+                true
+            }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        assertTrue(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.Http.AUTH_MODE_BASIC}    "))
+
+        assertEquals(0, user?.length)
+        assertEquals(0, pwd?.size)
+    }
+
+    @Test
+    fun testHttpListenerAuthenticate() {
+        var user: String? = null
+        var pwd: CharArray? = null
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { u, p ->
+                user = u
+                pwd = p
+                true
+            }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        val creds = "${USER_NAME}:${PASSWORD}".toByteArray(Charsets.UTF_8)
+        assertTrue(C4Listener.httpAuthCallback(
+            key.toLong(),
+            "${C4Listener.Http.AUTH_MODE_BASIC} ${Base64Utils.getEncoder().encodeToString(creds)}"))
+
+        assertEquals(USER_NAME, user)
+        assertEquals(PASSWORD, String(pwd!!))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateNoUser() {
+        var user: String? = null
+        var pwd: CharArray? = null
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { u, p ->
+                user = u
+                pwd = p
+                true
+            }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        val creds = ":${PASSWORD}".toByteArray(Charsets.UTF_8)
+        assertTrue(C4Listener.httpAuthCallback(
+            key.toLong(),
+            "${C4Listener.Http.AUTH_MODE_BASIC} ${Base64Utils.getEncoder().encodeToString(creds)}"))
+
+        assertEquals(0, user?.length)
+        assertEquals(PASSWORD, String(pwd!!))
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateNoPassword() {
+        var user: String? = null
+        var pwd: CharArray? = null
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { u, p ->
+                user = u
+                pwd = p
+                true
+            }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        val creds = USER_NAME.toByteArray(Charsets.UTF_8)
+        assertTrue(C4Listener.httpAuthCallback(
+            key.toLong(),
+            "${C4Listener.Http.AUTH_MODE_BASIC} ${Base64Utils.getEncoder().encodeToString(creds)}"))
+
+        assertEquals(USER_NAME, user)
+        assertEquals(0, pwd?.size)
+    }
+
+    @Test
+    fun testHttpListenerAuthenticateEmptyPassword() {
+        var user: String? = null
+        var pwd: CharArray? = null
+        val listener = C4Listener.createHttpListener(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            true,
+            true,
+            true,
+            ListenerPasswordAuthenticator.create { u, p ->
+                user = u
+                pwd = p
+                true
+            }
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.HTTP_LISTENER_CONTEXT.size())
+        val key = C4Listener.HTTP_LISTENER_CONTEXT.keySet().iterator().next() as Int
+
+        val creds = "${USER_NAME}:".toByteArray(Charsets.UTF_8)
+        assertTrue(C4Listener.httpAuthCallback(
+            key.toLong(),
+            "${C4Listener.Http.AUTH_MODE_BASIC} ${Base64Utils.getEncoder().encodeToString(creds)}"))
+
+        assertEquals(USER_NAME, user)
+        assertEquals(0, pwd?.size)
     }
 
     @Test
@@ -224,6 +457,6 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(1, keystore.size())
 
         // Android has a funny idea of the alias name...
-         return keystore.getCertificate(keystore.aliases().nextElement())
+        return keystore.getCertificate(keystore.aliases().nextElement())
     }
 }

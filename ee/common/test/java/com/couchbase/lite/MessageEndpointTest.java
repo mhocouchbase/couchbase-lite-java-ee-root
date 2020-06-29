@@ -990,6 +990,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
+    @FlakyTest
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();

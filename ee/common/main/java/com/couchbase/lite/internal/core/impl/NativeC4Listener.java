@@ -16,6 +16,7 @@
 package com.couchbase.lite.internal.core.impl;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.List;
 
@@ -27,6 +28,8 @@ import com.couchbase.lite.internal.core.C4Listener;
 /**
  * The C4Listener companion object
  */
+// ???  Should lazily find callback methods
+//      and explicitly release them?
 public class NativeC4Listener implements C4Listener.NativeImpl {
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -34,7 +37,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     public long nStartHttp(
         long context,
         int port,
-        @NonNull String iFace,
+        @Nullable String iFace,
         int apis,
         @NonNull String dbPath,
         boolean allowCreateDBs,
@@ -51,7 +54,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     public long nStartTls(
         long context,
         int port,
-        @NonNull String iFace,
+        @Nullable String iFace,
         int apis,
         @NonNull String dbPath,
         boolean allowCreateDBs,
