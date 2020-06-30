@@ -304,7 +304,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
      * https://github.com/couchbase/couchbase-lite-core/issues/383
      */
     @Test
-    public void testEmptyPush() { run(makeConfig(true, false, false)); }
+    public void testEmptyPush() throws CouchbaseLiteException { run(makeConfig(true, false, false)); }
 
     @Test
     public void testPushDoc() throws CouchbaseLiteException {

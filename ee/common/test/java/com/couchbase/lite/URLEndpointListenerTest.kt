@@ -14,13 +14,14 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.utils.Report
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Ignore
 import org.junit.Test
+import java.lang.RuntimeException
 import java.net.URI
+import java.util.concurrent.atomic.AtomicInteger
 
 
 private const val WS_PORT = 4984
@@ -46,9 +47,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("Listener not closing")
+    //@Ignore("Listener not closing")
     @Test
-    fun testPasswordAuthenticatorNoAutheticator() {
+    fun testPasswordAuthenticatorNoAuthenticator() {
         try {
             val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
                 "daniel" == username && ("123" == String(password))
@@ -57,13 +58,14 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             val listener = listenHttp(false, listenerAuth)
 
             run(listener.endpointUri(), true, true, false, null)
+
             fail("Expected exception {CouchbaseLite,10401,'Unauthorized'}")
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
     }
 
-    @Ignore("Listener not closing")
+    //@Ignore("Listener not closing")
     @Test
     fun testPasswordAuthenticatorBadPassword() {
         try {
@@ -141,6 +143,10 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
     */
 
+    companion object {
+        val portFactory = AtomicInteger(30000)
+    }
+
     private fun listenHttp(): URLEndpointListener = listenHttp(false)
 
     private fun listenHttp(tls: Boolean): URLEndpointListener = listenHttp(tls, null)
@@ -149,7 +155,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.buildHttpConfig(otherDB)
-            .setPort(if (!tls) WS_PORT else WSS_PORT)
+            .setPort(portFactory.getAndIncrement())
             .setTlsDisabled(!tls)
 
         if (auth != null) {
