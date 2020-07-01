@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.internal.utils.Report;
 
 import static org.junit.Assert.*;
 

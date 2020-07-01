@@ -29,7 +29,7 @@ import com.couchbase.lite.internal.core.C4Listener;
  * The C4Listener companion object
  */
 // ???  Should lazily find callback methods
-//      and explicitly release them?
+//      and explicitly release them, to minimize GlobalRefs?
 public class NativeC4Listener implements C4Listener.NativeImpl {
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -64,7 +64,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         boolean deltaSync,
         @NonNull byte[] cert,
         boolean requireClientCerts,
-        @NonNull byte[] rootClientCerts)
+        @Nullable byte[] rootClientCerts)
         throws LiteCoreException {
         return startTls(
             port,

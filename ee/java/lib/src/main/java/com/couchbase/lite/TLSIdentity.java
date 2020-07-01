@@ -17,15 +17,31 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
+import java.io.IOException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.utils.PlatformUtils;
 
 
 public final class TLSIdentity extends AbstractTLSIdentity {
+
+    // ??? This does not seem to be part of the API
+    @Nullable
+    public static TLSIdentity getIdentity(@NonNull String alias, @Nullable char[] keyPassword)
+        throws CouchbaseLiteException {
+        return new TLSIdentity(readCerts(), new Date(2020, 12, 30));
+    }
 
     @Nullable
     public static TLSIdentity getIdentity(
@@ -48,7 +64,28 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return new TLSIdentity();
     }
 
-    private TLSIdentity() { super(null, null); }
+    // ??? This does not seem to be part of the API
+    public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException { }
+
+    //  !!! Delete this.
+    private static List<Certificate> readCerts() {
+        final List<Certificate> certs = new ArrayList<>();
+        try {
+            final KeyStore keystore = KeyStore.getInstance("PKCS12");
+            keystore.load(PlatformUtils.getAsset("certs.p12"), "123".toCharArray());
+            // Android has a funny idea of the alias name...
+            certs.add(keystore.getCertificate(keystore.aliases().nextElement()));
+        }
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException ignore) { }
+
+        return certs;
+    }
+
+
+    @VisibleForTesting
+    TLSIdentity() { super(null, null); }
+
+    TLSIdentity(@Nullable List<Certificate> certs, @Nullable Date expiration) {
+        super(certs, expiration);
+    }
 }
-
-

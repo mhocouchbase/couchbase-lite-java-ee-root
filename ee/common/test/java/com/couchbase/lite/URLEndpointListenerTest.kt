@@ -14,26 +14,61 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Ignore
 import org.junit.Test
-import java.lang.RuntimeException
+import java.io.IOException
 import java.net.URI
+import java.security.KeyStore
+import java.security.KeyStoreException
+import java.security.NoSuchAlgorithmException
+import java.security.UnrecoverableKeyException
+import java.security.cert.Certificate
+import java.security.cert.CertificateException
 import java.util.concurrent.atomic.AtomicInteger
 
 
-private const val WS_PORT = 4984
-private const val WSS_PORT = 4985
 private const val CLIENT_CERT_LABEL = "CBL-Client-Cert"
 
 class URLEndpointListenerTest : BaseReplicatorTest() {
-    var testListener: URLEndpointListener? = null;
+    private var testListener: URLEndpointListener? = null
 
     @After
     fun cleanupURLEndpointListenerTest() {
-        testListener?.stop();
+        testListener?.stop()
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun testBuilderDisallowNullAuthenticator() {
+        URLEndpointListenerConfiguration.Builder(otherDB)
+            .build()
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun testBuilderDisallowIdentityWithTLS() {
+        URLEndpointListenerConfiguration.Builder(otherDB)
+            .setTlsDisabled(true)
+            .setAuthenticator(ListenerCertificateAuthenticator.create { _ -> true })
+            .build()
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun testBuilderDisallowCertAuthWithTLS() {
+        URLEndpointListenerConfiguration.Builder(otherDB)
+            .setTlsDisabled(true)
+            .setAuthenticator(ListenerPasswordAuthenticator.create { _, _ -> true })
+            .setTlsIdentity(TLSIdentity())
+            .build()
+    }
+
+    @Ignore("CouchbaseLiteException{CouchbaseLite,2,'kC4PrivateKeyFromCert not implemented'}")
+    @Test
+    fun testBasicAuthWithTls() {
+        val listener = listenHttp(true, ListenerPasswordAuthenticator.create { _, _ -> true })
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
     @Test
@@ -47,15 +82,14 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    //@Ignore("Listener not closing")
     @Test
     fun testPasswordAuthenticatorNoAuthenticator() {
         try {
-            val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
-                "daniel" == username && ("123" == String(password))
-            }
-
-            val listener = listenHttp(false, listenerAuth)
+            val listener = listenHttp(
+                false,
+                ListenerPasswordAuthenticator.create { username, password ->
+                    "daniel" == username && ("123" == String(password))
+                })
 
             run(listener.endpointUri(), true, true, false, null)
 
@@ -65,20 +99,28 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
-    //@Ignore("Listener not closing")
     @Test
     fun testPasswordAuthenticatorBadPassword() {
         try {
-            val listenerAuth = ListenerPasswordAuthenticator.create { username, password ->
-                "daniel" == username && ("123" == String(password))
-            }
-
-            val listener = listenHttp(false, listenerAuth)
+            val listener = listenHttp(
+                false,
+                ListenerPasswordAuthenticator.create { username, password ->
+                    "daniel" == username && ("123" == String(password))
+                })
 
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "456"))
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
+    }
+
+    @Ignore("CouchbaseLiteException{CouchbaseLite,2,'kC4PrivateKeyFromCert not implemented'}")
+    @Test
+    fun testCertAuthenticator() {
+        val listener = listenTls(
+            TLSIdentity.getIdentity("foo", "bar".toCharArray()),
+            ListenerCertificateAuthenticator.create { certs -> true })
+        run(listener.endpointUri(), true, true, false, null)
     }
 
 /*
@@ -147,22 +189,15 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val portFactory = AtomicInteger(30000)
     }
 
-    private fun listenHttp(): URLEndpointListener = listenHttp(false)
-
-    private fun listenHttp(tls: Boolean): URLEndpointListener = listenHttp(tls, null)
-
-    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener.Http {
+    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator): URLEndpointListener {
 
         // Listener:
-        val configBuilder = URLEndpointListenerConfiguration.buildHttpConfig(otherDB)
+        val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
             .setPort(portFactory.getAndIncrement())
             .setTlsDisabled(!tls)
+            .setAuthenticator(auth)
 
-        if (auth != null) {
-            configBuilder.setAuthenticator(auth);
-        }
-
-        val listener = URLEndpointListener.createListener(configBuilder.build(), false)
+        val listener = URLEndpointListener(configBuilder.build(), false)
         testListener = listener
 
         // Start:
@@ -170,16 +205,43 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         return listener
     }
+
+
+    private fun listenTls(identity: TLSIdentity?, auth: ListenerCertificateAuthenticator): URLEndpointListener {
+
+        // Listener:
+        val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
+            .setPort(portFactory.getAndIncrement())
+            .setAuthenticator(auth)
+        identity?.let { configBuilder.setTlsIdentity(it) }
+
+        val listener = URLEndpointListener(configBuilder.build(), false)
+        testListener = listener
+
+        // Start:
+        listener.start()
+
+        return listener
+    }
+
+    @Throws(
+        KeyStoreException::class,
+        CertificateException::class,
+        NoSuchAlgorithmException::class,
+        IOException::class,
+        UnrecoverableKeyException::class
+    )
+    private fun getCert(): Certificate {
+        val keystore = KeyStore.getInstance("PKCS12")
+        keystore.load(PlatformUtils.getAsset("certs.p12"), "123".toCharArray())
+        assertEquals(1, keystore.size())
+
+        // Android has a funny idea of the alias name...
+        return keystore.getCertificate(keystore.aliases().nextElement())
+    }
 }
 
-fun URLEndpointListener.Http.endpointUri(): URI {
-    return URI(
-        if (httpConfig.isTlsDisabled) "ws" else "wss",
-        null,
-        "localhost",
-        port,
-        "/${config.database.name}",
-        null,
-        null
-    )
-}
+fun URLEndpointListener.endpointUri() =
+    URI(if (config.isTlsDisabled) "ws" else "wss", null, "localhost", port, "/${config.database.name}", null, null)
+
+

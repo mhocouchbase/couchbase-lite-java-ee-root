@@ -30,13 +30,11 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.ConnectionStatus;
 import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.ListenerAuthenticator;
 import com.couchbase.lite.ListenerCertificateAuthenticator;
 import com.couchbase.lite.ListenerPasswordAuthenticator;
 import com.couchbase.lite.LiteCoreException;
@@ -44,13 +42,14 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
-import com.couchbase.lite.internal.utils.Base64Utils;
+import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
-import com.couchbase.lite.internal.utils.SecurityUtils;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
-public abstract class C4Listener extends C4NativePeer implements Closeable {
+public class C4Listener extends C4NativePeer implements Closeable {
+    public static final String AUTH_MODE_BASIC = "Basic";
+
     /**
      * Native Implementation
      */
@@ -85,7 +84,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
             boolean deltaSync,
             @NonNull byte[] cert,
             boolean requireClientCerts,
-            @NonNull byte[] rootClientCerts)
+            @Nullable byte[] rootClientCerts)
             throws LiteCoreException;
 
         void nFree(long handle);
@@ -106,104 +105,13 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         String nGetUriFromPath(String path);
     }
 
-    //-------------------------------------------------------------------------
-    // Implementation classes
-    //-------------------------------------------------------------------------
-
-    @SuppressFBWarnings("SE_BAD_FIELD") // base class AtomicLong is Serializable
-    static class Http extends C4Listener {
-        public static final String AUTH_MODE_BASIC = "Basic";
-
-        @NonNull
-        private final ListenerPasswordAuthenticator authenticator;
-
-        @Override
-        @NonNull
-        public String toString() { return "HttpListener{" + getPeer() + "}"; }
-
-        @VisibleForTesting
-        Http(@NonNull NativeImpl impl, long handle, @NonNull ListenerPasswordAuthenticator authenticator) {
-            super(impl, handle);
-            this.authenticator = Preconditions.assertNotNull(authenticator, "authenticator");
-        }
-
-        boolean authenticate(@Nullable String authHeader) {
-            // !!! The password is in a base64 encoded String
-            if (authHeader == null) { return false; }
-
-            final String[] headers = authHeader.split("\\s+");
-            if (!headers[0].equals(AUTH_MODE_BASIC)) {
-                Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);
-                return false;
-            }
-
-            if (headers.length > 2) {
-                Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
-                return false;
-            }
-
-            String[] creds = null;
-            if ((headers.length > 1) && (!StringUtils.isEmpty(headers[1]))) {
-                final byte[] material = Base64Utils.getDecoder().decodeString(headers[1]);
-                if (material == null) {
-                    Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
-                    return false;
-                }
-
-                creds = new String(material, StandardCharsets.UTF_8).split(":");
-                // !!! The password is now in plaintext String
-            }
-
-            return authenticator.authenticate(
-                StringUtils.getArrayString(creds, 0),
-                StringUtils.getArrayString(creds, 1).toCharArray());
-        }
-    }
-
-    @SuppressFBWarnings("SE_BAD_FIELD") // base class AtomicLong is Serializable
-    static class Tls extends C4Listener {
-        @NonNull
-        private final ListenerCertificateAuthenticator authenticator;
-
-        @Override
-        @NonNull
-        public String toString() { return "TlsListener{" + getPeer() + "}"; }
-
-        @VisibleForTesting
-        Tls(@NonNull NativeImpl impl, long handle, @NonNull ListenerCertificateAuthenticator authenticator) {
-            super(impl, handle);
-            this.authenticator = Preconditions.assertNotNull(authenticator, "authenticator");
-        }
-
-        boolean authenticate(@Nullable byte[] clientCert) {
-            // ??? Handle null content
-            if (clientCert == null) { throw new IllegalArgumentException("cert is null"); }
-
-            // ??? construct cert list
-            final List<Certificate> certs = new ArrayList<>();
-            try (InputStream in = new ByteArrayInputStream(clientCert)) {
-                certs.add(CertificateFactory.getInstance("X.509").generateCertificate(in));
-            }
-            catch (CertificateException | IOException e) {
-                Log.w(LogDomain.LISTENER, "Failed parsing certificate for: " + this);
-                return false;
-            }
-
-            return authenticator.authenticate(certs);
-        }
-    }
-
     @NonNull
     @VisibleForTesting
     static NativeImpl nativeImpl = new NativeC4Listener();
 
     @NonNull
     @VisibleForTesting
-    static final NativeContext<Http> HTTP_LISTENER_CONTEXT = new NativeContext<>();
-
-    @NonNull
-    @VisibleForTesting
-    static final NativeContext<Tls> TLS_LISTENER_CONTEXT = new NativeContext<>();
+    static final NativeContext<C4Listener> LISTENER_CONTEXT = new NativeContext<>();
 
     //-------------------------------------------------------------------------
     // Native callback methods
@@ -212,23 +120,23 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
     // This method is called by reflection.  Don't change its signature.
     @SuppressWarnings("unused")
     static boolean httpAuthCallback(long context, @Nullable String authHeader) {
-        final Http listener = HTTP_LISTENER_CONTEXT.getObjFromContext(context);
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(context);
         if (listener == null) {
             Log.i(LogDomain.LISTENER, "No listener for context: " + context);
             return false;
         }
-        return listener.authenticate(authHeader);
+        return listener.authenticateBasic(authHeader);
     }
 
     // This method is called by reflection.  Don't change its signature.
     @SuppressWarnings("unused")
     static boolean certAuthCallback(long context, @Nullable byte[] clientCertData) {
-        final Tls listener = TLS_LISTENER_CONTEXT.getObjFromContext(context);
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(context);
         if (listener == null) {
             Log.i(LogDomain.LISTENER, "No listener for context: " + context);
             return false;
         }
-        return listener.authenticate(clientCertData);
+        return listener.authenticateCert(clientCertData);
     }
 
     //-------------------------------------------------------------------------
@@ -246,7 +154,7 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         boolean deltaSync,
         @NonNull ListenerPasswordAuthenticator authenticator)
         throws CouchbaseLiteException {
-        final int context = HTTP_LISTENER_CONTEXT.reserveKey();
+        final int context = LISTENER_CONTEXT.reserveKey();
 
         final long hdl;
         try {
@@ -264,29 +172,27 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
         }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
-        final Http listener = new Http(nativeImpl, hdl, authenticator);
-        HTTP_LISTENER_CONTEXT.bind(context, listener);
+        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
+        LISTENER_CONTEXT.bind(context, listener);
 
         return listener;
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
     @NonNull
-    public static C4Listener createTlsListener(
+    public static C4Listener createTlsListenerPasswordAuth(
         int port,
         @Nullable String iFace,
         @NonNull String dbPath,
         boolean push,
         boolean pull,
-        boolean deltaSync,
-        @NonNull Certificate cert,
-        boolean requireClientCerts,
-        @NonNull Set<Certificate> rootClientCerts,
-        @NonNull ListenerCertificateAuthenticator authenticator)
+        @NonNull Certificate identity,
+        @NonNull ListenerPasswordAuthenticator authenticator,
+        boolean deltaSync)
         throws CouchbaseLiteException {
-        final int context = TLS_LISTENER_CONTEXT.reserveKey();
+        final int context = LISTENER_CONTEXT.reserveKey();
 
-        final long hdl;
+        long hdl = -1;
         try {
             hdl = nativeImpl.nStartTls(
                 context,
@@ -294,14 +200,14 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
                 iFace,
                 NativeImpl.SYNC_API, // REST API not supported
                 dbPath,
-                false, // REST API not supported
-                false, // REST API not supported
+                false,               // REST API not supported
+                false,               // REST API not supported
                 push,
                 pull,
                 deltaSync,
-                cert.getEncoded(),
-                requireClientCerts,
-                SecurityUtils.encodeCertificateChain(rootClientCerts));
+                identity.getEncoded(),
+                false,
+                null);
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -314,8 +220,56 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
                 CBLError.Code.TLS_CLIENT_CERT_REJECTED);
         }
 
-        final Tls listener = new Tls(nativeImpl, hdl, authenticator);
-        TLS_LISTENER_CONTEXT.bind(context, listener);
+        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
+        LISTENER_CONTEXT.bind(context, listener);
+
+        return listener;
+    }
+
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    @NonNull
+    public static C4Listener createTlsListenerCertAuth(
+        int port,
+        @Nullable String iFace,
+        @NonNull String dbPath,
+        boolean push,
+        boolean pull,
+        @NonNull Certificate identity,
+        @NonNull ListenerCertificateAuthenticator authenticator,
+        boolean deltaSync)
+        throws CouchbaseLiteException {
+        final int context = LISTENER_CONTEXT.reserveKey();
+
+        final long hdl;
+        try {
+            hdl = nativeImpl.nStartTls(
+                context,
+                port,
+                iFace,
+                NativeImpl.SYNC_API, // REST API not supported
+                dbPath,
+                false,               // REST API not supported
+                false,               // REST API not supported
+                push,
+                pull,
+                deltaSync,
+                identity.getEncoded(),
+                true,
+                null);
+        }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
+        }
+        catch (CertificateEncodingException e) {
+            throw new CouchbaseLiteException(
+                "Bad cert encoding",
+                e,
+                C4Constants.LogDomain.LISTENER,
+                CBLError.Code.TLS_CLIENT_CERT_REJECTED);
+        }
+
+        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
+        LISTENER_CONTEXT.bind(context, listener);
 
         return listener;
     }
@@ -327,14 +281,17 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
 
     @NonNull
     private final NativeImpl impl;
+    @NonNull
+    private final ListenerAuthenticator authenticator;
 
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
 
-    protected C4Listener(NativeImpl impl, long handle) {
-        super(handle);
+    protected C4Listener(@NonNull NativeImpl impl, long handle, @NonNull ListenerAuthenticator authenticator) {
+        super(Preconditions.assertNotZero(handle, "companion handle"));
         this.impl = Preconditions.assertNotNull(impl, "companion");
+        this.authenticator = Preconditions.assertNotNull(authenticator, "authenticator");
     }
 
     //-------------------------------------------------------------------------
@@ -387,5 +344,55 @@ public abstract class C4Listener extends C4NativePeer implements Closeable {
             }
         }
         finally { super.finalize(); }
+    }
+
+    boolean authenticateBasic(@Nullable String authHeader) {
+        // !!! The password is in a base64 encoded String
+        if (authHeader == null) { return false; }
+
+        final String[] headers = authHeader.split("\\s+");
+        if (!headers[0].equals(AUTH_MODE_BASIC)) {
+            Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);
+            return false;
+        }
+
+        if (headers.length > 2) {
+            Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
+            return false;
+        }
+
+        String[] creds = null;
+        if ((headers.length > 1) && (!StringUtils.isEmpty(headers[1]))) {
+            final byte[] material = PlatformUtils.getDecoder().decodeString(headers[1]);
+            if (material == null) {
+                Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
+                return false;
+            }
+
+            creds = new String(material, StandardCharsets.UTF_8).split(":");
+            // !!! The password is now in plaintext String
+        }
+
+        return ((ListenerPasswordAuthenticator) authenticator).authenticate(
+            StringUtils.getArrayString(creds, 0),
+            StringUtils.getArrayString(creds, 1).toCharArray());
+    }
+
+
+    boolean authenticateCert(@Nullable byte[] clientCert) {
+        // ??? Handle null content
+        if (clientCert == null) { throw new IllegalArgumentException("cert is null"); }
+
+        // ??? construct cert list
+        final List<Certificate> certs = new ArrayList<>();
+        try (InputStream in = new ByteArrayInputStream(clientCert)) {
+            certs.add(CertificateFactory.getInstance("X.509").generateCertificate(in));
+        }
+        catch (CertificateException | IOException e) {
+            Log.w(LogDomain.LISTENER, "Failed parsing certificate for: " + this);
+            return false;
+        }
+
+        return ((ListenerCertificateAuthenticator) authenticator).authenticate(certs);
     }
 }

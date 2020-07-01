@@ -21,109 +21,22 @@ import android.support.annotation.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
 
 
-public abstract class URLEndpointListener {
-
-    /**
-     * HTTP Endpoint listener
-     */
-    public static final class Http extends URLEndpointListener {
-        @NonNull
-        private final URLEndpointListenerConfiguration.Http config;
-
-        private final boolean readOnly;
-
-        public Http(@NonNull URLEndpointListenerConfiguration.Http config, boolean readOnly) {
-            super(config.port);
-            this.config = config;
-            this.readOnly = readOnly;
-        }
-
-        @Override
-        @NonNull
-        public URLEndpointListenerConfiguration.Http getConfig() { return config; }
-
-        @NonNull
-        public URLEndpointListenerConfiguration.Http getHttpConfig() { return config; }
-
-        @NonNull
-        @Override
-        protected C4Listener startLocked() throws CouchbaseLiteException {
-            return C4Listener.createHttpListener(
-                config.port,
-                config.networkInterface,
-                config.database.getPath(),
-                true,
-                !readOnly,
-                config.enableDeltaSync,
-                config.getHttpAuthenticator());
-        }
-    }
-
-    public static final class Tls extends URLEndpointListener {
-        @NonNull
-        private final URLEndpointListenerConfiguration.Tls config;
-
-        private final boolean readOnly;
-
-        public Tls(@NonNull URLEndpointListenerConfiguration.Tls config, boolean readOnly) {
-            super(config.port);
-            this.config = config;
-            this.readOnly = readOnly;
-        }
-
-        @Override
-        @NonNull
-        public URLEndpointListenerConfiguration.Tls getConfig() { return config; }
-
-        @NonNull
-        public URLEndpointListenerConfiguration.Tls getHttpConfig() { return config; }
-
-        // !!! Implement TLS
-        @SuppressWarnings("ConstantConditions")
-        @SuppressFBWarnings("NP_NONNULL_PARAM_VIOLATION")
-        @NonNull
-        @Override
-        protected C4Listener startLocked() throws CouchbaseLiteException {
-            return C4Listener.createTlsListener(
-                config.port,
-                config.networkInterface,
-                config.database.getPath(),
-                true,
-                !readOnly,
-                config.enableDeltaSync,
-                null,
-                true,
-                null,
-                config.getCertAuthenticator());
-        }
-    }
-
-    public static Http createListener(@NonNull URLEndpointListenerConfiguration.Http config, boolean readOnly) {
-        return new URLEndpointListener.Http(config, readOnly);
-    }
-
-
-    public static URLEndpointListener.Tls createListener(
-        @NonNull URLEndpointListenerConfiguration.Tls config,
-        boolean readOnly) {
-        return new URLEndpointListener.Tls(config, readOnly);
-    }
-
-    //-------------------------------------------------------------------------
-    // Data members
-    //-------------------------------------------------------------------------
-
+public class URLEndpointListener {
     @NonNull
     private final Object lock = new Object();
+
+    @NonNull
+    private final URLEndpointListenerConfiguration config;
+
+    protected final boolean readOnly;
 
     @Nullable
     @GuardedBy("lock")
@@ -135,14 +48,22 @@ public abstract class URLEndpointListener {
     // Constructors
     //-------------------------------------------------------------------------
 
-    public URLEndpointListener(int port) { this.port = port; }
+    public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config, boolean readOnly) {
+        this.config = config;
+        this.readOnly = readOnly;
+    }
 
     //-------------------------------------------------------------------------
     // Public API
     //-------------------------------------------------------------------------
 
+    /**
+     * Get the listener's configuration.
+     *
+     * @return the listener's configuration.
+     */
     @NonNull
-    public abstract URLEndpointListenerConfiguration getConfig();
+    public URLEndpointListenerConfiguration getConfig() { return config; }
 
     public int getPort() {
         synchronized (lock) {
@@ -150,6 +71,11 @@ public abstract class URLEndpointListener {
         }
     }
 
+    /**
+     * Get the list of URLs for the listener
+     *
+     * @return a list of listener urls.
+     */
     @NonNull
     public List<URL> getUrls() {
         final List<URL> urls = new ArrayList<>();
@@ -172,6 +98,11 @@ public abstract class URLEndpointListener {
         return urls;
     }
 
+    /**
+     * Get the listener status
+     *
+     * @return listener status.
+     */
     @Nullable
     public ConnectionStatus getStatus() {
         synchronized (lock) {
@@ -179,6 +110,9 @@ public abstract class URLEndpointListener {
         }
     }
 
+    /**
+     * Start the listener
+     */
     public void start() throws CouchbaseLiteException {
         final C4Listener listener;
         synchronized (lock) {
@@ -191,7 +125,10 @@ public abstract class URLEndpointListener {
         listener.shareDb(db.getName(), db.getC4Database());
     }
 
-    public void stop() throws CouchbaseLiteException {
+    /**
+     * Stop the listener
+     */
+    public void stop() {
         final C4Listener listener;
         synchronized (lock) {
             listener = c4Listener;
@@ -208,7 +145,43 @@ public abstract class URLEndpointListener {
     //-------------------------------------------------------------------------
 
     @NonNull
-    protected abstract C4Listener startLocked() throws CouchbaseLiteException;
+    private C4Listener startLocked() throws CouchbaseLiteException {
+        if (config.getAuthenticator() instanceof ListenerCertificateAuthenticator) {
+            return C4Listener.createTlsListenerCertAuth(
+                config.port,
+                config.networkInterface,
+                config.database.getPath(),
+                true,
+                !readOnly,
+                getIdentity(),
+                (ListenerCertificateAuthenticator) config.getAuthenticator(),
+                config.enableDeltaSync);
+        }
+
+        final ListenerPasswordAuthenticator authenticator = (ListenerPasswordAuthenticator) config.getAuthenticator();
+
+        if (!config.disableTls) {
+            return C4Listener.createTlsListenerPasswordAuth(
+                config.port,
+                config.networkInterface,
+                config.database.getPath(),
+                true,
+                !readOnly,
+                getIdentity(),
+                authenticator,
+                config.enableDeltaSync
+            );
+        }
+
+        return C4Listener.createHttpListener(
+            config.port,
+            config.networkInterface,
+            config.database.getPath(),
+            true,
+            !readOnly,
+            config.enableDeltaSync,
+            authenticator);
+    }
 
     //-------------------------------------------------------------------------
     // Private methods
@@ -217,6 +190,15 @@ public abstract class URLEndpointListener {
     private int getCachedPort(@NonNull C4Listener listener) {
         if (port == 0) { port = listener.getPort(); }
         return port;
+    }
+
+    private Certificate getIdentity() throws CouchbaseLiteException {
+        TLSIdentity identity = config.identity;
+        if (identity == null) { identity = TLSIdentity.getIdentity("foo", "bar".toCharArray()); }
+        if (identity == null) { return null; }
+        final List<Certificate> certs = identity.getCerts();
+        if ((certs == null) || (certs.isEmpty())) { return null; }
+        return certs.get(0);
     }
 }
 

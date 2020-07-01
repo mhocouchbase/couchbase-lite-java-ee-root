@@ -1,0 +1,38 @@
+@startuml
+participant Replicator order 60
+participant BasicAuthenticator order 55
+participant C4Replictor order 50
+participant ClientCore order 40
+participant ServerCore order 30
+participant C4Listener order 20
+participant ListenerPasswordAuthenticator order 15
+participant URLEndpoingListener order 10
+
+URLEndpoingListener -> C4Listener: start
+C4Listener --> ServerCore: start
+note over ServerCore
+listening
+end note
+
+C4Replictor <-- Replicator: start
+ClientCore <-- C4Replictor: start
+ServerCore <-- ClientCore: connect
+
+C4Listener <-- ServerCore: connect
+C4Listener --> ServerCore: fail(auth)
+ServerCore --> ClientCore: fail(auth)
+
+ClientCore --> C4Replictor: auth
+C4Replictor --> BasicAuthenticator: auth
+BasicAuthenticator --> C4Replictor: credentials
+C4Replictor --> ClientCore: credentials
+ServerCore <-- ClientCore: credentials
+ServerCore <-- C4Listener: credentials
+ListenerPasswordAuthenticator <-- C4Listener: credentials
+ListenerPasswordAuthenticator -> C4Listener: accept
+C4Listener --> ServerCore: accept
+ServerCore --> ClientCore: accept
+note left of ClientCore
+connected
+end note
+@enduml

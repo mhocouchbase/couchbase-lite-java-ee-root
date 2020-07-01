@@ -15,7 +15,7 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.utils.Report
+import com.couchbase.lite.internal.utils.Report
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

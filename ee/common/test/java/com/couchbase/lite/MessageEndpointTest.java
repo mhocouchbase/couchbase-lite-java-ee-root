@@ -22,9 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.ClassUtils;
-import com.couchbase.lite.utils.FlakyTest;
-import com.couchbase.lite.utils.Report;
-import com.couchbase.lite.utils.SlowTest;
+import com.couchbase.lite.internal.utils.FlakyTest;
+import com.couchbase.lite.internal.utils.Report;
+import com.couchbase.lite.internal.utils.SlowTest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

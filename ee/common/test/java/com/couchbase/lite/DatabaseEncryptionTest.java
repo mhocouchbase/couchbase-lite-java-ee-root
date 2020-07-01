@@ -27,8 +27,8 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.core.C4Key;
-import com.couchbase.lite.utils.IOUtils;
-import com.couchbase.lite.utils.TestUtils;
+import com.couchbase.lite.internal.utils.IOUtils;
+import com.couchbase.lite.internal.utils.TestUtils;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;

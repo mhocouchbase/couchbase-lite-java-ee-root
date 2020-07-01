@@ -36,7 +36,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.utils.Report;
+import com.couchbase.lite.internal.utils.FileUtils;
+import com.couchbase.lite.internal.utils.PlatformUtils;
+import com.couchbase.lite.internal.utils.Report;
 
 import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH;
 import static org.junit.Assert.assertEquals;
@@ -593,7 +595,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testPushBlob() throws CouchbaseLiteException, IOException {
         Database anotherDB = createDb("push-blob-db");
         try {
-            try (InputStream is = getAsset("image.jpg")) {
+            try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
@@ -624,7 +626,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     public void testPullBlob() throws CouchbaseLiteException, IOException {
         Database anotherDB = createDb("pull-blob-db");
         try {
-            try (InputStream is = getAsset("image.jpg")) {
+            try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
