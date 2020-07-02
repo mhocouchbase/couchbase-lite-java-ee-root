@@ -65,17 +65,19 @@ public class URLEndpointListenerConfiguration {
          * @return the TLS Endpoint configuration.
          */
         public URLEndpointListenerConfiguration build() {
-            if (authenticator == null) {
-                throw new IllegalStateException("A listener must have an authenticator");
-            }
-
-            if (disableTls) {
-                if (identity != null) {
-                    throw new IllegalStateException("Identity specified for connection with TLS disabled");
+            if (!disableTls) {
+                if (identity == null) {
+                    throw new IllegalStateException("TLS connections must have a TLS identity");
                 }
-                if (authenticator instanceof ListenerCertificateAuthenticator) {
+            }
+            else {
+                if (identity != null) {
+                    throw new IllegalStateException("Connection with TLS disabled cannot have a TLS identity");
+                }
+
+                if ((authenticator != null) && (authenticator instanceof ListenerCertificateAuthenticator)) {
                     throw new IllegalStateException(
-                        "Certificate authenticator specified for connection with TLS disabled");
+                        "Connection with TLS disabled cannot us a ListenerCertificateAuthenticator");
                 }
             }
 
@@ -145,8 +147,8 @@ public class URLEndpointListenerConfiguration {
          * @param authenticator An authenticator to be used to validate connections.
          * @return this
          */
-        public Builder setAuthenticator(@NonNull ListenerAuthenticator authenticator) {
-            this.authenticator = Preconditions.assertNotNull(authenticator, "authenticator");
+        public Builder setAuthenticator(@Nullable ListenerAuthenticator authenticator) {
+            this.authenticator = authenticator;
             return this;
         }
 
@@ -185,7 +187,7 @@ public class URLEndpointListenerConfiguration {
     @Nullable
     final TLSIdentity identity;
 
-    @NonNull
+    @Nullable
     final ListenerAuthenticator authenticator;
 
     final int port;
@@ -204,7 +206,7 @@ public class URLEndpointListenerConfiguration {
         int port,
         boolean disableTls,
         @Nullable TLSIdentity identity,
-        @NonNull ListenerAuthenticator authenticator,
+        @Nullable ListenerAuthenticator authenticator,
         boolean enableDeltaSync) {
         this.database = database;
         this.networkInterface = networkInterface;
@@ -258,7 +260,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @return the authenticator for the associated listener.
      */
-    @NonNull
+    @Nullable
     public ListenerAuthenticator getAuthenticator() { return authenticator; }
 
     /**

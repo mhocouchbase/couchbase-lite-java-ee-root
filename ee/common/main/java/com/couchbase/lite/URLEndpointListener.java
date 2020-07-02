@@ -21,10 +21,13 @@ import android.support.annotation.Nullable;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.cert.Certificate;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
 
@@ -35,8 +38,11 @@ public class URLEndpointListener {
 
     @NonNull
     private final URLEndpointListenerConfiguration config;
+    @Nullable
+    private final TLSIdentity identity;
 
-    protected final boolean readOnly;
+    private final boolean readOnly;
+
 
     @Nullable
     @GuardedBy("lock")
@@ -48,9 +54,30 @@ public class URLEndpointListener {
     // Constructors
     //-------------------------------------------------------------------------
 
-    public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config, boolean readOnly) {
+    public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config, boolean readOnly)
+        throws CouchbaseLiteException {
         this.config = config;
         this.readOnly = readOnly;
+
+        if (config.disableTls) { identity = null; }
+        else {
+            final TLSIdentity id = config.identity;
+            if (id != null) { identity = id; }
+            else {
+                final Map<AbstractTLSIdentity.CertAttribute, String> attributes = new HashMap<>();
+                attributes.put(AbstractTLSIdentity.CertAttribute.COMMON_NAME, "Couchbase Lite");
+                attributes.put(AbstractTLSIdentity.CertAttribute.ORGANIZATION, "Couchbase");
+                attributes.put(AbstractTLSIdentity.CertAttribute.ORGANIZATION_UNIT, "Mobile");
+                attributes.put(AbstractTLSIdentity.CertAttribute.EMAIL_ADDRESS, "lite@couchbase.com");
+
+                identity = TLSIdentity.createIdentity(
+                    true,
+                    attributes,
+                    new Date(2020, 12, 30),
+                    "couchbase",
+                    "123".toCharArray());
+            }
+        }
     }
 
     //-------------------------------------------------------------------------
@@ -146,41 +173,45 @@ public class URLEndpointListener {
 
     @NonNull
     private C4Listener startLocked() throws CouchbaseLiteException {
-        if (config.getAuthenticator() instanceof ListenerCertificateAuthenticator) {
-            return C4Listener.createTlsListenerCertAuth(
+        final ListenerAuthenticator auth = config.getAuthenticator();
+
+        if (identity == null) {
+            return C4Listener.createHttpListener(
                 config.port,
                 config.networkInterface,
                 config.database.getPath(),
+                (ListenerPasswordAuthenticator) auth,
                 true,
                 !readOnly,
-                getIdentity(),
-                (ListenerCertificateAuthenticator) config.getAuthenticator(),
-                config.enableDeltaSync);
-        }
-
-        final ListenerPasswordAuthenticator authenticator = (ListenerPasswordAuthenticator) config.getAuthenticator();
-
-        if (!config.disableTls) {
-            return C4Listener.createTlsListenerPasswordAuth(
-                config.port,
-                config.networkInterface,
-                config.database.getPath(),
-                true,
-                !readOnly,
-                getIdentity(),
-                authenticator,
                 config.enableDeltaSync
             );
         }
 
-        return C4Listener.createHttpListener(
+        if ((auth == null) || (auth instanceof ListenerPasswordAuthenticator)) {
+            return C4Listener.createTlsListenerPasswordAuth(
+                config.port,
+                config.networkInterface,
+                config.database.getPath(),
+                (ListenerPasswordAuthenticator) auth,
+                true,
+                !readOnly,
+                config.enableDeltaSync,
+                identity.getCert(),
+                identity.getKeyPair()
+            );
+        }
+
+        return C4Listener.createTlsListenerCertAuth(
             config.port,
             config.networkInterface,
             config.database.getPath(),
+            (ListenerCertificateAuthenticator) auth,
             true,
             !readOnly,
             config.enableDeltaSync,
-            authenticator);
+            identity.getCert(),
+            identity.getKeyPair()
+        );
     }
 
     //-------------------------------------------------------------------------
@@ -190,15 +221,6 @@ public class URLEndpointListener {
     private int getCachedPort(@NonNull C4Listener listener) {
         if (port == 0) { port = listener.getPort(); }
         return port;
-    }
-
-    private Certificate getIdentity() throws CouchbaseLiteException {
-        TLSIdentity identity = config.identity;
-        if (identity == null) { identity = TLSIdentity.getIdentity("foo", "bar".toCharArray()); }
-        if (identity == null) { return null; }
-        final List<Certificate> certs = identity.getCerts();
-        if ((certs == null) || (certs.isEmpty())) { return null; }
-        return certs.get(0);
     }
 }
 

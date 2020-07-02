@@ -16,8 +16,8 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
+import org.junit.Assert
 import org.junit.Assert.assertEquals
-import org.junit.Assert.fail
 import org.junit.Ignore
 import org.junit.Test
 import java.io.IOException
@@ -42,21 +42,15 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     @Test(expected = IllegalStateException::class)
-    fun testBuilderDisallowNullAuthenticator() {
-        URLEndpointListenerConfiguration.Builder(otherDB)
-            .build()
-    }
-
-    @Test(expected = IllegalStateException::class)
-    fun testBuilderDisallowIdentityWithTLS() {
+    fun testBuilderDisallowIdentityWithDisabledTLS() {
         URLEndpointListenerConfiguration.Builder(otherDB)
             .setTlsDisabled(true)
-            .setAuthenticator(ListenerCertificateAuthenticator.create { _ -> true })
+            .setAuthenticator(ListenerCertificateAuthenticator.create { true })
             .build()
     }
 
     @Test(expected = IllegalStateException::class)
-    fun testBuilderDisallowCertAuthWithTLS() {
+    fun testBuilderDisallowCertAuthWithDisabledTLS() {
         URLEndpointListenerConfiguration.Builder(otherDB)
             .setTlsDisabled(true)
             .setAuthenticator(ListenerPasswordAuthenticator.create { _, _ -> true })
@@ -64,26 +58,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             .build()
     }
 
-    @Ignore("CouchbaseLiteException{CouchbaseLite,2,'kC4PrivateKeyFromCert not implemented'}")
     @Test
-    fun testBasicAuthWithTls() {
-        val listener = listenHttp(true, ListenerPasswordAuthenticator.create { _, _ -> true })
-        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
-    }
-
-    @Test
-    fun testPasswordAuthenticator() {
-        val listener = listenHttp(
-            false,
-            ListenerPasswordAuthenticator.create { username, password ->
-                (username == "daniel") && (String(password) == "123")
-            })
-
-        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
-    }
-
-    @Test
-    fun testPasswordAuthenticatorNoAuthenticator() {
+    fun testPasswordAuthenticatorNullClientAuthenticator() {
         try {
             val listener = listenHttp(
                 false,
@@ -93,7 +69,29 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
             run(listener.endpointUri(), true, true, false, null)
 
-            fail("Expected exception {CouchbaseLite,10401,'Unauthorized'}")
+            Assert.fail("Expected exception {CouchbaseLite,10401,'Unauthorized'}")
+        } catch (e: CouchbaseLiteException) {
+            assertEquals(10401, e.code)
+        }
+    }
+
+    @Test
+    fun testPasswordAuthenticatorNullServerAuthenticator() {
+        val listener = listenHttp(false, null)
+
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
+    }
+
+    @Test
+    fun testPasswordAuthenticatorBadUser() {
+        try {
+            val listener = listenHttp(
+                false,
+                ListenerPasswordAuthenticator.create { username, password ->
+                    "daniel" == username && ("123" == String(password))
+                })
+
+            run(listener.endpointUri(), true, true, false, BasicAuthenticator("daneil", "123"))
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
@@ -112,6 +110,24 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
+    }
+
+    @Test
+    fun testPasswordAuthenticatorSucceeds() {
+        val listener = listenHttp(
+            false,
+            ListenerPasswordAuthenticator.create { username, password ->
+                (username == "daniel") && (String(password) == "123")
+            })
+
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
+    }
+
+    @Ignore("CouchbaseLiteException{CouchbaseLite,1,'assertion failed'}")
+    @Test
+    fun testBasicAuthWithTls() {
+        val listener = listenHttp(true, ListenerPasswordAuthenticator.create { _, _ -> true })
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
     @Ignore("CouchbaseLiteException{CouchbaseLite,2,'kC4PrivateKeyFromCert not implemented'}")
@@ -189,7 +205,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val portFactory = AtomicInteger(30000)
     }
 
-    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator): URLEndpointListener {
+    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
 
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)

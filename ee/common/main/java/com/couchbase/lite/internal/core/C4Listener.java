@@ -58,7 +58,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         int SYNC_API = 0x02;
 
         long nStartHttp(
-            long context,
+            long token,
             int port,
             @Nullable String iFace,
             int apis,
@@ -72,7 +72,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
         @SuppressWarnings("PMD.ExcessiveParameterList")
         long nStartTls(
-            long context,
+            long token,
             int port,
             @Nullable String iFace,
             int apis,
@@ -82,7 +82,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
             boolean allowPush,
             boolean allowPull,
             boolean deltaSync,
-            @NonNull byte[] cert,
+            long keyPair,
+            @NonNull byte[] serverCert,
             boolean requireClientCerts,
             @Nullable byte[] rootClientCerts)
             throws LiteCoreException;
@@ -119,10 +120,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
     // This method is called by reflection.  Don't change its signature.
     @SuppressWarnings("unused")
-    static boolean httpAuthCallback(long context, @Nullable String authHeader) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(context);
+    static boolean httpAuthCallback(long token, @Nullable String authHeader) {
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
         if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for context: " + context);
+            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
         }
         return listener.authenticateBasic(authHeader);
@@ -130,10 +131,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
     // This method is called by reflection.  Don't change its signature.
     @SuppressWarnings("unused")
-    static boolean certAuthCallback(long context, @Nullable byte[] clientCertData) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(context);
+    static boolean certAuthCallback(long token, @Nullable byte[] clientCertData) {
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
         if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for context: " + context);
+            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
         }
         return listener.authenticateCert(clientCertData);
@@ -149,17 +150,19 @@ public class C4Listener extends C4NativePeer implements Closeable {
         int port,
         @Nullable String iFace,
         @NonNull String dbPath,
+        @Nullable ListenerPasswordAuthenticator authenticator,
         boolean push,
         boolean pull,
-        boolean deltaSync,
-        @NonNull ListenerPasswordAuthenticator authenticator)
+        boolean deltaSync)
         throws CouchbaseLiteException {
-        final int context = LISTENER_CONTEXT.reserveKey();
+        final int token = LISTENER_CONTEXT.reserveKey();
+        final C4Listener listener = new C4Listener(nativeImpl, token, authenticator);
+        LISTENER_CONTEXT.bind(token, listener);
 
-        final long hdl;
+        final long peer;
         try {
-            hdl = nativeImpl.nStartHttp(
-                context,
+            peer = nativeImpl.nStartHttp(
+                token,
                 port,
                 iFace,
                 NativeImpl.SYNC_API, // REST API not supported
@@ -170,10 +173,11 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 pull,
                 deltaSync);
         }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
+        }
 
-        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
-        LISTENER_CONTEXT.bind(context, listener);
+        listener.setPeer(peer);
 
         return listener;
     }
@@ -184,18 +188,23 @@ public class C4Listener extends C4NativePeer implements Closeable {
         int port,
         @Nullable String iFace,
         @NonNull String dbPath,
+        @Nullable ListenerPasswordAuthenticator authenticator,
         boolean push,
         boolean pull,
-        @NonNull Certificate identity,
-        @NonNull ListenerPasswordAuthenticator authenticator,
-        boolean deltaSync)
+        boolean deltaSync,
+        @NonNull Certificate serverCert,
+        @Nullable C4KeyPair keyPair)
         throws CouchbaseLiteException {
-        final int context = LISTENER_CONTEXT.reserveKey();
+        if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
-        long hdl = -1;
+        final int token = LISTENER_CONTEXT.reserveKey();
+        final C4Listener listener = new C4Listener(nativeImpl, token, authenticator);
+        LISTENER_CONTEXT.bind(token, listener);
+
+        final long peer;
         try {
-            hdl = nativeImpl.nStartTls(
-                context,
+            peer = nativeImpl.nStartTls(
+                token,
                 port,
                 iFace,
                 NativeImpl.SYNC_API, // REST API not supported
@@ -205,7 +214,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 push,
                 pull,
                 deltaSync,
-                identity.getEncoded(),
+                keyPair.getPeer(),
+                serverCert.getEncoded(),
                 false,
                 null);
         }
@@ -220,8 +230,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 CBLError.Code.TLS_CLIENT_CERT_REJECTED);
         }
 
-        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
-        LISTENER_CONTEXT.bind(context, listener);
+        listener.setPeer(peer);
 
         return listener;
     }
@@ -232,18 +241,23 @@ public class C4Listener extends C4NativePeer implements Closeable {
         int port,
         @Nullable String iFace,
         @NonNull String dbPath,
+        @Nullable ListenerCertificateAuthenticator authenticator,
         boolean push,
         boolean pull,
-        @NonNull Certificate identity,
-        @NonNull ListenerCertificateAuthenticator authenticator,
-        boolean deltaSync)
+        boolean deltaSync,
+        @NonNull Certificate serverCert,
+        @Nullable C4KeyPair keyPair)
         throws CouchbaseLiteException {
-        final int context = LISTENER_CONTEXT.reserveKey();
+        if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
-        final long hdl;
+        final int token = LISTENER_CONTEXT.reserveKey();
+        final C4Listener listener = new C4Listener(nativeImpl, token, authenticator);
+        LISTENER_CONTEXT.bind(token, listener);
+
+        final long peer;
         try {
-            hdl = nativeImpl.nStartTls(
-                context,
+            peer = nativeImpl.nStartTls(
+                token,
                 port,
                 iFace,
                 NativeImpl.SYNC_API, // REST API not supported
@@ -253,7 +267,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 push,
                 pull,
                 deltaSync,
-                identity.getEncoded(),
+                keyPair.getPeer(),
+                serverCert.getEncoded(),
                 true,
                 null);
         }
@@ -268,8 +283,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 CBLError.Code.TLS_CLIENT_CERT_REJECTED);
         }
 
-        final C4Listener listener = new C4Listener(nativeImpl, hdl, authenticator);
-        LISTENER_CONTEXT.bind(context, listener);
+        listener.setPeer(peer);
 
         return listener;
     }
@@ -279,19 +293,20 @@ public class C4Listener extends C4NativePeer implements Closeable {
     // Data members
     //-------------------------------------------------------------------------
 
+    private final int token;
     @NonNull
     private final NativeImpl impl;
-    @NonNull
+    @Nullable
     private final ListenerAuthenticator authenticator;
 
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
 
-    protected C4Listener(@NonNull NativeImpl impl, long handle, @NonNull ListenerAuthenticator authenticator) {
-        super(Preconditions.assertNotZero(handle, "companion handle"));
+    protected C4Listener(@NonNull NativeImpl impl, int token, @Nullable ListenerAuthenticator authenticator) {
+        this.token = token;
         this.impl = Preconditions.assertNotNull(impl, "companion");
-        this.authenticator = Preconditions.assertNotNull(authenticator, "authenticator");
+        this.authenticator = authenticator;
     }
 
     //-------------------------------------------------------------------------
@@ -300,8 +315,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
     @Override
     public void close() {
-        final long hdl = getPeerAndClear();
-        impl.nFree(hdl);
+        LISTENER_CONTEXT.unbind(token);
+        final long peer = getPeerAndClear();
+        if (peer == 0) { return; }
+        impl.nFree(peer);
     }
 
     public void shareDb(@NonNull String name, @NonNull C4Database db) throws CouchbaseLiteException {
@@ -338,18 +355,24 @@ public class C4Listener extends C4NativePeer implements Closeable {
     protected void finalize() throws Throwable {
         try {
             final long peer = getPeerUnchecked();
-            if (peer != 0) {
-                impl.nFree(peer);
-                Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
-            }
+            if (peer == 0) { return; }
+            LISTENER_CONTEXT.unbind(token);
+            impl.nFree(peer);
+            Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
         }
         finally { super.finalize(); }
     }
 
-    boolean authenticateBasic(@Nullable String authHeader) {
-        // !!! The password is in a base64 encoded String
-        if (authHeader == null) { return false; }
+    //-------------------------------------------------------------------------
+    // package protected methods
+    //-------------------------------------------------------------------------
 
+    boolean authenticateBasic(@Nullable String authHeader) {
+        final ListenerPasswordAuthenticator auth = (ListenerPasswordAuthenticator) authenticator;
+        if (auth == null) { return true; }
+
+        // !!! The password is now in a base64 encoded String
+        if (authHeader == null) { return false; }
         final String[] headers = authHeader.split("\\s+");
         if (!headers[0].equals(AUTH_MODE_BASIC)) {
             Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);
@@ -373,13 +396,16 @@ public class C4Listener extends C4NativePeer implements Closeable {
             // !!! The password is now in plaintext String
         }
 
-        return ((ListenerPasswordAuthenticator) authenticator).authenticate(
+        return auth.authenticate(
             StringUtils.getArrayString(creds, 0),
             StringUtils.getArrayString(creds, 1).toCharArray());
     }
 
 
     boolean authenticateCert(@Nullable byte[] clientCert) {
+        final ListenerCertificateAuthenticator auth = (ListenerCertificateAuthenticator) authenticator;
+        if (auth == null) { return true; }
+
         // ??? Handle null content
         if (clientCert == null) { throw new IllegalArgumentException("cert is null"); }
 
@@ -393,6 +419,6 @@ public class C4Listener extends C4NativePeer implements Closeable {
             return false;
         }
 
-        return ((ListenerCertificateAuthenticator) authenticator).authenticate(certs);
+        return auth.authenticate(certs);
     }
 }

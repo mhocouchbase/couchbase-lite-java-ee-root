@@ -72,8 +72,9 @@ class C4ListenerTest : PlatformBaseTest() {
             allowDeleteDb: Boolean,
             allowPush: Boolean,
             allowPull: Boolean,
-            enableDeltaSync: Boolean,
-            cert: ByteArray,
+            deltaSync: Boolean,
+            keyPair: Long,
+            serverCert: ByteArray,
             requireClientCerts: Boolean,
             rootClientCerts: ByteArray?
         ): Long = 666L
@@ -118,10 +119,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
             true,
             true,
-            true,
-            ListenerPasswordAuthenticator.create { _, _ -> true }
+            true
         )
         assertNotNull(listener)
 
@@ -134,10 +135,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
             true,
             true,
-            true,
-            ListenerPasswordAuthenticator.create { _, _ -> true }
+            true
         )
         assertNotNull(listener)
 
@@ -153,10 +154,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
             true,
             true,
-            true,
-            ListenerPasswordAuthenticator.create { _, _ -> true }
+            true
         )
         assertNotNull(listener)
 
@@ -172,10 +173,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
             true,
             true,
-            true,
-            ListenerPasswordAuthenticator.create { _, _ -> true }
+            true
         )
         assertNotNull(listener)
 
@@ -191,10 +192,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
             true,
             true,
-            true,
-            ListenerPasswordAuthenticator.create { _, _ -> true }
+            true
         )
         assertNotNull(listener)
 
@@ -213,14 +214,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -242,14 +243,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -270,14 +271,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -304,14 +305,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -338,14 +339,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -372,14 +373,14 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            true,
             ListenerPasswordAuthenticator.create { u, p ->
                 user = u
                 pwd = p
                 true
-            }
+            },
+            true,
+            true,
+            true
         )
         assertNotNull(listener)
 
@@ -398,6 +399,7 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(0, pwd?.size)
     }
 
+    @Ignore("Incomplete")
     @Test
     fun testTlsListenerCreate() {
         assertEquals(0, C4Listener.LISTENER_CONTEXT.size())
@@ -406,11 +408,12 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
+            ListenerPasswordAuthenticator.create { _, _ -> true },
+            true,
             true,
             true,
             cert,
-            ListenerPasswordAuthenticator.create() { _, _ -> true },
-            true
+            null
         )
         assertNotNull(listener)
 
@@ -427,14 +430,15 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            true,
-            true,
-            cert,
             ListenerCertificateAuthenticator.create { certs ->
                 clientCert = certs[0]
                 true
             },
-            true
+            true,
+            true,
+            true,
+            cert,
+            null
         )
         assertNotNull(listener)
 

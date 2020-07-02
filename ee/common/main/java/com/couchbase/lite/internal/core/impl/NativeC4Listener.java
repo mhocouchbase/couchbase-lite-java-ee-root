@@ -28,8 +28,6 @@ import com.couchbase.lite.internal.core.C4Listener;
 /**
  * The C4Listener companion object
  */
-// ???  Should lazily find callback methods
-//      and explicitly release them, to minimize GlobalRefs?
 public class NativeC4Listener implements C4Listener.NativeImpl {
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -62,7 +60,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         boolean push,
         boolean pull,
         boolean deltaSync,
-        @NonNull byte[] cert,
+        long keyPair,
+        @NonNull byte[] serverCert,
         boolean requireClientCerts,
         @Nullable byte[] rootClientCerts)
         throws LiteCoreException {
@@ -71,7 +70,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
             iFace,
             apis,
             context,
-            cert,
+            keyPair,
+            serverCert,
             requireClientCerts,
             rootClientCerts,
             dbPath,
@@ -108,6 +108,11 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
     @Override
     public String nGetUriFromPath(String path) { return getUriFromPath(path); }
 
+
+    //-------------------------------------------------------------------------
+    // Native Methods
+    //-------------------------------------------------------------------------
+
     @SuppressWarnings("PMD.ExcessiveParameterList")
     private static native long startHttp(
         int port,
@@ -128,6 +133,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         String networkInterface,
         int apis,
         long context,
+        long keyPair,
         byte[] cert,
         boolean requireClientCerts,
         byte[] rootClientCerts,
