@@ -18,110 +18,91 @@ package com.couchbase.lite.internal;
 import android.support.annotation.NonNull;
 import android.support.annotation.VisibleForTesting;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
-import com.couchbase.lite.internal.utils.PlatformUtils;
+import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.internal.utils.StringUtils;
 
 
-public class AbstractTLSIdentity {
-    public enum CertAttribute {
-        COMMON_NAME("CN"),
-        PSEUDONYM("pseudonym"),
-        GIVEN_NAME("GN"),
-        SURNAME("SN"),
-        ORGANIZATION("O"),
-        ORGANIZATION_UNIT("OU"),
-        POSTAL_ADDRESS("postalAddress"),
-        LOCALITY("locality"),
-        POSTAL_CODE("postalCode"),
-        STATE_OR_PROVINCE("ST"),
-        COUNTRY("C"),
-        EMAIL_ADDRESS("rfc822Name"),
-        HOSTNAME("dNSName"),
-        URL("uniformResourceIdentifier"),
-        IP_ADDRESS("iPAddress"),
-        REGISTERED_ID("registeredID");
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
+public abstract class AbstractTLSIdentity {
+    public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
 
-        final String code;
+    protected static final KeyStoreManager KEY_STORE_MANAGER = new KeyStoreManager();
 
-        CertAttribute(String code) { this.code = code; }
+    @NonNull
+    public static String createAnonymousServerCertificate() throws CouchbaseLiteException {
+        final String alias = StringUtils.getUniqueName(ANON_IDENTITY_ALIAS, 8);
 
-        public String getCode() { return code; }
+        final Map<KeyStoreManager.CertAttribute, String> attributes = new HashMap<>();
+        attributes.put(KeyStoreManager.CertAttribute.COMMON_NAME, "Couchbase Lite");
+        attributes.put(KeyStoreManager.CertAttribute.ORGANIZATION, "Couchbase");
+        attributes.put(KeyStoreManager.CertAttribute.ORGANIZATION_UNIT, "Mobile");
+        attributes.put(KeyStoreManager.CertAttribute.EMAIL_ADDRESS, "lite@couchbase.com");
+
+        final Calendar expiration = Calendar.getInstance();
+        expiration.add(Calendar.YEAR, 3);
+
+        KEY_STORE_MANAGER.createCertEntry(alias, true, attributes, expiration.getTime());
+
+        return alias;
     }
 
-    //  !!! Temporary hack...
-    protected static List<Certificate> readCerts() {
-        final List<Certificate> certs = new ArrayList<>();
-        try {
-            final KeyStore keystore = KeyStore.getInstance("PKCS12");
-            keystore.load(PlatformUtils.getAsset("certs.p12"), "123".toCharArray());
-            // Android has a funny idea of the alias name...
-            certs.add(keystore.getCertificate(keystore.aliases().nextElement()));
-        }
-        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException ignore) { }
-
-        return certs;
-    }
-
-    // !!! Temporary hack...
     @NonNull
-    protected static C4KeyPair getKeys() throws CouchbaseLiteException {
-        final Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.YEAR, 1);
-        final KeyPair keys = CouchbaseLiteInternal.getKeyManager().generateKeyPair(
-            "identity",
-            KeyManager.KeyAlgorithm.RSA,
-            KeyManager.KeySize.BIT_2048,
-            BigInteger.TEN,
-            calendar.getTime());
-        if (keys == null) { throw new CouchbaseLiteException("Could not create key pair"); }
-        return C4KeyPair.createKeyPair(keys, KeyManager.KeyAlgorithm.RSA);
-    }
-
-
+    private final String keyAlias;
     @NonNull
-    private final List<Certificate> certs;
-
+    private final List<Certificate> certificates;
     @NonNull
-    private final C4KeyPair keys;
-
-    @NonNull
-    private final Date expiration;
+    private final C4KeyPair keyPair;
 
     @VisibleForTesting
-    protected AbstractTLSIdentity() throws CouchbaseLiteException {
-        this(readCerts(), getKeys(), new Date(2020, 12, 30));
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings("NP_STORE_INTO_NONNULL_FIELD")
+    protected AbstractTLSIdentity() {
+        keyAlias = "test";
+        certificates = new ArrayList<>();
+        keyPair = null;
     }
 
-    protected AbstractTLSIdentity(@NonNull List<Certificate> certs, @NonNull C4KeyPair keys, @NonNull Date expiration) {
-        this.certs = Preconditions.assertNotEmpty(certs, "certificates");
-        this.keys = Preconditions.assertNotNull(keys, "key pair");
-        this.expiration = Preconditions.assertNotNull(expiration, "expiration");
+    protected AbstractTLSIdentity(@NonNull String keyAlias, @NonNull List<Certificate> certificates)
+        throws CouchbaseLiteException {
+        this.keyAlias = keyAlias;
+        this.certificates = Preconditions.assertNotEmpty(certificates, "certificates");
+        final PublicKey key = certificates.get(0).getPublicKey();
+        Log.d(LogDomain.LISTENER, "creating identity for key algorithm: " + key.getAlgorithm());
+        this.keyPair = C4KeyPair.createKeyPair(
+            keyAlias,
+            KeyStoreManager.KeyAlgorithm.RSA,
+            (KeyStoreManager.KeySize.getKeySize(((RSAKey) key).getModulus().bitLength())));
     }
 
     @NonNull
-    public List<Certificate> getCerts() { return certs; }
+    public List<Certificate> getCerts() { return certificates; }
 
     @NonNull
-    public Certificate getCert() { return certs.get(0); }
+    public Certificate getCert() { return certificates.get(0); }
 
     @NonNull
-    public C4KeyPair getKeyPair() { return keys; }
+    public C4KeyPair getKeyPair() { return keyPair; }
 
     @NonNull
-    public Date getExpiration() { return new Date(expiration.getTime()); }
+    public Date getExpiration() { return ((X509Certificate) certificates.get(0)).getNotAfter(); }
+
+    @NonNull
+    public String getAlias() { return keyAlias; }
 }

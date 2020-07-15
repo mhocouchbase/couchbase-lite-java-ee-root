@@ -198,6 +198,7 @@ android {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
+                "src/androidTest/java",                          // EE Android tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets

@@ -136,6 +136,7 @@ java {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_JAVA_DIR}/test/java",              // Common Java tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
+                "src/test/java",                                 // EE Java tests
             ]
             resources.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets

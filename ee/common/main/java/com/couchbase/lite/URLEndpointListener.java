@@ -22,12 +22,8 @@ import android.support.annotation.Nullable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
 
@@ -64,18 +60,9 @@ public class URLEndpointListener {
             final TLSIdentity id = config.identity;
             if (id != null) { identity = id; }
             else {
-                final Map<AbstractTLSIdentity.CertAttribute, String> attributes = new HashMap<>();
-                attributes.put(AbstractTLSIdentity.CertAttribute.COMMON_NAME, "Couchbase Lite");
-                attributes.put(AbstractTLSIdentity.CertAttribute.ORGANIZATION, "Couchbase");
-                attributes.put(AbstractTLSIdentity.CertAttribute.ORGANIZATION_UNIT, "Mobile");
-                attributes.put(AbstractTLSIdentity.CertAttribute.EMAIL_ADDRESS, "lite@couchbase.com");
-
-                identity = TLSIdentity.createIdentity(
-                    true,
-                    attributes,
-                    new Date(2020, 12, 30),
-                    "couchbase",
-                    "123".toCharArray());
+                final TLSIdentity anonId = TLSIdentity.getSavedAnonymousIdentity();
+                if (anonId != null) { identity = anonId; }
+                else { identity = TLSIdentity.createAnonymousServerIdentity(); }
             }
         }
     }
@@ -93,9 +80,7 @@ public class URLEndpointListener {
     public URLEndpointListenerConfiguration getConfig() { return config; }
 
     public int getPort() {
-        synchronized (lock) {
-            return (c4Listener == null) ? -1 : getCachedPort(c4Listener);
-        }
+        synchronized (lock) { return (c4Listener == null) ? -1 : getCachedPort(c4Listener); }
     }
 
     /**
@@ -132,9 +117,7 @@ public class URLEndpointListener {
      */
     @Nullable
     public ConnectionStatus getStatus() {
-        synchronized (lock) {
-            return (c4Listener == null) ? null : c4Listener.getConnectionStatus();
-        }
+        synchronized (lock) { return (c4Listener == null) ? null : c4Listener.getConnectionStatus(); }
     }
 
     /**

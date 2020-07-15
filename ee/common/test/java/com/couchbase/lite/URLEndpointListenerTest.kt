@@ -14,24 +14,20 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.utils.PlatformUtils
+import com.couchbase.lite.internal.AbstractKeyStoreManager
+import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.utils.StringUtils
 import org.junit.After
-import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Ignore
 import org.junit.Test
-import java.io.IOException
 import java.net.URI
-import java.security.KeyStore
-import java.security.KeyStoreException
-import java.security.NoSuchAlgorithmException
-import java.security.UnrecoverableKeyException
-import java.security.cert.Certificate
-import java.security.cert.CertificateException
+import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
 
 
-private const val CLIENT_CERT_LABEL = "CBL-Client-Cert"
+private const val KEY_ALIAS = "test-alias"
+
 
 class URLEndpointListenerTest : BaseReplicatorTest() {
     private var testListener: URLEndpointListener? = null
@@ -59,27 +55,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     @Test
-    fun testPasswordAuthenticatorNullClientAuthenticator() {
-        try {
-            val listener = listenHttp(
-                false,
-                ListenerPasswordAuthenticator.create { username, password ->
-                    "daniel" == username && ("123" == String(password))
-                })
-
-            run(listener.endpointUri(), true, true, false, null)
-
-            Assert.fail("Expected exception {CouchbaseLite,10401,'Unauthorized'}")
-        } catch (e: CouchbaseLiteException) {
-            assertEquals(10401, e.code)
-        }
-    }
-
-    @Test
     fun testPasswordAuthenticatorNullServerAuthenticator() {
         val listener = listenHttp(false, null)
-
-        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
+        run(listener.endpointUri(), true, true, false, BasicAuthenticator("Bandersnatch", "twas brillig"))
     }
 
     @Test
@@ -123,21 +101,29 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("CouchbaseLiteException{CouchbaseLite,1,'assertion failed'}")
+    @Ignore("unimplemented")
     @Test
     fun testBasicAuthWithTls() {
-        val listener = listenHttp(true, ListenerPasswordAuthenticator.create { _, _ -> true })
+        val listener = listenTls(
+            TLSIdentity.createAnonymousServerIdentity(),
+            ListenerPasswordAuthenticator.create { _, _ -> true })
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("CouchbaseLiteException{CouchbaseLite,2,'kC4PrivateKeyFromCert not implemented'}")
+    @Ignore("unimplemented")
     @Test
     fun testCertAuthenticator() {
-        val listener = listenTls(
-            TLSIdentity.getIdentity("foo", "bar".toCharArray()),
-            ListenerCertificateAuthenticator.create { certs -> true })
-        run(listener.endpointUri(), true, true, false, null)
+        val identity = createIdentity()
+        try {
+            val listener = listenTls(
+                identity,
+                ListenerCertificateAuthenticator.create { true })
+            run(listener.endpointUri(), true, true, false, null)
+        } finally {
+            deleteIdentity(identity)
+        }
     }
+
 
 /*
     @Test
@@ -222,9 +208,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         return listener
     }
 
-
-    private fun listenTls(identity: TLSIdentity?, auth: ListenerCertificateAuthenticator): URLEndpointListener {
-
+    private fun listenTls(identity: TLSIdentity?, auth: ListenerAuthenticator): URLEndpointListener {
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
             .setPort(portFactory.getAndIncrement())
@@ -240,20 +224,24 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         return listener
     }
 
-    @Throws(
-        KeyStoreException::class,
-        CertificateException::class,
-        NoSuchAlgorithmException::class,
-        IOException::class,
-        UnrecoverableKeyException::class
-    )
-    private fun getCert(): Certificate {
-        val keystore = KeyStore.getInstance("PKCS12")
-        keystore.load(PlatformUtils.getAsset("certs.p12"), "123".toCharArray())
-        assertEquals(1, keystore.size())
+    private fun createIdentity(): TLSIdentity {
+        val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
 
-        // Android has a funny idea of the alias name...
-        return keystore.getCertificate(keystore.aliases().nextElement())
+        val attributes = mapOf(
+            AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "Couchbase Lite",
+            AbstractKeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
+            AbstractKeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
+            AbstractKeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+        )
+
+        val expiration = Calendar.getInstance()
+        expiration.add(Calendar.YEAR, 3)
+        return TLSIdentity.createIdentity(alias, true, attributes, expiration.time)
+    }
+
+    private fun deleteIdentity(identity: TLSIdentity) {
+        val keyStoreManager = KeyStoreManager()
+        keyStoreManager.deleteEntries { alias -> alias == identity.alias }
     }
 }
 

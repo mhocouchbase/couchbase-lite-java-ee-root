@@ -16,25 +16,27 @@
 package com.couchbase.lite.internal.core;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
-import java.security.KeyPair;
+import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.interfaces.RSAKey;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.AbstractKeyStoreManager;
 import com.couchbase.lite.internal.CBLStatus;
-import com.couchbase.lite.internal.KeyManager;
+import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
@@ -60,39 +62,155 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
     @NonNull
     @VisibleForTesting
+    static KeyStoreManager keyStoreManager = new KeyStoreManager();
+
+    @NonNull
+    @VisibleForTesting
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
-    private static final Map<KeyManager.KeyAlgorithm, Byte> ALGORITHM_TO_C4;
-
+    private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
     static {
-        final Map<KeyManager.KeyAlgorithm, Byte> m = new HashMap<>();
-        m.put(KeyManager.KeyAlgorithm.RSA, (byte) 0x00);
-        ALGORITHM_TO_C4 = Collections.unmodifiableMap(m);
+        final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
+        m.put(KeyStoreManager.KeyAlgorithm.RSA, (byte) 0x00);
+        KEY_ALGORITHM_TO_C4 = Collections.unmodifiableMap(m);
     }
 
-    private static byte getC4Algorithm(KeyManager.KeyAlgorithm algorithm) {
-        final Byte c4Algorithm = ALGORITHM_TO_C4.get(algorithm);
-        if (c4Algorithm == null) { throw new IllegalArgumentException("Unrecognized encryption algorithm"); }
-        return c4Algorithm;
+    private static final Map<Integer, AbstractKeyStoreManager.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+    static {
+        final Map<Integer, AbstractKeyStoreManager.SignatureDigestAlgorithm> m = new HashMap<>();
+        m.put(0, AbstractKeyStoreManager.SignatureDigestAlgorithm.NONE);
+        m.put(4, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA1);
+        m.put(5, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA224);
+        m.put(6, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA256);
+        m.put(7, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA384);
+        m.put(8, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA512);
+        m.put(9, AbstractKeyStoreManager.SignatureDigestAlgorithm.RIPEMD160);
+        C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
-
+    /**
+     * Convenience method for Android, which has only one safe keystore
+     * and doesn't use passwords for keys.
+     *
+     * @param keyAlias  the alias by which the key is known to the keystore
+     * @param algorithm key algorithm (must be KeyManager.KeyAlgorithm.RSA)
+     * @param keySize   key size
+     * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
+     * @throws CouchbaseLiteException on error
+     */
     public static C4KeyPair createKeyPair(
-        @NonNull KeyPair keys,
-        @NonNull KeyManager.KeyAlgorithm algorithm)
+        @NonNull String keyAlias,
+        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
+        KeyStoreManager.KeySize keySize)
         throws CouchbaseLiteException {
+        return createKeyPair(null, keyAlias, null, algorithm, keySize);
+    }
+
+    /**
+     * Convenience method for Android, which has only one safe keystore
+     * and doesn't use passwords for keys.
+     *
+     * @param keyStore    the KeyStore object containing the cert and key pair
+     * @param keyAlias    the alias by which the key is known to the keystore
+     * @param keyPassword the password protecting the key
+     * @param algorithm   key algorithm (must be KeyManager.KeyAlgorithm.RSA)
+     * @param keySize     key size
+     * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
+     * @throws CouchbaseLiteException on error
+     */
+    public static C4KeyPair createKeyPair(
+        @Nullable KeyStore keyStore,
+        @NonNull String keyAlias,
+        @Nullable char[] keyPassword,
+        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
+        KeyStoreManager.KeySize keySize)
+        throws CouchbaseLiteException {
+        char[] keyPwd = null;
+        if (keyPassword != null) {
+            keyPwd = new char[keyPassword.length];
+            System.arraycopy(keyPassword, 0, keyPwd, 0, keyPwd.length);
+        }
+
         final int token = KEY_PAIR_CONTEXT.reserveKey();
-        final C4KeyPair keyPair = new C4KeyPair(nativeImpl, token, keys);
+        final C4KeyPair keyPair = new C4KeyPair(nativeImpl, token, keyStore, keyAlias, keyPwd);
         KEY_PAIR_CONTEXT.bind(token, keyPair);
 
-        final int keyBits = ((RSAKey) keys.getPublic()).getModulus().bitLength();
-
         final long peer;
-        try { peer = nativeImpl.nFromExternal(getC4Algorithm(algorithm), keyBits, token); }
+        try { peer = nativeImpl.nFromExternal(getC4KeyAlgorithm(algorithm), keySize.getBitLength(), token); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
 
         keyPair.setPeer(peer);
 
         return keyPair;
+    }
+
+    //-------------------------------------------------------------------------
+    // Native callback methods
+    //-------------------------------------------------------------------------
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    @Nullable
+    static byte[] getKeyDataCallback(long token) {
+        final C4KeyPair keyPair = getKeyPair(token);
+        if (keyPair == null) { return null; }
+        return keyStoreManager.getKeyData(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+    }
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    @Nullable
+    static byte[] decryptCallback(long token, @NonNull byte[] data) {
+        final C4KeyPair keyPair = getKeyPair(token);
+        if (keyPair == null) { return null; }
+        return keyStoreManager.decrypt(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, data);
+    }
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    @Nullable
+    static byte[] signKeyCallback(long token, int digestAlgorithm, @NonNull byte[] data) {
+        final C4KeyPair keyPair = getKeyPair(token);
+        if (keyPair == null) { return null; }
+
+        final AbstractKeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
+
+        return keyStoreManager.signKey(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, algorithm, data);
+    }
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    static void freeCallback(long token) {
+        final C4KeyPair keyPair = getKeyPair(token);
+        if (keyPair == null) { return; }
+        keyStoreManager.free(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+    }
+
+    //-------------------------------------------------------------------------
+    // Private static methods
+    //-------------------------------------------------------------------------
+
+    private static C4KeyPair getKeyPair(long token) {
+        Log.d(LogDomain.LISTENER, "get key pair @" + token);
+
+        final C4KeyPair keyPair = KEY_PAIR_CONTEXT.getObjFromContext(token);
+        if (keyPair != null) { return keyPair; }
+
+        Log.w(LogDomain.LISTENER, "Could not find the key pair @" + token);
+        return null;
+    }
+
+    private static byte getC4KeyAlgorithm(KeyStoreManager.KeyAlgorithm algorithm) {
+        final Byte c4Algorithm = KEY_ALGORITHM_TO_C4.get(algorithm);
+        if (c4Algorithm == null) { throw new IllegalArgumentException("Unrecognized encryption algorithm"); }
+        return c4Algorithm;
+    }
+
+    private static AbstractKeyStoreManager.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
+        final AbstractKeyStoreManager.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
+        if (algorithm == null) {
+            throw new IllegalArgumentException("Unrecognized algorithm algorithm: " + digestAlgorithm);
+        }
+        return algorithm;
     }
 
 
@@ -103,18 +221,31 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     private final int token;
     @NonNull
     private final C4KeyPair.NativeImpl impl;
+    @SuppressFBWarnings("SE_BAD_FIELD")
+    @Nullable
+    private final KeyStore keyStore;
     @NonNull
-    private final KeyPair keys;
+    private final String keyAlias;
+    @Nullable
+    private final char[] keyPassword;
 
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
 
-    private C4KeyPair(@NonNull C4KeyPair.NativeImpl impl, int token, @NonNull KeyPair keys) {
+    @SuppressWarnings("PMD.ArrayIsStoredDirectly")
+    private C4KeyPair(
+        @NonNull C4KeyPair.NativeImpl impl,
+        int token,
+        @Nullable KeyStore keyStore,
+        @NonNull String keyAlias,
+        @Nullable char[] keyPassword) {
         super();
         this.impl = impl;
         this.token = token;
-        this.keys = keys;
+        this.keyStore = keyStore;
+        this.keyAlias = keyAlias;
+        this.keyPassword = keyPassword;
     }
 
     //-------------------------------------------------------------------------
@@ -122,19 +253,20 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     public Certificate generateSelfSignedCertificate(
-        @NonNull KeyManager.KeyAlgorithm algorithm,
-        @NonNull Map<AbstractTLSIdentity.CertAttribute, String> nameComponents,
-        @NonNull KeyManager.CertUsage usage) {
+        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
+        KeyStoreManager.KeySize keySize,
+        @NonNull Map<KeyStoreManager.CertAttribute, String> nameComponents,
+        @NonNull KeyStoreManager.CertUsage usage) {
         int i = 0;
         final String[][] components = new String[nameComponents.size()][];
-        for (Map.Entry<AbstractTLSIdentity.CertAttribute, String> component: nameComponents.entrySet()) {
-            components[i++] = new String[] { component.getKey().getCode(), component.getValue() };
+        for (Map.Entry<KeyStoreManager.CertAttribute, String> component: nameComponents.entrySet()) {
+            components[i++] = new String[] {component.getKey().getCode(), component.getValue()};
         }
 
         final byte[] data = impl.nGenerateSelfSignedCertificate(
             getPeer(),
-            getC4Algorithm(algorithm),
-            keySize(),
+            getC4KeyAlgorithm(algorithm),
+            keySize.getBitLength(),
             components,
             usage.getCode());
 
@@ -174,6 +306,4 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         }
         finally { super.finalize(); }
     }
-
-    private int keySize() { return ((RSAKey) keys.getPublic()).getModulus().bitLength(); }
 }

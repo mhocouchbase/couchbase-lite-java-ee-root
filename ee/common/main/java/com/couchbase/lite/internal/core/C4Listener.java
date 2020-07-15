@@ -368,11 +368,13 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     boolean authenticateBasic(@Nullable String authHeader) {
+         // !!! The password is now in a base64 encoded String
+
         final ListenerPasswordAuthenticator auth = (ListenerPasswordAuthenticator) authenticator;
         if (auth == null) { return true; }
 
-        // !!! The password is now in a base64 encoded String
         if (authHeader == null) { return false; }
+
         final String[] headers = authHeader.split("\\s+");
         if (!headers[0].equals(AUTH_MODE_BASIC)) {
             Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);

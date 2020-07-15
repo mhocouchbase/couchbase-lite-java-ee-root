@@ -17,16 +17,22 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 
+import java.io.IOException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
-import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.KeyStoreManager;
+import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.PlatformUtils;
 
 
 public final class TLSIdentity extends AbstractTLSIdentity {
@@ -41,30 +47,45 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     public static TLSIdentity getIdentity(
         @NonNull KeyStore keyStore,
         @NonNull String alias,
-        @Nullable char[] keyPassword)
-        throws CouchbaseLiteException {
+        @Nullable char[] keyPassword) {
         return null;
     }
 
     @NonNull
     public static TLSIdentity createIdentity(
-        boolean isServer,
-        @NonNull Map<AbstractTLSIdentity.CertAttribute, String> attributes,
-        @Nullable Date expiration,
         @NonNull String alias,
-        @Nullable char[] keyPassword)
+        boolean isServer,
+        @NonNull Map<KeyStoreManager.CertAttribute, String> attributes,
+        @NonNull Date expiration)
         throws CouchbaseLiteException {
         return new TLSIdentity();
     }
 
     public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException { }
 
+    @Nullable
+    static TLSIdentity getSavedAnonymousIdentity() { return null; }
 
-    @VisibleForTesting
-    TLSIdentity() throws CouchbaseLiteException { super(); }
+    @NonNull
+    static TLSIdentity createAnonymousServerIdentity() throws CouchbaseLiteException { return new TLSIdentity(); }
 
-    TLSIdentity(@NonNull List<Certificate> certs, @NonNull C4KeyPair keys, @NonNull Date expiration) {
-        super(certs, keys, expiration);
+
+    public TLSIdentity() throws CouchbaseLiteException { super("couchbase", loadCerts()); }
+
+    // !!! DELETE ME
+    @NonNull
+    private static List<Certificate> loadCerts() {
+        final List<Certificate> certs = new ArrayList<>();
+        try {
+            final KeyStore keystore = KeyStore.getInstance("PKCS12");
+            keystore.load(PlatformUtils.getAsset("teststore.jks"), "password".toCharArray());
+            certs.add(keystore.getCertificate("couchbase"));
+        }
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            Log.d(LogDomain.LISTENER, "can't load keystore", e);
+        }
+
+        return certs;
     }
 }
 

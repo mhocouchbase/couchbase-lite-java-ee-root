@@ -16,36 +16,32 @@
 package com.couchbase.lite.internal
 
 import com.couchbase.lite.PlatformBaseTest
-import com.couchbase.lite.internal.AbstractTLSIdentity
-import com.couchbase.lite.internal.CouchbaseLiteInternal
-import com.couchbase.lite.internal.KeyManager
 import com.couchbase.lite.internal.core.C4KeyPair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
-import java.math.BigInteger
 import java.security.interfaces.RSAKey
 import java.util.Calendar
 
 class KeyManagerTest : PlatformBaseTest() {
-    private lateinit var keyManager: KeyManager
+    private lateinit var keyManager: KeyStoreManager
 
     @Before
     fun setUpExecutionServiceTest() {
-        keyManager = CouchbaseLiteInternal.getKeyManager()
+        keyManager = KeyStoreManager()
     }
 
     @Test
     fun testCreateKeyPair() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateKeyPair(
+        val keys = keyManager.generateRSAKeyPair(
             "foo",
-            KeyManager.KeyAlgorithm.RSA,
-            KeyManager.KeySize.BIT_2048,
-            BigInteger.TEN,
+            true,
+            AbstractKeyStoreManager.KeySize.BIT_2048,
+            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
@@ -57,43 +53,56 @@ class KeyManagerTest : PlatformBaseTest() {
     fun testCreateC4KeyPair() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateKeyPair(
+        val keys = keyManager.generateRSAKeyPair(
             "foo",
-            KeyManager.KeyAlgorithm.RSA,
-            KeyManager.KeySize.BIT_2048,
-            BigInteger.TEN,
+            true,
+            AbstractKeyStoreManager.KeySize.BIT_2048,
+            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
-
         assertNotNull(keys)
-        val c4Keys = C4KeyPair.createKeyPair(keys!!, KeyManager.KeyAlgorithm.RSA)
+
+        val c4Keys = C4KeyPair.createKeyPair(
+            "foo",
+            AbstractKeyStoreManager.KeyAlgorithm.RSA,
+            AbstractKeyStoreManager.KeySize.BIT_2048
+        )
         assertNotNull(c4Keys)
     }
 
-    @Ignore("LiteCoreException{domain=1, code=22, msg=Can't parse certificate request data (PK - The pubkey tag or value is invalid (only RSA and EC are supported) : ASN1 - Data is invalid. ())")
+    @Ignore("java.security.InvalidKeyException: Unsupported key algorithm: RSA. OnlyEC supported")
     @Test
     fun testCreateCertificate() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateKeyPair(
+        val keys = keyManager.generateRSAKeyPair(
             "foo",
-            KeyManager.KeyAlgorithm.RSA,
-            KeyManager.KeySize.BIT_2048,
-            BigInteger.TEN,
+            true,
+            AbstractKeyStoreManager.KeySize.BIT_2048,
+            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
 
-        val c4Keys = C4KeyPair.createKeyPair(keys!!, KeyManager.KeyAlgorithm.RSA)
+        val c4Keys = C4KeyPair.createKeyPair(
+            "foo",
+            AbstractKeyStoreManager.KeyAlgorithm.RSA,
+            AbstractKeyStoreManager.KeySize.BIT_2048
+        )
         assertNotNull(c4Keys)
 
-        val subjectName: Map<AbstractTLSIdentity.CertAttribute, String> = mapOf(
-            AbstractTLSIdentity.CertAttribute.COMMON_NAME to "CouchbaseLite",
-            AbstractTLSIdentity.CertAttribute.ORGANIZATION to "Couchbase",
-            AbstractTLSIdentity.CertAttribute.ORGANIZATION_UNIT to "Mobile",
-            AbstractTLSIdentity.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+        val subjectName: Map<AbstractKeyStoreManager.CertAttribute, String> = mapOf(
+            AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "CouchbaseLite",
+            AbstractKeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
+            AbstractKeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
+            AbstractKeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
-        c4Keys.generateSelfSignedCertificate(KeyManager.KeyAlgorithm.RSA, subjectName, KeyManager.CertUsage.TLS_SERVER)
+        c4Keys.generateSelfSignedCertificate(
+            AbstractKeyStoreManager.KeyAlgorithm.RSA,
+            AbstractKeyStoreManager.KeySize.BIT_2048,
+            subjectName,
+            AbstractKeyStoreManager.CertUsage.TLS_SERVER
+        )
     }
 }

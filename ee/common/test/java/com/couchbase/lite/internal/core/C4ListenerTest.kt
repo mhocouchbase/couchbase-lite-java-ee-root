@@ -44,8 +44,6 @@ private const val USER_NAME = "G’Kar"
 private const val PASSWORD = "!#*@£ᘺ"
 
 class C4ListenerTest : PlatformBaseTest() {
-
-
     private val impl = object : C4Listener.NativeImpl {
         @Throws(LiteCoreException::class)
         override fun nStartHttp(
@@ -63,7 +61,7 @@ class C4ListenerTest : PlatformBaseTest() {
 
         @Throws(LiteCoreException::class)
         override fun nStartTls(
-            context: Long,
+            token: Long,
             port: Int,
             iFace: String?,
             apis: Int,
@@ -459,7 +457,7 @@ class C4ListenerTest : PlatformBaseTest() {
     )
     private fun getCert(): Certificate {
         val keystore = KeyStore.getInstance("PKCS12")
-        keystore.load(PlatformUtils.getAsset("certs.p12"), "123".toCharArray())
+        keystore.load(PlatformUtils.getAsset("teststore.p12"), "password".toCharArray())
         assertEquals(1, keystore.size())
 
         // Android has a funny idea of the alias name...
