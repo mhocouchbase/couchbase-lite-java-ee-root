@@ -34,7 +34,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.AbstractKeyStoreManager;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
@@ -62,10 +61,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
     @NonNull
     @VisibleForTesting
-    static KeyStoreManager keyStoreManager = new KeyStoreManager();
-
-    @NonNull
-    @VisibleForTesting
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
@@ -75,16 +70,16 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         KEY_ALGORITHM_TO_C4 = Collections.unmodifiableMap(m);
     }
 
-    private static final Map<Integer, AbstractKeyStoreManager.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+    private static final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
     static {
-        final Map<Integer, AbstractKeyStoreManager.SignatureDigestAlgorithm> m = new HashMap<>();
-        m.put(0, AbstractKeyStoreManager.SignatureDigestAlgorithm.NONE);
-        m.put(4, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA1);
-        m.put(5, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA224);
-        m.put(6, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA256);
-        m.put(7, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA384);
-        m.put(8, AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA512);
-        m.put(9, AbstractKeyStoreManager.SignatureDigestAlgorithm.RIPEMD160);
+        final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> m = new HashMap<>();
+        m.put(0, KeyStoreManager.SignatureDigestAlgorithm.NONE);
+        m.put(4, KeyStoreManager.SignatureDigestAlgorithm.SHA1);
+        m.put(5, KeyStoreManager.SignatureDigestAlgorithm.SHA224);
+        m.put(6, KeyStoreManager.SignatureDigestAlgorithm.SHA256);
+        m.put(7, KeyStoreManager.SignatureDigestAlgorithm.SHA384);
+        m.put(8, KeyStoreManager.SignatureDigestAlgorithm.SHA512);
+        m.put(9, KeyStoreManager.SignatureDigestAlgorithm.RIPEMD160);
         C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
     /**
@@ -153,7 +148,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static byte[] getKeyDataCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
-        return keyStoreManager.getKeyData(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+        return KeyStoreManager.getInstance().getKeyData(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -162,7 +157,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static byte[] decryptCallback(long token, @NonNull byte[] data) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
-        return keyStoreManager.decrypt(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, data);
+        return KeyStoreManager.getInstance().decrypt(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, data);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -172,9 +167,10 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
 
-        final AbstractKeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
+        final KeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
 
-        return keyStoreManager.signKey(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, algorithm, data);
+        return KeyStoreManager.getInstance()
+            .signKey(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, algorithm, data);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -182,7 +178,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static void freeCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return; }
-        keyStoreManager.free(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+        KeyStoreManager.getInstance().free(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
     }
 
     //-------------------------------------------------------------------------
@@ -205,8 +201,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         return c4Algorithm;
     }
 
-    private static AbstractKeyStoreManager.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
-        final AbstractKeyStoreManager.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
+    private static KeyStoreManager.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
+        final KeyStoreManager.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
         if (algorithm == null) {
             throw new IllegalArgumentException("Unrecognized algorithm algorithm: " + digestAlgorithm);
         }

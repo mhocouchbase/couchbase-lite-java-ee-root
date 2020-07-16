@@ -29,7 +29,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.internal.utils.Fn;
 
 
-public class KeyStoreManager extends AbstractKeyStoreManager {
+public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Nullable
     @Override
     public byte[] getKeyData(@Nullable KeyStore keyStore, @NonNull String keyAlias, @Nullable char[] keyPassword) {

@@ -14,7 +14,6 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.AbstractKeyStoreManager
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.utils.StringUtils
 import org.junit.After
@@ -228,10 +227,10 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
 
         val attributes = mapOf(
-            AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "Couchbase Lite",
-            AbstractKeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
-            AbstractKeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
-            AbstractKeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+            KeyStoreManager.CertAttribute.COMMON_NAME to "Couchbase Lite",
+            KeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
+            KeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
+            KeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
         val expiration = Calendar.getInstance()
@@ -240,8 +239,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        val keyStoreManager = KeyStoreManager()
-        keyStoreManager.deleteEntries { alias -> alias == identity.alias }
+        KeyStoreManager.getInstance().deleteEntries { alias -> alias == identity.alias }
     }
 }
 

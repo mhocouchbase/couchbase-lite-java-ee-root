@@ -27,12 +27,15 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.internal.utils.Fn;
 
 
-public abstract class AbstractKeyStoreManager {
+public abstract class KeyStoreManager {
+    public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
+
     public enum KeyAlgorithm {RSA}
 
     public enum KeySize {
@@ -104,8 +107,21 @@ public abstract class AbstractKeyStoreManager {
 
     public enum SignatureDigestAlgorithm {NONE, SHA1, SHA224, SHA256, SHA384, SHA512, RIPEMD160}
 
+    private static final AtomicReference<KeyStoreManager> INSTANCE = new AtomicReference<>();
+
+    // PMD is just not very clever...
+    @SuppressWarnings("PMD.SingletonClassReturningNewInstance")
+    public static KeyStoreManager getInstance() {
+        final KeyStoreManager instance = INSTANCE.get();
+        if (instance != null) { return instance; }
+
+        INSTANCE.compareAndSet(null, new KeyStoreManagerDelegate());
+        return INSTANCE.get();
+    }
+
+
     //-------------------------------------------------------------------------
-    // Implementation
+    // Manager Methods
     //-------------------------------------------------------------------------
 
     /**

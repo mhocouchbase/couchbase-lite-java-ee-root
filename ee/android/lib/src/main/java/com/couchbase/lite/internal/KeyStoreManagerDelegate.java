@@ -56,21 +56,29 @@ import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 
 
-public class KeyStoreManager extends AbstractKeyStoreManager {
-    public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
+public class KeyStoreManagerDelegate extends KeyStoreManager {
     private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
 
-    private static final Map<AbstractKeyStoreManager.SignatureDigestAlgorithm, String> DIGEST_ALGORITHM_TO_JAVA;
+    private static final Map<KeyStoreManager.SignatureDigestAlgorithm, String> DIGEST_ALGORITHM_TO_JAVA;
     static {
-        final Map<AbstractKeyStoreManager.SignatureDigestAlgorithm, String> m = new HashMap<>();
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.NONE, "NONEwithRSA");
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA1, "SHA1withRSA");
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA224, "SHA224withRSA");
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA256, "SHA256withRSA");
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA384, "SHA384withRSA");
-        m.put(AbstractKeyStoreManager.SignatureDigestAlgorithm.SHA512, "SHA384withRSA");
+        final Map<KeyStoreManager.SignatureDigestAlgorithm, String> m = new HashMap<>();
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.NONE, "NONEwithRSA");
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA1, "SHA1withRSA");
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA224, "SHA224withRSA");
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA256, "SHA256withRSA");
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA384, "SHA384withRSA");
+        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA512, "SHA384withRSA");
         DIGEST_ALGORITHM_TO_JAVA = Collections.unmodifiableMap(m);
     }
+
+
+    //-------------------------------------------------------------------------
+    // Implementation
+    //-------------------------------------------------------------------------
+
+    // should be called only from KeyStoreManager.getInstance()
+    KeyStoreManagerDelegate() { }
+
     @Nullable
     @Override
     public byte[] getKeyData(
@@ -177,7 +185,7 @@ public class KeyStoreManager extends AbstractKeyStoreManager {
             (isServer) ? KeyStoreManager.CertUsage.TLS_SERVER : KeyStoreManager.CertUsage.TLS_CLIENT);
 
         try {
-            final KeyStore keystore = KeyStore.getInstance(KeyStoreManager.ANDROID_KEY_STORE);
+            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
             keystore.load(null);
             keystore.setCertificateEntry(alias, cert);
         }
@@ -225,7 +233,7 @@ public class KeyStoreManager extends AbstractKeyStoreManager {
         @Nullable char[] keyPassword)
         throws CouchbaseLiteException {
         try {
-            final KeyStore keystore = KeyStore.getInstance(KeyStoreManager.ANDROID_KEY_STORE);
+            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
             keystore.load(null);
 
             return keystore.getCertificate(keyAlias);
@@ -239,7 +247,7 @@ public class KeyStoreManager extends AbstractKeyStoreManager {
     @Override
     public String findAnonymousCertAlias() throws CouchbaseLiteException {
         try {
-            final KeyStore keystore = KeyStore.getInstance(KeyStoreManager.ANDROID_KEY_STORE);
+            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
 
             final Enumeration<String> aliases = keystore.aliases();
             while (aliases.hasMoreElements()) {
@@ -259,7 +267,7 @@ public class KeyStoreManager extends AbstractKeyStoreManager {
     public int deleteEntries(Fn.Predicate<String> filter) throws CouchbaseLiteException {
         int deleted = 0;
         try {
-            final KeyStore keystore = KeyStore.getInstance(KeyStoreManager.ANDROID_KEY_STORE);
+            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
 
             final Enumeration<String> aliases = keystore.aliases();
             while (aliases.hasMoreElements()) {

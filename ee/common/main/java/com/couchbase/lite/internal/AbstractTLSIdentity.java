@@ -43,8 +43,6 @@ import com.couchbase.lite.internal.utils.StringUtils;
 public abstract class AbstractTLSIdentity {
     public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
 
-    protected static final KeyStoreManager KEY_STORE_MANAGER = new KeyStoreManager();
-
     @NonNull
     public static String createAnonymousServerCertificate() throws CouchbaseLiteException {
         final String alias = StringUtils.getUniqueName(ANON_IDENTITY_ALIAS, 8);
@@ -58,7 +56,7 @@ public abstract class AbstractTLSIdentity {
         final Calendar expiration = Calendar.getInstance();
         expiration.add(Calendar.YEAR, 3);
 
-        KEY_STORE_MANAGER.createCertEntry(alias, true, attributes, expiration.getTime());
+        KeyStoreManager.getInstance().createCertEntry(alias, true, attributes, expiration.getTime());
 
         return alias;
     }

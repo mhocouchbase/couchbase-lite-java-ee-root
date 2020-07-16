@@ -42,7 +42,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     @NonNull
     public static TLSIdentity getIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final List<Certificate> certs = new ArrayList<>();
-        certs.add(KEY_STORE_MANAGER.getCertificate(null, alias, null));
+        certs.add(KeyStoreManager.getInstance().getCertificate(null, alias, null));
         return new TLSIdentity(alias, certs);
     }
 
@@ -69,7 +69,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             throw new CouchbaseLiteException(
                 "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
         }
-        KEY_STORE_MANAGER.createCertEntry(alias, isServer, attributes, expiration);
+        KeyStoreManager.getInstance().createCertEntry(alias, isServer, attributes, expiration);
         return getIdentity(alias);
     }
 
@@ -93,13 +93,13 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @NonNull String alias,
         @Nullable char[] keyPass)
         throws CouchbaseLiteException {
-        KEY_STORE_MANAGER.importEntry(type, storeStream, storePass, alias, keyPass, alias);
+        KeyStoreManager.getInstance().importEntry(type, storeStream, storePass, alias, keyPass, alias);
         return getIdentity(alias);
     }
 
     @Nullable
     static TLSIdentity getSavedAnonymousIdentity() throws CouchbaseLiteException {
-        final String alias = KEY_STORE_MANAGER.findAnonymousCertAlias();
+        final String alias = KeyStoreManager.getInstance().findAnonymousCertAlias();
         return (alias == null) ? null : getIdentity(alias);
     }
 

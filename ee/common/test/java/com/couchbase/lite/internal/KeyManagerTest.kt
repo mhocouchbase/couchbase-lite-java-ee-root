@@ -19,29 +19,21 @@ import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.core.C4KeyPair
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import java.security.interfaces.RSAKey
 import java.util.Calendar
 
 class KeyManagerTest : PlatformBaseTest() {
-    private lateinit var keyManager: KeyStoreManager
-
-    @Before
-    fun setUpExecutionServiceTest() {
-        keyManager = KeyStoreManager()
-    }
-
     @Test
     fun testCreateKeyPair() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateRSAKeyPair(
+        val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
             "foo",
             true,
-            AbstractKeyStoreManager.KeySize.BIT_2048,
-            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
+            KeyStoreManager.KeySize.BIT_2048,
+            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
@@ -53,19 +45,19 @@ class KeyManagerTest : PlatformBaseTest() {
     fun testCreateC4KeyPair() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateRSAKeyPair(
+        val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
             "foo",
             true,
-            AbstractKeyStoreManager.KeySize.BIT_2048,
-            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
+            KeyStoreManager.KeySize.BIT_2048,
+            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
 
         val c4Keys = C4KeyPair.createKeyPair(
             "foo",
-            AbstractKeyStoreManager.KeyAlgorithm.RSA,
-            AbstractKeyStoreManager.KeySize.BIT_2048
+            KeyStoreManager.KeyAlgorithm.RSA,
+            KeyStoreManager.KeySize.BIT_2048
         )
         assertNotNull(c4Keys)
     }
@@ -75,34 +67,34 @@ class KeyManagerTest : PlatformBaseTest() {
     fun testCreateCertificate() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
-        val keys = keyManager.generateRSAKeyPair(
+        val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
             "foo",
             true,
-            AbstractKeyStoreManager.KeySize.BIT_2048,
-            mapOf(AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
+            KeyStoreManager.KeySize.BIT_2048,
+            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
 
         val c4Keys = C4KeyPair.createKeyPair(
             "foo",
-            AbstractKeyStoreManager.KeyAlgorithm.RSA,
-            AbstractKeyStoreManager.KeySize.BIT_2048
+            KeyStoreManager.KeyAlgorithm.RSA,
+            KeyStoreManager.KeySize.BIT_2048
         )
         assertNotNull(c4Keys)
 
-        val subjectName: Map<AbstractKeyStoreManager.CertAttribute, String> = mapOf(
-            AbstractKeyStoreManager.CertAttribute.COMMON_NAME to "CouchbaseLite",
-            AbstractKeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
-            AbstractKeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
-            AbstractKeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+        val subjectName: Map<KeyStoreManager.CertAttribute, String> = mapOf(
+            KeyStoreManager.CertAttribute.COMMON_NAME to "CouchbaseLite",
+            KeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
+            KeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
+            KeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
         c4Keys.generateSelfSignedCertificate(
-            AbstractKeyStoreManager.KeyAlgorithm.RSA,
-            AbstractKeyStoreManager.KeySize.BIT_2048,
+            KeyStoreManager.KeyAlgorithm.RSA,
+            KeyStoreManager.KeySize.BIT_2048,
             subjectName,
-            AbstractKeyStoreManager.CertUsage.TLS_SERVER
+            KeyStoreManager.CertUsage.TLS_SERVER
         )
     }
 }
