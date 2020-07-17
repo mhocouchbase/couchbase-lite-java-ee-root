@@ -50,6 +50,7 @@ import java.util.Map;
 
 import javax.security.auth.x500.X500Principal;
 
+import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
@@ -82,24 +83,21 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @Nullable
     @Override
-    public byte[] getKeyData(
-        @Nullable KeyStore ignore1,
-        @NonNull String keyAlias,
-        @Nullable char[] ignore2) {
-        android.util.Log.d("###", "getKeyData alias: " + keyAlias);
+    public byte[] getKeyData(@NonNull C4KeyPair keyPair) {
+        android.util.Log.d("###", "getKeyData alias: " + keyPair.getKeyAlias());
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
             keystore.load(null);
 
-            final Certificate cert = keystore.getCertificate(keyAlias);
+            final Certificate cert = keystore.getCertificate(keyPair.getKeyAlias());
             if (cert == null) {
-                Log.e(LogDomain.LISTENER, "Could not find a certificate for alias: " + keyAlias);
+                Log.e(LogDomain.LISTENER, "Could not find a certificate for alias: " + keyPair.getKeyAlias());
                 return null;
             }
 
             final PublicKey key = cert.getPublicKey();
             if (key == null) {
-                Log.e(LogDomain.LISTENER, "Could not find a public key for alias: " + keyAlias);
+                Log.e(LogDomain.LISTENER, "Could not find a public key for alias: " + keyPair.getKeyAlias());
                 return null;
             }
 
@@ -116,31 +114,26 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @Nullable
     @Override
-    public byte[] decrypt(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword, @NonNull byte[] data) {
-        android.util.Log.d("###", "decrypt @" + keyAlias);
+    public byte[] decrypt(@NonNull C4KeyPair keyPair, @NonNull byte[] data) {
+        android.util.Log.d("###", "decrypt @" + keyPair.getKeyAlias());
         return new byte[0];
     }
 
     @Nullable
     @Override
     public byte[] signKey(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword,
-        @NonNull SignatureDigestAlgorithm digestAlgorithm,
-        @NonNull byte[] data) {
+            @NonNull C4KeyPair keyPair,
+            @NonNull SignatureDigestAlgorithm digestAlgorithm,
+            @NonNull byte[] data) {
         final String algorithm = DIGEST_ALGORITHM_TO_JAVA.get(digestAlgorithm);
 
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
             keystore.load(null);
 
-            final KeyStore.Entry entry = keystore.getEntry(keyAlias, null);
+            final KeyStore.Entry entry = keystore.getEntry(keyPair.getKeyAlias(), null);
             if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-                Log.e(LogDomain.LISTENER, "Could not find a private key for alias: " + keyAlias);
+                Log.e(LogDomain.LISTENER, "Could not find a private key for alias: " + keyPair.getKeyAlias());
                 return null;
             }
 
@@ -159,30 +152,29 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     }
 
     @Override
-    public void free(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword) {
-        android.util.Log.d("###", "free @" + keyAlias);
+    public void free(@NonNull C4KeyPair keyPair) {
+        android.util.Log.d("###", "free @" + keyPair.getKeyAlias());
     }
 
-     @Override
-    public void createCertEntry(
-        @NonNull String alias,
-        boolean isServer,
-        @NonNull Map<String, String> attributes,
-        @NonNull Date expiration)
-        throws CouchbaseLiteException {
+    public void createSelfSignedCertEntry(
+            @Nullable KeyStore keyStore,
+            @NonNull String alias,
+            @Nullable char[] keyPassword,
+            boolean isServer,
+            @NonNull Map<String, String> attributes,
+            @Nullable Date expiration)
+            throws CouchbaseLiteException {
         generateRSAKeyPair(alias, isServer, KeyStoreManager.KeySize.BIT_2048, attributes, expiration);
 
         final C4KeyPair c4keys
-            = C4KeyPair.createKeyPair(alias, KeyStoreManager.KeyAlgorithm.RSA, KeyStoreManager.KeySize.BIT_2048);
+                = C4KeyPair.createKeyPair(alias, KeyStoreManager.KeyAlgorithm.RSA, KeyStoreManager.KeySize.BIT_2048);
 
         final Certificate cert = c4keys.generateSelfSignedCertificate(
-            KeyStoreManager.KeyAlgorithm.RSA,
-            KeyStoreManager.KeySize.BIT_2048,
-            attributes,
-            (isServer) ? KeyStoreManager.CertUsage.TLS_SERVER : KeyStoreManager.CertUsage.TLS_CLIENT);
+                KeyStoreManager.KeyAlgorithm.RSA,
+                KeyStoreManager.KeySize.BIT_2048,
+                attributes,
+                (isServer) ? KeyStoreManager.CertUsage.TLS_SERVER : KeyStoreManager.CertUsage.TLS_CLIENT,
+                expiration);
 
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
@@ -202,7 +194,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         final Calendar expiration = Calendar.getInstance();
         expiration.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
 
-        createCertEntry(alias, isServer, attributes, expiration.getTime());
+        createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration.getTime());
     }
 
     @Override
@@ -253,7 +245,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     }
 
     @Override
-    public boolean findAlias(@NonNull String targetAlias) throws CouchbaseLiteException {
+    public boolean findAlias(@Nullable KeyStore keyStore, @NonNull String targetAlias) throws CouchbaseLiteException {
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
 
@@ -272,7 +264,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @VisibleForTesting
     @Override
-    public int deleteEntries(Fn.Predicate<String> filter) throws CouchbaseLiteException {
+    public int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter) throws CouchbaseLiteException {
         int deleted = 0;
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
@@ -293,14 +285,13 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         return deleted;
     }
 
-    @VisibleForTesting
-    @Nullable
-    public KeyPair generateRSAKeyPair(
+    @NonNull
+    private KeyPair generateRSAKeyPair(
         @NonNull String alias,
         boolean isServer,
         @NonNull KeySize keySize,
         @NonNull Map<String, String> attributes,
-        @NonNull Date expiration)
+        @Nullable Date expiration)
         throws CouchbaseLiteException {
         final Map<String, String> localAttributes = new HashMap<>(attributes);
         final String dn = localAttributes.remove(CERT_ATTRIBUTE_COMMON_NAME);
@@ -310,6 +301,11 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         final X500Principal subject = new X500Principal("CN=" + dn, localAttributes);
         final RSAKeyGenParameterSpec algorithmSpec
             = new RSAKeyGenParameterSpec(keySize.getBitLength(), RSAKeyGenParameterSpec.F4);
+        if (expiration == null) {
+            final Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.YEAR, 1);
+            expiration = calendar.getTime();
+        }
 
         try {
             final KeyPairGenerator keyFactory;
@@ -342,8 +338,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
             return keyFactory.generateKeyPair();
         }
-        catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException ignore) { }
-
-        return null;
+        catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
+            throw new CouchbaseLiteException("", e, CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
+        }
     }
 }

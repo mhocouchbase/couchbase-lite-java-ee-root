@@ -43,7 +43,8 @@ class C4KeyPairTest : PlatformBaseTest() {
             algorithm: Byte,
             keyBits: Int,
             attributes: Array<out Array<String>>?,
-            usage: Byte
+            usage: Byte,
+            validityInSeconds: Long
         ): ByteArray {
             calls.add(NativeCall(algorithm, keyBits, 0L, attributes))
             return Random.Default.nextBytes(256)
@@ -64,50 +65,45 @@ class C4KeyPairTest : PlatformBaseTest() {
     private val keyStoreManagerImpl = object : KeyStoreManager() {
         val calls = mutableListOf<StoreMgrCall>()
 
-        override fun getKeyData(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?): ByteArray? {
-            calls.add(StoreMgrCall(keyStore, keyAlias, if (keyPassword == null) null else String(keyPassword)))
+        override fun getKeyData(keyPair: C4KeyPair): ByteArray? {
+            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
+                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)))
             return null
         }
 
-        override fun decrypt(
+        override fun decrypt(keyPair: C4KeyPair, data: ByteArray): ByteArray? {
+            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
+                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data))
+            return null
+        }
+
+        override fun signKey(keyPair: C4KeyPair, digestAlgorithm: SignatureDigestAlgorithm, data: ByteArray): ByteArray? {
+            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
+                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data))
+            return null
+        }
+
+        override fun free(keyPair: C4KeyPair) {
+            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
+                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)))
+        }
+
+        override fun createSelfSignedCertEntry(
             keyStore: KeyStore?,
-            keyAlias: String,
-            keyPassword: CharArray?,
-            data: ByteArray
-        ): ByteArray? {
-            calls.add(StoreMgrCall(keyStore, keyAlias, if (keyPassword == null) null else String(keyPassword), data))
-            return null
-        }
-
-        override fun signKey(
-            keyStore: KeyStore?,
-            keyAlias: String,
-            keyPassword: CharArray?,
-            digestAlgorithm: SignatureDigestAlgorithm,
-            data: ByteArray
-        ): ByteArray? {
-            calls.add(StoreMgrCall(keyStore, keyAlias, if (keyPassword == null) null else String(keyPassword), data))
-            return null
-        }
-
-        override fun free(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?) {
-            calls.add(StoreMgrCall(keyStore, keyAlias, if (keyPassword == null) null else String(keyPassword)))
-        }
-
-        override fun createCertEntry(
             alias: String,
+            keyPassword: CharArray?,
             isServer: Boolean,
             attributes: MutableMap<String, String>,
-            expiration: Date
+            expiration: Date?
         ) = Unit
 
         override fun createAnonymousCertEntry(alias: String, isServer: Boolean) = Unit
 
-        override fun findAlias(keyAlias: String) = true
+        override fun findAlias(keyStore: KeyStore?, keyAlias: String) = true
 
         override fun getCertificate(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?): Certificate? = null
 
-        override fun deleteEntries(filter: Fn.Predicate<String>?) = 0
+        override fun deleteEntries(keyStore: KeyStore?, filter: Fn.Predicate<String>?) = 0
 
         override fun importEntry(
             type: String,
@@ -117,14 +113,6 @@ class C4KeyPairTest : PlatformBaseTest() {
             keyPassword: CharArray?,
             targetAlias: String
         ) = Unit
-
-        override fun generateRSAKeyPair(
-            alias: String,
-            isServer: Boolean,
-            keySize: KeySize,
-            attributes: MutableMap<String, String>,
-            expiration: Date
-        ): KeyPair? = null
 
         fun reset() = calls.clear()
     }
@@ -292,7 +280,8 @@ class C4KeyPairTest : PlatformBaseTest() {
             KeyStoreManager.KeyAlgorithm.RSA,
             KeyStoreManager.KeySize.BIT_2048,
             attributes,
-            KeyStoreManager.CertUsage.TLS_SERVER
+            KeyStoreManager.CertUsage.TLS_SERVER,
+            null
         )
 
         Assert.assertNotNull(cert)

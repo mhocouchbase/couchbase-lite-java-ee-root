@@ -20,7 +20,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.InputStream;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.Collections;
@@ -30,6 +29,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.utils.Fn;
 
 
@@ -126,48 +126,33 @@ public abstract class KeyStoreManager {
     /**
      * Provides the _public_ key's raw data, as an ASN.1 DER sequence of [modulus, exponent].
      *
-     * @param keyStore    The key store containing the needed key.
-     * @param keyAlias    The alias for the needed key.
-     * @param keyPassword The password for the needed key.
+     * @param keyPair    The key pair
      * @return the raw key data or null failure.
      */
     @Nullable
-    public abstract byte[] getKeyData(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword);
+    public abstract byte[] getKeyData(@NonNull C4KeyPair keyPair);
 
     /**
      * Decrypts data using the private key.
      *
-     * @param keyStore    The key store containing the needed key.
-     * @param keyAlias    The alias for the needed key.
-     * @param keyPassword The password for the needed key.
-     * @param data        The data to be encrypted.
+     * @param keyPair   The key pair
+     * @param data      The data to be encrypted.
      * @return the raw key data or null failure.
      */
     @Nullable
-    public abstract byte[] decrypt(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword,
-        @NonNull byte[] data);
+    public abstract byte[] decrypt(@NonNull C4KeyPair keyPair, @NonNull byte[] data);
 
     /**
      * Uses the private key to generate a signature of input data.
      *
-     * @param keyStore        The key store containing the needed key.
-     * @param keyAlias        The alias for the needed key.
-     * @param keyPassword     The password for the needed key.
+     * @param keyPair         The key pair
      * @param digestAlgorithm Indicates what type of digest to create the signature from.
      * @param data            The data to be signed.
      * @return the signature (length must be equal to the key size) or null on failure.
      */
     @Nullable
     public abstract byte[] signKey(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword,
+        @NonNull C4KeyPair keyPair,
         @NonNull SignatureDigestAlgorithm digestAlgorithm,
         @NonNull byte[] data);
 
@@ -175,20 +160,17 @@ public abstract class KeyStoreManager {
      * Called when the C4KeyPair is released and the externalKey is no longer needed
      * and when associated resources may be freed
      *
-     * @param keyStore    The key store containing the needed key.
-     * @param keyAlias    The alias for the needed key.
-     * @param keyPassword The password for the needed key.
+     * @param keyPair         The key pair
      */
-    public abstract void free(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias,
-        @Nullable char[] keyPassword);
+    public abstract void free(@NonNull C4KeyPair keyPair);
 
-    public abstract void createCertEntry(
+    public abstract void createSelfSignedCertEntry(
+        @Nullable KeyStore keyStore,
         @NonNull String alias,
+        @Nullable char[] keyPassword,
         boolean isServer,
         @NonNull Map<String, String> attributes,
-        @NonNull Date expiration)
+        @Nullable Date expiration)
         throws CouchbaseLiteException;
 
     public abstract void createAnonymousCertEntry(@NonNull String alias, boolean isServer)
@@ -203,7 +185,10 @@ public abstract class KeyStoreManager {
         @NonNull String targetAlias)
         throws CouchbaseLiteException;
 
-    public abstract boolean findAlias(@NonNull String keyAlias) throws CouchbaseLiteException;
+    public abstract boolean findAlias(
+        @Nullable KeyStore keyStore,
+        @NonNull String keyAlias)
+        throws CouchbaseLiteException;
 
     @Nullable
     public abstract Certificate getCertificate(
@@ -213,15 +198,6 @@ public abstract class KeyStoreManager {
         throws CouchbaseLiteException;
 
     @VisibleForTesting
-    public abstract int deleteEntries(Fn.Predicate<String> filter) throws CouchbaseLiteException;
-
-    @VisibleForTesting
-    @Nullable
-    public abstract KeyPair generateRSAKeyPair(
-        @NonNull String alias,
-        boolean isServer,
-        @NonNull KeySize keySize,
-        @NonNull Map<String, String> attributes,
-        @NonNull Date expiration)
+    public abstract int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter)
         throws CouchbaseLiteException;
 }

@@ -33,8 +33,9 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         byte algorithm,
         int keyBits,
         String[][] subjectName,
-        byte usage) {
-        return generateSelfSignedCertificate(c4KeyPair, algorithm, keyBits, subjectName, usage);
+        byte usage,
+        long validityInSeconds) {
+        return generateSelfSignedCertificate(c4KeyPair, algorithm, keyBits, subjectName, usage, validityInSeconds);
     }
 
     @Override
@@ -50,7 +51,8 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         byte algorithm,
         int keyBits,
         String[][] nameComponents,
-        byte usage);
+        byte usage,
+        long validityInSeconds);
 
     private static native long fromExternal(byte algorithm, int keySizeInBits, long context);
 

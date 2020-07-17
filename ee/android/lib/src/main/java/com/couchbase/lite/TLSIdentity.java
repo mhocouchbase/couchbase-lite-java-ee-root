@@ -62,14 +62,15 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @NonNull String alias,
         boolean isServer,
         @NonNull Map<String, String> attributes,
-        @NonNull Date expiration)
+        @Nullable Date expiration)
         throws CouchbaseLiteException {
         final String idAlias = Preconditions.assertNotNull(alias, "alias");
         if (idAlias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
             throw new CouchbaseLiteException(
                 "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
         }
-        KeyStoreManager.getInstance().createCertEntry(alias, isServer, attributes, expiration);
+        KeyStoreManager.getInstance().createSelfSignedCertEntry(
+                null, alias, null, isServer, attributes, expiration);
         return getIdentity(alias);
     }
 
@@ -100,12 +101,18 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     public static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
         final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
-        if (!keyStoreManager.findAlias(fullAlias)) { keyStoreManager.createAnonymousCertEntry(fullAlias, true); }
+        if (!keyStoreManager.findAlias(null, fullAlias)) { keyStoreManager.createAnonymousCertEntry(fullAlias, true); }
         return getIdentity(fullAlias);
     }
 
     @VisibleForTesting
     TLSIdentity() { }
+
+    @NonNull
+    Certificate getCert() { return getCerts().get(0); }
+
+    @NonNull
+    String getAlias() { return getKeyAlias(); }
 
     private TLSIdentity(@NonNull String alias, @NonNull List<Certificate> certificates) throws CouchbaseLiteException {
         super(alias, certificates);

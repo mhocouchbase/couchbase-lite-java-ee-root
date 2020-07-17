@@ -15,10 +15,12 @@
 package com.couchbase.lite
 
 import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME
 import com.couchbase.lite.internal.utils.StringUtils
 import com.couchbase.lite.internal.utils.TestUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
@@ -124,6 +126,34 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
+    @Test
+    fun testSimpleReplicationWithTLS() {
+        val doc = MutableDocument("doc1")
+        doc.setString("foo", "bar")
+        otherDB.save(doc)
+
+        assertEquals(0, baseTestDb.count)
+
+        val attributes: MutableMap<String, String> = HashMap()
+        attributes[CERT_ATTRIBUTE_COMMON_NAME] = "Couchbase Lite Test"
+
+        TLSIdentity.deleteIdentity("server-cert");
+        val identity = TLSIdentity.createIdentity(true, attributes, null, "server-cert");
+
+        val listener = listenTls(identity, null);
+
+        val certs = identity.certs
+        assertEquals(1, certs.size)
+
+        var cert = certs[0]
+        run(listener.endpointUri(), true, true, false, null, cert.encoded)
+
+        assertEquals(1, baseTestDb.count)
+        assertNotNull(baseTestDb.getDocument("doc1"))
+
+        TLSIdentity.deleteIdentity("server-cert");
+    }
+
 
 /*
     @Test
@@ -208,7 +238,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         return listener
     }
 
-    private fun listenTls(identity: TLSIdentity?, auth: ListenerAuthenticator): URLEndpointListener {
+    private fun listenTls(identity: TLSIdentity?, auth: ListenerAuthenticator?): URLEndpointListener {
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
             .setPort(portFactory.getAndIncrement())
@@ -232,11 +262,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        return TLSIdentity.createIdentity(alias, true, attributes, expiration.time)
+        return TLSIdentity.createIdentity(true, attributes, expiration.time, alias)
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        KeyStoreManager.getInstance().deleteEntries { alias -> alias == identity.alias }
+        KeyStoreManager.getInstance().deleteEntries(null) { alias: String -> alias == identity.alias }
     }
 }
 

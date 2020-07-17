@@ -21,16 +21,21 @@ import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
@@ -48,7 +53,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             byte algorithm,
             int keyBits,
             String[][] attributes,
-            byte usage);
+            byte usage,
+            long validityInSeconds);
 
         long nFromExternal(byte algorithm, int keyBits, long token) throws LiteCoreException;
 
@@ -103,7 +109,29 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         @NonNull String keyAlias,
         @Nullable char[] keyPassword,
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize)
+        KeyStoreManager.KeySize keySize) throws CouchbaseLiteException {
+        return createKeyPair(keyStore, keyAlias, keyPassword, algorithm, keySize, null);
+    }
+
+    /**
+     * Create a C4Key pair.
+     *
+     * @param keyStore    the KeyStore object containing the cert and key pair
+     * @param keyAlias    the alias by which the key is known to the keystore
+     * @param keyPassword the password protecting the key
+     * @param algorithm   key algorithm (must be KeyManager.KeyAlgorithm.RSA)
+     * @param keySize     key size
+     * @param keys        keyPair for the case that the KeyPair hasn't been saved into the KeyStore
+     * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
+     * @throws CouchbaseLiteException on error
+     */
+    public static C4KeyPair createKeyPair(
+        @Nullable KeyStore keyStore,
+        @NonNull String keyAlias,
+        @Nullable char[] keyPassword,
+        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
+        KeyStoreManager.KeySize keySize,
+        @Nullable KeyPair keys)
         throws CouchbaseLiteException {
         char[] keyPwd = null;
         if (keyPassword != null) {
@@ -112,7 +140,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         }
 
         final int token = KEY_PAIR_CONTEXT.reserveKey();
-        final C4KeyPair keyPair = new C4KeyPair(nativeImpl, token, keyStore, keyAlias, keyPwd);
+        final C4KeyPair keyPair = new C4KeyPair(nativeImpl, token, keyStore, keyAlias, keyPwd, keys);
         KEY_PAIR_CONTEXT.bind(token, keyPair);
 
         final long peer;
@@ -139,7 +167,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
         KeyStoreManager.KeySize keySize)
         throws CouchbaseLiteException {
-        return createKeyPair(null, keyAlias, null, algorithm, keySize);
+        return createKeyPair(null, keyAlias, null, algorithm, keySize, null);
     }
 
     //-------------------------------------------------------------------------
@@ -152,7 +180,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static byte[] getKeyDataCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
-        return KeyStoreManager.getInstance().getKeyData(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+        return KeyStoreManager.getInstance().getKeyData(keyPair);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -161,7 +189,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static byte[] decryptCallback(long token, @NonNull byte[] data) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
-        return KeyStoreManager.getInstance().decrypt(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, data);
+        return KeyStoreManager.getInstance().decrypt(keyPair, data);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -173,8 +201,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
         final KeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
 
-        return KeyStoreManager.getInstance()
-            .signKey(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword, algorithm, data);
+        return KeyStoreManager.getInstance().signKey(keyPair, algorithm, data);
     }
 
     // This method is called by reflection.  Don't change its signature.
@@ -182,7 +209,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static void freeCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return; }
-        KeyStoreManager.getInstance().free(keyPair.keyStore, keyPair.keyAlias, keyPair.keyPassword);
+        KeyStoreManager.getInstance().free(keyPair);
     }
 
     //-------------------------------------------------------------------------
@@ -213,7 +240,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         return algorithm;
     }
 
-
     //-------------------------------------------------------------------------
     // Data members
     //-------------------------------------------------------------------------
@@ -228,6 +254,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     private final String keyAlias;
     @Nullable
     private final char[] keyPassword;
+    @Nullable
+    private final KeyPair keys;
 
     //-------------------------------------------------------------------------
     // Constructors
@@ -239,13 +267,40 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         int token,
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
-        @Nullable char[] keyPassword) {
+        @Nullable char[] keyPassword,
+        @Nullable KeyPair keyPair) {
         super();
         this.impl = impl;
         this.token = token;
         this.keyStore = keyStore;
         this.keyAlias = keyAlias;
         this.keyPassword = keyPassword;
+        this.keys = keyPair;
+    }
+
+    //-------------------------------------------------------------------------
+    // Public Properties
+    //-------------------------------------------------------------------------
+
+    @Nullable
+    public KeyStore getKeyStore() {
+        return keyStore;
+    }
+
+    @NonNull
+    public String getKeyAlias() {
+        return keyAlias;
+    }
+
+    @Nullable
+    public char[] getKeyPassword() {
+        if (keyPassword == null) { return null; }
+        return Arrays.copyOf(keyPassword, keyPassword.length);
+    }
+
+    @Nullable
+    public KeyPair getKeys() {
+        return keys;
     }
 
     //-------------------------------------------------------------------------
@@ -256,11 +311,19 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
         KeyStoreManager.KeySize keySize,
         @NonNull Map<String, String> attributes,
-        @NonNull KeyStoreManager.CertUsage usage) {
+        @NonNull KeyStoreManager.CertUsage usage,
+        @Nullable Date expiration) throws CouchbaseLiteException {
         int i = 0;
         final String[][] attrs = new String[attributes.size()][];
         for (Map.Entry<String, String> attr: attributes.entrySet()) {
             attrs[i++] = new String[] {attr.getKey(), attr.getValue()};
+        }
+
+        long validityInSeconds = 0;
+        if (expiration != null) {
+            validityInSeconds = TimeUnit.MILLISECONDS.toSeconds(
+                expiration.getTime() - System.currentTimeMillis());
+            assert (validityInSeconds > 0);
         }
 
         final byte[] data = impl.nGenerateSelfSignedCertificate(
@@ -268,12 +331,23 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             getC4KeyAlgorithm(algorithm),
             keySize.getBitLength(),
             attrs,
-            usage.getCode());
+            usage.getCode(),
+            validityInSeconds);
 
-        try { return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data)); }
-        catch (CertificateException e) { Log.w(LogDomain.LISTENER, "Failed to create certificate", e); }
+        assert (data != null && data.length > 0);
 
-        return null;
+        try {
+            return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data));
+        }
+        catch (CertificateException e) {
+            throw new CouchbaseLiteException(
+                "Failed to create certificate",
+                e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
+        }
+
+        // return null;
     }
 
     @Override

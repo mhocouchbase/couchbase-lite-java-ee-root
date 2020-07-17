@@ -16,8 +16,10 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
+import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -37,6 +39,8 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AbstractTLSIdentity {
+    @Nullable
+    private final KeyStore keyStore;
     @NonNull
     private final String keyAlias;
     @NonNull
@@ -48,13 +52,26 @@ public abstract class AbstractTLSIdentity {
     @SuppressWarnings("ConstantConditions")
     @SuppressFBWarnings("NP_STORE_INTO_NONNULL_FIELD")
     protected AbstractTLSIdentity() {
+        keyStore = null;
         keyAlias = "test";
         certificates = new ArrayList<>();
         keyPair = null;
     }
 
+    protected AbstractTLSIdentity(
+        @Nullable KeyStore keyStore,
+        @NonNull String keyAlias,
+        @NonNull C4KeyPair keyPair,
+        @NonNull List<Certificate> certificates) {
+        this.keyStore = keyStore;
+        this.keyAlias = keyAlias;
+        this.keyPair = keyPair;
+        this.certificates = certificates;
+    }
+
     protected AbstractTLSIdentity(@NonNull String keyAlias, @NonNull List<Certificate> certificates)
         throws CouchbaseLiteException {
+        this.keyStore = null;
         this.keyAlias = keyAlias;
         this.certificates = Preconditions.assertNotEmpty(certificates, "certificates");
         final PublicKey key = certificates.get(0).getPublicKey();
@@ -65,11 +82,11 @@ public abstract class AbstractTLSIdentity {
             (KeyStoreManager.KeySize.getKeySize(((RSAKey) key).getModulus().bitLength())));
     }
 
-    @NonNull
-    public List<Certificate> getCerts() { return certificates; }
+    @Nullable
+    KeyStore getKeyStore() { return  keyStore; }
 
     @NonNull
-    public Certificate getCert() { return certificates.get(0); }
+    public List<Certificate> getCerts() { return certificates; }
 
     @NonNull
     public C4KeyPair getKeyPair() { return keyPair; }
@@ -78,5 +95,5 @@ public abstract class AbstractTLSIdentity {
     public Date getExpiration() { return ((X509Certificate) certificates.get(0)).getNotAfter(); }
 
     @NonNull
-    public String getAlias() { return keyAlias; }
+    protected String getKeyAlias() { return keyAlias; }
 }
