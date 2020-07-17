@@ -18,6 +18,7 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.utils.PlatformUtils
+import com.couchbase.lite.internal.utils.TestUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Ignore
@@ -74,17 +75,10 @@ class KeyStoreManagerTest : PlatformBaseTest() {
         )
         assertNotNull(c4Keys)
 
-        val subjectName = mapOf(
-            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite",
-            "O" to "Couchbase",
-            "OU" to "Mobile",
-            "rfc822Name" to "lite@couchbase.com"
-        )
-
         c4Keys.generateSelfSignedCertificate(
             KeyStoreManager.KeyAlgorithm.RSA,
             KeyStoreManager.KeySize.BIT_2048,
-            subjectName,
+            TestUtils.get509Attributes(),
             KeyStoreManager.CertUsage.TLS_SERVER
         )
     }

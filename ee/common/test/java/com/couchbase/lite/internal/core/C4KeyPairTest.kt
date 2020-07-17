@@ -19,6 +19,7 @@ import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
 import com.couchbase.lite.internal.utils.Fn
+import com.couchbase.lite.internal.utils.TestUtils
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -285,12 +286,7 @@ class C4KeyPairTest : PlatformBaseTest() {
             KeyStoreManager.KeySize.BIT_2048
         )
 
-        val attributes = mapOf(
-            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite",
-            "O" to "Couchbase",
-            "OU" to "Mobile",
-            "rfc822Name" to "lite@couchbase.com"
-        )
+        val attributes = TestUtils.get509Attributes();
 
         val cert = c4Keys.generateSelfSignedCertificate(
             KeyStoreManager.KeyAlgorithm.RSA,

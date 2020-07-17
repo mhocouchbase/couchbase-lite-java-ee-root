@@ -16,6 +16,7 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.utils.StringUtils
+import com.couchbase.lite.internal.utils.TestUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Ignore
@@ -226,12 +227,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     private fun createIdentity(): TLSIdentity {
         val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
 
-        val attributes = mapOf(
-            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite",
-            "O" to "Couchbase",
-            "OU" to "Mobile",
-            "rfc822Name" to "lite@couchbase.com"
-        )
+        val attributes = TestUtils.get509Attributes()
 
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)

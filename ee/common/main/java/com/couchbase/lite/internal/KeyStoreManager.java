@@ -40,6 +40,22 @@ public abstract class KeyStoreManager {
     public static final int ANON_EXPIRATION_YEARS = 1;
 
     public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
+    public static final String CERT_ATTRIBUTE_PSEUDONYM = "pseudonym";
+    public static final String CERT_ATTRIBUTE_GIVEN_NAME = "GN";
+    public static final String CERT_ATTRIBUTE_SURNAME = "SN";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION = "O";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION_UNIT = "OU";
+    public static final String CERT_ATTRIBUTE_POSTAL_ADDRESS = "postalAddress";
+    public static final String CERT_ATTRIBUTE_LOCALITY = "locality";
+    public static final String CERT_ATTRIBUTE_POSTAL_CODE = "postalCode";
+    public static final String CERT_ATTRIBUTE_STATE_OR_PROVINCE = "ST";
+    public static final String CERT_ATTRIBUTE_COUNTRY = "C";
+    public static final String CERT_ATTRIBUTE_EMAIL_ADDRESS = "rfc822Name";
+    public static final String CERT_ATTRIBUTE_HOSTNAME = "dNSName";
+    public static final String CERT_ATTRIBUTE_URL = "uniformResourceIdentifier";
+    public static final String CERT_ATTRIBUTE_IP_ADDRESS = "iPAddress";
+    public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
+
 
     public enum KeyAlgorithm {RSA}
 
