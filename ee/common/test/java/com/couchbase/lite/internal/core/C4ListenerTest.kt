@@ -43,7 +43,7 @@ private const val USER_NAME = "G’Kar"
 private const val PASSWORD = "!#*@£ᘺ"
 
 class C4ListenerTest : PlatformBaseTest() {
-    private val impl = object : C4Listener.NativeImpl {
+    private val c4ListenerMock = object : C4Listener.NativeImpl {
         @Throws(LiteCoreException::class)
         override fun nStartHttp(
             context: Long,
@@ -96,13 +96,14 @@ class C4ListenerTest : PlatformBaseTest() {
 
     @Before
     fun setUpC4ListenerTest() {
-        C4Listener.nativeImpl = impl
+        C4Listener.nativeImpl = c4ListenerMock
         C4Listener.LISTENER_CONTEXT.clear()
     }
 
     @After
     fun tearDownC4ListenerTest() {
         C4Listener.nativeImpl = NativeC4Listener()
+        C4Listener.LISTENER_CONTEXT.clear()
     }
 
     @Test

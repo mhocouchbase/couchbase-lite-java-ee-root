@@ -15,12 +15,14 @@
 //
 package com.couchbase.lite.internal;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.security.KeyPairGeneratorSpec;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.IOException;
@@ -28,7 +30,6 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -50,7 +51,6 @@ import java.util.Map;
 
 import javax.security.auth.x500.X500Principal;
 
-import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
@@ -59,7 +59,8 @@ import com.couchbase.lite.internal.utils.Fn;
 
 
 public class KeyStoreManagerDelegate extends KeyStoreManager {
-    private static final String ANDROID_KEY_STORE = "AndroidKeyStore";
+    @VisibleForTesting
+    static final String ANDROID_KEY_STORE = "AndroidKeyStore";
 
     private static final Map<KeyStoreManager.SignatureDigestAlgorithm, String> DIGEST_ALGORITHM_TO_JAVA;
     static {
@@ -86,8 +87,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     public byte[] getKeyData(@NonNull C4KeyPair keyPair) {
         android.util.Log.d("###", "getKeyData alias: " + keyPair.getKeyAlias());
         try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
-            keystore.load(null);
+            final KeyStore keystore = loadKeyStore();
 
             final Certificate cert = keystore.getCertificate(keyPair.getKeyAlias());
             if (cert == null) {
@@ -122,14 +122,13 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Nullable
     @Override
     public byte[] signKey(
-            @NonNull C4KeyPair keyPair,
-            @NonNull SignatureDigestAlgorithm digestAlgorithm,
-            @NonNull byte[] data) {
+        @NonNull C4KeyPair keyPair,
+        @NonNull SignatureDigestAlgorithm digestAlgorithm,
+        @NonNull byte[] data) {
         final String algorithm = DIGEST_ALGORITHM_TO_JAVA.get(digestAlgorithm);
 
         try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
-            keystore.load(null);
+            final KeyStore keystore = loadKeyStore();
 
             final KeyStore.Entry entry = keystore.getEntry(keyPair.getKeyAlias(), null);
             if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
@@ -156,45 +155,37 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         android.util.Log.d("###", "free @" + keyPair.getKeyAlias());
     }
 
-    public void createSelfSignedCertEntry(
-            @Nullable KeyStore keyStore,
-            @NonNull String alias,
-            @Nullable char[] keyPassword,
-            boolean isServer,
-            @NonNull Map<String, String> attributes,
-            @Nullable Date expiration)
-            throws CouchbaseLiteException {
-        generateRSAKeyPair(alias, isServer, KeyStoreManager.KeySize.BIT_2048, attributes, expiration);
-
-        final C4KeyPair c4keys
-                = C4KeyPair.createKeyPair(alias, KeyStoreManager.KeyAlgorithm.RSA, KeyStoreManager.KeySize.BIT_2048);
-
-        final Certificate cert = c4keys.generateSelfSignedCertificate(
-                KeyStoreManager.KeyAlgorithm.RSA,
-                KeyStoreManager.KeySize.BIT_2048,
-                attributes,
-                (isServer) ? KeyStoreManager.CertUsage.TLS_SERVER : KeyStoreManager.CertUsage.TLS_CLIENT,
-                expiration);
-
-        try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
-            keystore.load(null);
-            keystore.setCertificateEntry(alias, cert);
-        }
-        catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
-            throw new CouchbaseLiteException("Failed creating identity", e);
-        }
-    }
-
+    @SuppressLint("NewApi")
     @Override
-    public void createAnonymousCertEntry(@NonNull String alias, boolean isServer)  throws CouchbaseLiteException {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, ANON_COMMON_NAME);
+    public void createSelfSignedCertEntry(
+        @Nullable KeyStore ignore1,
+        @NonNull String alias,
+        @Nullable char[] ignore2,
+        boolean isServer,
+        @NonNull Map<String, String> attributes,
+        @Nullable Date expiration)
+        throws CouchbaseLiteException {
+        final Map<String, String> localAttributes = new HashMap<>(attributes);
+        final String dn = localAttributes.remove(CERT_ATTRIBUTE_COMMON_NAME);
+        if (dn == null) { throw new CouchbaseLiteException("Certificate must have a distinguished name (CN)"); }
 
-        final Calendar expiration = Calendar.getInstance();
-        expiration.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
+        if (expiration == null) {
+            final Calendar expDate = Calendar.getInstance();
+            expDate.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
+            expiration = expDate.getTime();
+        }
 
-        createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration.getTime());
+        final X500Principal subject = new X500Principal("CN=" + dn, localAttributes);
+        try {
+            final KeyPairGenerator keyFactory = (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
+                ? getGeneratorPreM(alias, expiration, subject)
+                : getKeyFactoryM(alias, expiration, subject);
+
+            keyFactory.generateKeyPair();
+        }
+        catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
+            throw new CouchbaseLiteException("Failed to create entry: " + alias, e);
+        }
     }
 
     @Override
@@ -211,8 +202,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             final KeyStore externalStore = KeyStore.getInstance(type);
             externalStore.load(storeStream, storePassword);
 
-            final KeyStore androidStore = KeyStore.getInstance(ANDROID_KEY_STORE);
-            androidStore.load(null);
+            final KeyStore androidStore = loadKeyStore();
 
             final KeyStore.ProtectionParameter protectionParameter = (keyPassword == null)
                 ? null
@@ -234,8 +224,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         @Nullable char[] keyPassword)
         throws CouchbaseLiteException {
         try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
-            keystore.load(null);
+            final KeyStore keystore = loadKeyStore();
 
             return keystore.getCertificate(keyAlias);
         }
@@ -247,7 +236,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Override
     public boolean findAlias(@Nullable KeyStore keyStore, @NonNull String targetAlias) throws CouchbaseLiteException {
         try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
+            final KeyStore keystore = loadKeyStore();
 
             final Enumeration<String> aliases = keystore.aliases();
             while (aliases.hasMoreElements()) {
@@ -255,7 +244,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 if (targetAlias.equals(alias)) { return true; }
             }
         }
-        catch (KeyStoreException e) {
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             throw new CouchbaseLiteException("Failed searching for a saved anonymous identity", e);
         }
 
@@ -264,10 +253,10 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @VisibleForTesting
     @Override
-    public int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter) throws CouchbaseLiteException {
+    public int deleteEntries(@Nullable KeyStore ignore, Fn.Predicate<String> filter) throws CouchbaseLiteException {
         int deleted = 0;
         try {
-            final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
+            final KeyStore keystore = loadKeyStore();
 
             final Enumeration<String> aliases = keystore.aliases();
             while (aliases.hasMoreElements()) {
@@ -278,68 +267,63 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 }
             }
         }
-        catch (KeyStoreException e) {
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             throw new CouchbaseLiteException("Failed searching for a saved anonymous identity", e);
         }
 
         return deleted;
     }
 
-    @NonNull
-    private KeyPair generateRSAKeyPair(
-        @NonNull String alias,
-        boolean isServer,
-        @NonNull KeySize keySize,
-        @NonNull Map<String, String> attributes,
-        @Nullable Date expiration)
-        throws CouchbaseLiteException {
-        final Map<String, String> localAttributes = new HashMap<>(attributes);
-        final String dn = localAttributes.remove(CERT_ATTRIBUTE_COMMON_NAME);
-        if (dn == null) { throw new CouchbaseLiteException("Certificate must have a distinguished name (CN)"); }
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private KeyPairGenerator getKeyFactoryM(@NonNull String alias, @NonNull Date expiration, X500Principal subject)
+        throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+        android.util.Log.d("###", "Using modern key generator: " + alias);
 
-        final Date now = new Date();
-        final X500Principal subject = new X500Principal("CN=" + dn, localAttributes);
+        final KeyPairGenerator keyFactory
+            = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEY_STORE);
+
+        keyFactory.initialize(new KeyGenParameterSpec.Builder(
+            alias,
+            KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
+            //.setAlgorithmParameterSpec(algorithmSpec)
+            .setCertificateSerialNumber(BigInteger.ONE)
+            .setCertificateSubject(subject)
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+            .setCertificateNotBefore(new Date())
+            .setCertificateNotAfter(expiration)
+            .setUserAuthenticationRequired(false)
+            .build());
+
+        return keyFactory;
+    }
+
+    private KeyPairGenerator getGeneratorPreM(@NonNull String alias, @NonNull Date expiration, X500Principal subject)
+        throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+        android.util.Log.d("###", "Using legacy key creation: " + alias);
+
         final RSAKeyGenParameterSpec algorithmSpec
-            = new RSAKeyGenParameterSpec(keySize.getBitLength(), RSAKeyGenParameterSpec.F4);
-        if (expiration == null) {
-            final Calendar calendar = Calendar.getInstance();
-            calendar.add(Calendar.YEAR, 1);
-            expiration = calendar.getTime();
-        }
+            = new RSAKeyGenParameterSpec(KeyStoreManager.KeySize.BIT_2048.getBitLength(), RSAKeyGenParameterSpec.F4);
 
-        try {
-            final KeyPairGenerator keyFactory;
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                keyFactory = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEY_STORE);
-                keyFactory.initialize(new KeyPairGeneratorSpec.Builder(CouchbaseLiteInternal.getContext())
-                    .setAlias(alias)
-                    .setAlgorithmParameterSpec(algorithmSpec)
-                    .setSerialNumber(BigInteger.ONE)
-                    .setSubject(subject)
-                    .setStartDate(now)
-                    .setEndDate(expiration)
-                    .build());
-            }
-            else {
-                keyFactory = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEY_STORE);
-                keyFactory.initialize(new KeyGenParameterSpec.Builder(
-                    alias,
-                    KeyProperties.PURPOSE_SIGN | KeyProperties.PURPOSE_VERIFY)
-                    //.setAlgorithmParameterSpec(algorithmSpec)
-                    .setCertificateSerialNumber(BigInteger.ONE)
-                    .setCertificateSubject(subject)
-                    .setDigests(KeyProperties.DIGEST_SHA256)
-                    .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                    .setCertificateNotBefore(now)
-                    .setCertificateNotAfter(expiration)
-                    .setUserAuthenticationRequired(false)
-                    .build());
-            }
+        final KeyPairGenerator keyFactory
+            = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEY_STORE);
 
-            return keyFactory.generateKeyPair();
-        }
-        catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
-            throw new CouchbaseLiteException("", e, CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
-        }
+        keyFactory.initialize(new KeyPairGeneratorSpec.Builder(CouchbaseLiteInternal.getContext())
+            .setAlias(alias)
+            .setAlgorithmParameterSpec(algorithmSpec)
+            .setSerialNumber(BigInteger.ONE)
+            .setSubject(subject)
+            .setStartDate(new Date())
+            .setEndDate(expiration)
+            .build());
+
+        return keyFactory;
+    }
+
+    private KeyStore loadKeyStore()
+        throws CertificateException, NoSuchAlgorithmException, IOException, KeyStoreException {
+        final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
+        keystore.load(null);
+        return keystore;
     }
 }

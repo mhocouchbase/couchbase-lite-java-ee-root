@@ -478,7 +478,7 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
         latch.await(MessageEndpointTest.LONG_DELAY_SEC, TimeUnit.SECONDS);
     }
 
-    public void validate() { assert (exceptions.isEmpty()); }
+    public void validate() { assertTrue(exceptions.isEmpty()); }
 
     @Override
     protected void finalize() throws Throwable {

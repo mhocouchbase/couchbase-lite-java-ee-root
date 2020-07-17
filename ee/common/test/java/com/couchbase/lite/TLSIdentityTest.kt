@@ -14,78 +14,46 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.EXTERNAL_KEY_ALIAS
+import com.couchbase.lite.internal.EXTERNAL_KEY_PASSWORD
+import com.couchbase.lite.internal.EXTERNAL_KEY_STORE
+import com.couchbase.lite.internal.EXTERNAL_KEY_STORE_TYPE
+import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import com.couchbase.lite.internal.utils.PlatformUtils
-import com.couchbase.lite.internal.utils.StringUtils
-import com.couchbase.lite.internal.utils.TestUtils
-import org.junit.AfterClass
 import org.junit.Assert.assertNotNull
-import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Test
 import java.util.Calendar
 
-private const val EXTERNAL_KEY_STORE = "teststore.p12"
-private const val EXTERNAL_KEY_STORE_TYPE = "PKCS12"
-private const val EXTERNAL_KEY_ALIAS = "couchbase"
-private const val KEY_ALIAS = "test-alias"
-private const val KEY_PASSWORD = "password"
 
-
-class TLSIdentityTest() : PlatformBaseTest() {
-    companion object {
-        lateinit var keyAlias: String
-
-        @JvmStatic
-        @BeforeClass
-        fun setUpTLSIdentityTest() {
-            keyAlias = StringUtils.getUniqueName(KEY_ALIAS, 8)
-
-            val pwd = KEY_PASSWORD.toCharArray()
-            PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
-                KeyStoreManager.getInstance()
-                    .importEntry(EXTERNAL_KEY_STORE_TYPE, it, pwd, EXTERNAL_KEY_ALIAS, pwd, keyAlias)
-            }
-        }
-
-        @JvmStatic
-        @AfterClass
-        fun tearDownTLSIdentityTest() {
-            KeyStoreManager.getInstance().deleteEntries { alias -> alias.startsWith(KEY_ALIAS) }
-        }
-    }
+class TLSIdentityTest : KeyStoreTestAdaptor() {
 
     @Test
-    fun testGetIdentity() = assertNotNull(TLSIdentity.getIdentity(keyAlias))
+    fun testGetIdentity() {
+        val alias = newKeyAlias()
+        assertNotNull(getIdentity(alias))
+    }
 
+    @Ignore("Cant't work on Java")
     @Test
     fun testImportIdentity() {
-        val pwd = KEY_PASSWORD.toCharArray()
-
+        val pwd = EXTERNAL_KEY_PASSWORD.toCharArray()
         PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
-            assertNotNull(
-                TLSIdentity.importIdentity(
-                    EXTERNAL_KEY_STORE_TYPE,
-                    it,
-                    pwd,
-                    EXTERNAL_KEY_ALIAS,
-                    pwd
-                )
-            )
+            assertNotNull(importIdentity(EXTERNAL_KEY_STORE_TYPE, it, pwd, EXTERNAL_KEY_ALIAS, pwd))
         }
     }
 
-    @Ignore("LiteCoreException{domain=1, code=22, msg=Can't parse certificate request data (X509 - The name tag or value is invalid : ASN1 - Out of data when parsing an ASN1 data structure)}")
+    @Ignore("Doesn't work on Java")
     @Test
     fun testCreateIdentity() {
-        keyAlias = StringUtils.getUniqueName(KEY_ALIAS, 8)
+        val alias = newKeyAlias()
 
-        val attributes = TestUtils.get509Attributes()
+        val attributes = get509Attributes()
 
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        assertNotNull(TLSIdentity.createIdentity(keyAlias, true, attributes, expiration.time))
+        assertNotNull(createIdentity(true, attributes, expiration.time, alias))
     }
 
 /*

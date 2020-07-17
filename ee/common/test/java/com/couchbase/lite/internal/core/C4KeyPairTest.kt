@@ -15,28 +15,26 @@
 //
 package com.couchbase.lite.internal.core
 
-import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
 import com.couchbase.lite.internal.utils.Fn
-import com.couchbase.lite.internal.utils.TestUtils
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import java.io.InputStream
-import java.security.KeyPair
 import java.security.KeyStore
 import java.security.cert.Certificate
 import java.util.Date
 import kotlin.random.Random
 
-class C4KeyPairTest : PlatformBaseTest() {
+class C4KeyPairTest : KeyStoreTestAdaptor() {
     data class NativeCall(val alg: Byte, val bits: Int, val token: Long, val data: Any? = null)
 
-    private val c4NativeImpl = object : C4KeyPair.NativeImpl {
+    private val c4NativeMock = object : C4KeyPair.NativeImpl {
         val calls = mutableListOf<NativeCall>()
 
         override fun nGenerateSelfSignedCertificate(
@@ -63,7 +61,7 @@ class C4KeyPairTest : PlatformBaseTest() {
 
     data class StoreMgrCall(val store: KeyStore?, val alias: String, val pwd: String?, val data: Any? = null)
 
-    private val keyStoreManagerImpl = object : KeyStoreManager() {
+    private val keyStoreManagerMock = object : KeyStoreManager() {
         val calls = mutableListOf<StoreMgrCall>()
 
         override fun getKeyData(keyPair: C4KeyPair): ByteArray? {
@@ -98,8 +96,6 @@ class C4KeyPairTest : PlatformBaseTest() {
             expiration: Date?
         ) = Unit
 
-        override fun createAnonymousCertEntry(alias: String, isServer: Boolean) = Unit
-
         override fun findAlias(keyStore: KeyStore?, keyAlias: String) = true
 
         override fun getCertificate(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?): Certificate? = null
@@ -121,19 +117,19 @@ class C4KeyPairTest : PlatformBaseTest() {
 
     @Before
     fun setUpC4ListenerTest() {
-        keyStoreManagerImpl.reset()
-        KeyStoreManager.setInstance(keyStoreManagerImpl)
-        c4NativeImpl.reset()
-        C4KeyPair.nativeImpl = c4NativeImpl
+        keyStoreManagerMock.reset()
+        KeyStoreManager.setInstance(keyStoreManagerMock)
+        c4NativeMock.reset()
+        C4KeyPair.nativeImpl = c4NativeMock
         C4KeyPair.KEY_PAIR_CONTEXT.clear()
     }
 
     @After
     fun tearDownC4ListenerTest() {
         KeyStoreManager.setInstance(null)
+        C4Listener.nativeImpl = NativeC4Listener()
         C4KeyPair.nativeImpl = NativeC4KeyPair()
         C4KeyPair.KEY_PAIR_CONTEXT.clear()
-        C4Listener.nativeImpl = NativeC4Listener()
     }
 
     @Test
@@ -146,8 +142,8 @@ class C4KeyPairTest : PlatformBaseTest() {
             KeyStoreManager.KeySize.BIT_2048
         )
         Assert.assertNotNull(c4Keys)
-        Assert.assertEquals(1, c4NativeImpl.calls.size)
-        val call = c4NativeImpl.calls[0]
+        Assert.assertEquals(1, c4NativeMock.calls.size)
+        val call = c4NativeMock.calls[0]
         Assert.assertNotNull(call)
         Assert.assertEquals(0.toByte(), call.alg)
         Assert.assertEquals(2048, call.bits)
@@ -162,8 +158,8 @@ class C4KeyPairTest : PlatformBaseTest() {
             KeyStoreManager.KeySize.BIT_2048
         )
         Assert.assertNotNull(c4Keys)
-        Assert.assertEquals(1, c4NativeImpl.calls.size)
-        val call = c4NativeImpl.calls[0]
+        Assert.assertEquals(1, c4NativeMock.calls.size)
+        val call = c4NativeMock.calls[0]
         Assert.assertNotNull(call)
         Assert.assertEquals(0.toByte(), call.alg)
         Assert.assertEquals(2048, call.bits)
@@ -187,8 +183,8 @@ class C4KeyPairTest : PlatformBaseTest() {
 
         C4KeyPair.getKeyDataCallback(tokens.iterator().next().toLong())
 
-        Assert.assertEquals(1, keyStoreManagerImpl.calls.size)
-        val call = keyStoreManagerImpl.calls[0]
+        Assert.assertEquals(1, keyStoreManagerMock.calls.size)
+        val call = keyStoreManagerMock.calls[0]
         Assert.assertEquals(store, call.store)
         Assert.assertEquals("foo", call.alias)
         Assert.assertEquals("foo", call.pwd)
@@ -213,8 +209,8 @@ class C4KeyPairTest : PlatformBaseTest() {
 
         C4KeyPair.decryptCallback(tokens.iterator().next().toLong(), data)
 
-        Assert.assertEquals(1, keyStoreManagerImpl.calls.size)
-        val call = keyStoreManagerImpl.calls[0]
+        Assert.assertEquals(1, keyStoreManagerMock.calls.size)
+        val call = keyStoreManagerMock.calls[0]
         Assert.assertEquals(store, call.store)
         Assert.assertEquals("foo", call.alias)
         Assert.assertEquals("foo", call.pwd)
@@ -240,8 +236,8 @@ class C4KeyPairTest : PlatformBaseTest() {
 
         C4KeyPair.signKeyCallback(tokens.iterator().next().toLong(), 0, data)
 
-        Assert.assertEquals(1, keyStoreManagerImpl.calls.size)
-        val call = keyStoreManagerImpl.calls[0]
+        Assert.assertEquals(1, keyStoreManagerMock.calls.size)
+        val call = keyStoreManagerMock.calls[0]
         Assert.assertEquals(store, call.store)
         Assert.assertEquals("foo", call.alias)
         Assert.assertEquals("foo", call.pwd)
@@ -262,8 +258,8 @@ class C4KeyPairTest : PlatformBaseTest() {
 
         C4KeyPair.freeCallback(tokens.iterator().next().toLong())
 
-        Assert.assertEquals(1, keyStoreManagerImpl.calls.size)
-        val call = keyStoreManagerImpl.calls[0]
+        Assert.assertEquals(1, keyStoreManagerMock.calls.size)
+        val call = keyStoreManagerMock.calls[0]
         Assert.assertEquals("foo", call.alias)
     }
 
@@ -276,7 +272,7 @@ class C4KeyPairTest : PlatformBaseTest() {
             KeyStoreManager.KeySize.BIT_2048
         )
 
-        val attributes = TestUtils.get509Attributes();
+        val attributes = get509Attributes()
 
         val cert = c4Keys.generateSelfSignedCertificate(
             KeyStoreManager.KeyAlgorithm.RSA,
@@ -287,8 +283,8 @@ class C4KeyPairTest : PlatformBaseTest() {
         )
 
         Assert.assertNotNull(cert)
-        Assert.assertEquals(1, c4NativeImpl.calls.size)
-        val call = c4NativeImpl.calls[0]
+        Assert.assertEquals(1, c4NativeMock.calls.size)
+        val call = c4NativeMock.calls[0]
         Assert.assertEquals(0, call.alg)
         Assert.assertEquals(2048, call.bits)
         Assert.assertNotEquals(0, call.token)

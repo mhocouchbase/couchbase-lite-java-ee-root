@@ -28,21 +28,23 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.KeyStoreManager.KeyAlgorithm;
 import com.couchbase.lite.internal.KeyStoreManager.KeySize;
 import com.couchbase.lite.internal.core.C4KeyPair;
-import com.couchbase.lite.internal.support.Log;
-import com.couchbase.lite.internal.utils.PlatformUtils;
+
 
 public final class TLSIdentity extends AbstractTLSIdentity {
+    private static final AtomicReference<KeyStore> INTERNAL_KEY_STORE = new AtomicReference<>();
+
     @Nullable
     public static TLSIdentity getIdentity(
         @NonNull KeyStore keyStore,
@@ -76,8 +78,10 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             return new TLSIdentity(keyStore, alias, keyPair, Arrays.asList(certs));
         }
         catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-            throw new CouchbaseLiteException("Could not get key from the KeyStore",
-                e, CBLError.Domain.CBLITE, CBLError.Code.CRYPTO, null);
+            throw new CouchbaseLiteException(
+                "Could not get key from the KeyStore",
+                e, CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO, null);
         }
     }
 
@@ -96,8 +100,10 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         // Get identity from KeyStore to return:
         final TLSIdentity identity = getIdentity(keyStore, alias, keyPassword);
         if (identity == null) {
-            throw new CouchbaseLiteException("Could not get the created identity from the KeyStore",
-                CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
+            throw new CouchbaseLiteException(
+                "Could not get the created identity from the KeyStore",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
         }
         return identity;
     }
@@ -106,11 +112,33 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + "-" + alias;
         final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
         final KeyStore keyStore = getInternalKeyStore();
-        if (!keyStoreManager.findAlias(keyStore, fullAlias)) {
-            keyStoreManager.createAnonymousCertEntry(fullAlias, true);
+        if (!keyStoreManager.findAlias(null, fullAlias)) {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
+
+            keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
         }
         return getIdentity(keyStore, fullAlias, null);
     }
+
+    private static KeyStore getInternalKeyStore() {
+        KeyStore keyStore = INTERNAL_KEY_STORE.get();
+        if (keyStore != null) { return keyStore; }
+
+        try {
+            keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            if (INTERNAL_KEY_STORE.compareAndSet(null, keyStore)) { keyStore.load(null); }
+        }
+        catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
+            throw new IllegalStateException("Cannot create an internal KeyStore", e);
+        }
+
+        return keyStore;
+    }
+
+
+    @VisibleForTesting
+    TLSIdentity() { }
 
     private TLSIdentity(
         @Nullable KeyStore keyStore,
@@ -120,98 +148,10 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         super(keyStore, keyAlias, keyPair, certificates);
     }
 
-    /**
-     *  The following methods provide internal API that uses the internal KeyStore. These APIs are used for
-     *  1. Storing the anonymous identity created by the URLEndpointListener. For java, the anonymous identity
-     *     will be not be persisted.
-     *  2. Developing tests that can be shared between CBL Android and Java as these APIs are the same API provided
-     *     by the CBL Android's TLSIdentity.
-     * */
-
-    private static KeyStore internalKeyStore;
-
-    private static synchronized KeyStore getInternalKeyStore() {
-        if (internalKeyStore == null) {
-            try {
-                internalKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-                internalKeyStore.load(null);
-            }
-            catch (Exception e) {
-                throw new IllegalStateException("Cannot create an internal KeyStore", e);
-            }
-        }
-        return internalKeyStore;
-    }
-
-    /**
-     * Internal Use Only.
-     */
-    @Nullable
-    static TLSIdentity getIdentity(
-        @NonNull String alias,
-        @Nullable char[] keyPassword)
-        throws CouchbaseLiteException {
-        return getIdentity(getInternalKeyStore(), alias, keyPassword);
-    }
-
-    /**
-     * Internal Use Only.
-     */
-    @NonNull
-    static TLSIdentity createIdentity(
-        boolean isServer,
-        @NonNull Map<String, String> attributes,
-        @Nullable Date expiration,
-        @NonNull String alias)
-        throws CouchbaseLiteException {
-        return createIdentity(
-            isServer,
-            attributes,
-            expiration,
-            getInternalKeyStore(),
-            alias,
-            null);
-    }
-
-    /**
-     * Internal Use Only.
-     */
-    @VisibleForTesting
-    @NonNull
-    static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException {
-        final KeyStore keyStore = getInternalKeyStore();
-        try {
-            keyStore.deleteEntry(alias);
-        }
-        catch (KeyStoreException e) {
-            throw new CouchbaseLiteException("Could delete identity",
-                e, CBLError.Domain.CBLITE, CBLError.Code.CRYPTO, null);
-        }
-    }
-
     @NonNull
     Certificate getCert() { return getCerts().get(0); }
 
     @NonNull
     String getAlias() { return getKeyAlias(); }
-
-    // !!! DELETE ME
-
-    TLSIdentity() throws CouchbaseLiteException { super("couchbase", loadCerts()); }
-
-    @NonNull
-    private static List<Certificate> loadCerts() {
-        final List<Certificate> certs = new ArrayList<>();
-        try {
-            final KeyStore keystore = KeyStore.getInstance("PKCS12");
-            keystore.load(PlatformUtils.getAsset("teststore.p12"), "password".toCharArray());
-            certs.add(keystore.getCertificate("couchbase"));
-        }
-        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
-            Log.d(LogDomain.LISTENER, "can't load keystore", e);
-        }
-
-        return certs;
-    }
 }
 

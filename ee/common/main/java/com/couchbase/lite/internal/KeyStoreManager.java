@@ -56,7 +56,6 @@ public abstract class KeyStoreManager {
     public static final String CERT_ATTRIBUTE_IP_ADDRESS = "iPAddress";
     public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
 
-
     public enum KeyAlgorithm {RSA}
 
     public enum KeySize {
@@ -126,7 +125,7 @@ public abstract class KeyStoreManager {
     /**
      * Provides the _public_ key's raw data, as an ASN.1 DER sequence of [modulus, exponent].
      *
-     * @param keyPair    The key pair
+     * @param keyPair The key pair
      * @return the raw key data or null failure.
      */
     @Nullable
@@ -135,8 +134,8 @@ public abstract class KeyStoreManager {
     /**
      * Decrypts data using the private key.
      *
-     * @param keyPair   The key pair
-     * @param data      The data to be encrypted.
+     * @param keyPair The key pair
+     * @param data    The data to be encrypted.
      * @return the raw key data or null failure.
      */
     @Nullable
@@ -160,7 +159,7 @@ public abstract class KeyStoreManager {
      * Called when the C4KeyPair is released and the externalKey is no longer needed
      * and when associated resources may be freed
      *
-     * @param keyPair         The key pair
+     * @param keyPair The key pair
      */
     public abstract void free(@NonNull C4KeyPair keyPair);
 
@@ -171,9 +170,6 @@ public abstract class KeyStoreManager {
         boolean isServer,
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration)
-        throws CouchbaseLiteException;
-
-    public abstract void createAnonymousCertEntry(@NonNull String alias, boolean isServer)
         throws CouchbaseLiteException;
 
     public abstract void importEntry(

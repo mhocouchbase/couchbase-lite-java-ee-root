@@ -14,10 +14,10 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.KeyStoreBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME
-import com.couchbase.lite.internal.utils.StringUtils
-import com.couchbase.lite.internal.utils.TestUtils
+import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -28,10 +28,12 @@ import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
 
 
-private const val KEY_ALIAS = "test-alias"
-
 class URLEndpointListenerTest : BaseReplicatorTest() {
     private var testListener: URLEndpointListener? = null
+
+    companion object {
+        val portFactory = AtomicInteger(30000)
+    }
 
     @After
     fun cleanupURLEndpointListenerTest() {
@@ -105,7 +107,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Ignore("unimplemented")
     @Test
     fun testBasicAuthWithTls() {
-        val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
+        val alias = KeyStoreBaseTest.newKeyAlias()
         val listener = listenTls(
             TLSIdentity.getAnonymousIdentity(alias),
             ListenerPasswordAuthenticator.create { _, _ -> true })
@@ -126,6 +128,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
+    @Ignore("unimplemented")
     @Test
     fun testSimpleReplicationWithTLS() {
         val doc = MutableDocument("doc1")
@@ -134,24 +137,25 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
-        val attributes: MutableMap<String, String> = HashMap()
-        attributes[CERT_ATTRIBUTE_COMMON_NAME] = "Couchbase Lite Test"
+        val alias = KeyStoreBaseTest.newKeyAlias()
 
-        TLSIdentity.deleteIdentity("server-cert");
-        val identity = TLSIdentity.createIdentity(true, attributes, null, "server-cert");
+        val attributes = mapOf(CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite Test")
 
-        val listener = listenTls(identity, null);
+        KeyStoreTestAdaptor.deleteIdentity(alias)
+        val identity = KeyStoreTestAdaptor.createIdentity(true, attributes, null, alias)
+
+        val listener = listenTls(identity, null)
 
         val certs = identity.certs
         assertEquals(1, certs.size)
 
-        var cert = certs[0]
+        val cert = certs[0]
         run(listener.endpointUri(), true, true, false, null, cert.encoded)
 
         assertEquals(1, baseTestDb.count)
         assertNotNull(baseTestDb.getDocument("doc1"))
 
-        TLSIdentity.deleteIdentity("server-cert");
+        KeyStoreTestAdaptor.deleteIdentity(alias)
     }
 
 
@@ -217,10 +221,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
     */
 
-    companion object {
-        val portFactory = AtomicInteger(30000)
-    }
-
     private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
 
         // Listener:
@@ -255,18 +255,18 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun createIdentity(): TLSIdentity {
-        val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
+        val alias = KeyStoreBaseTest.newKeyAlias()
 
-        val attributes = TestUtils.get509Attributes()
+        val attributes = KeyStoreBaseTest.get509Attributes()
 
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        return TLSIdentity.createIdentity(true, attributes, expiration.time, alias)
+        return KeyStoreTestAdaptor.createIdentity(true, attributes, expiration.time, alias)
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        KeyStoreManager.getInstance().deleteEntries(null) { alias: String -> alias == identity.alias }
+        KeyStoreManager.getInstance().deleteEntries(null) { alias -> alias == identity.alias }
     }
 }
 

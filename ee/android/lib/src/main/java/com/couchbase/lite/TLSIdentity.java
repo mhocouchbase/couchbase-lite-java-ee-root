@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,41 +70,56 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             throw new CouchbaseLiteException(
                 "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
         }
-        KeyStoreManager.getInstance().createSelfSignedCertEntry(
-                null, alias, null, isServer, attributes, expiration);
+        KeyStoreManager.getInstance().createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration);
         return getIdentity(alias);
     }
 
     /**
      * Import a key pair into secure storage and create an TLSIdentity from the import.
      *
-     * @param type        KeyStore type, eg: "PKCS12"
-     * @param storeStream An InputStream from the keystore
-     * @param storePass   The keystore password
-     * @param alias       The alias, in the external keystore, of the entry to be used.  This will be the alias for
-     *                    the entry in the Android keystore, too
-     * @param keyPass     The key password
+     * @param extType      KeyStore type, eg: "PKCS12"
+     * @param extStore     An InputStream from the keystore
+     * @param extStorePass The keystore password
+     * @param alias        The alias, in the external keystore, of the entry to be used.  This will be the alias for
+     *                     the entry in the Android keystore, too
+     * @param keyPass      The key password
      * @return a TLSIdentity
      * @throws CouchbaseLiteException on error
      */
     @NonNull
     public static TLSIdentity importIdentity(
-        @NonNull String type,
-        @NonNull InputStream storeStream,
-        @Nullable char[] storePass,
+        @NonNull String extType,
+        @NonNull InputStream extStore,
+        @Nullable char[] extStorePass,
         @NonNull String alias,
         @Nullable char[] keyPass)
         throws CouchbaseLiteException {
-        KeyStoreManager.getInstance().importEntry(type, storeStream, storePass, alias, keyPass, alias);
+        KeyStoreManager.getInstance().importEntry(extType, extStore, extStorePass, alias, keyPass, alias);
         return getIdentity(alias);
     }
 
-    public static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
+    /**
+     * @throws CouchbaseLiteException on error
+     */
+    @NonNull
+    public static TLSIdentity deleteIdentity(@NonNull String alias)
+        throws CouchbaseLiteException {
+        KeyStoreManager.getInstance().deleteEntries(null, alias::equals);
+        return getIdentity(alias);
+    }
+
+    static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
         final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
-        if (!keyStoreManager.findAlias(null, fullAlias)) { keyStoreManager.createAnonymousCertEntry(fullAlias, true); }
+        if (!keyStoreManager.findAlias(null, fullAlias)) {
+            final Map<String, String> attributes = new HashMap<>();
+            attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
+
+            keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
+        }
         return getIdentity(fullAlias);
     }
+
 
     @VisibleForTesting
     TLSIdentity() { }

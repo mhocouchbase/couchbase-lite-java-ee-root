@@ -664,7 +664,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
         int rows = verifyQuery(q, (n, result) -> {
-            assert (result.getInt(0) == 15 || result.getInt(1) == 8);
+            assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8));
         });
         assertEquals(2, rows);
     }
@@ -815,7 +815,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
         int rows = verifyQuery(q, (n, result) -> {
-            assert (result.getInt(0) == 15 || result.getInt(1) == 8);
+            assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8));
         });
         assertEquals(2, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -894,7 +894,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         int rows = verifyQuery(q, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -916,7 +916,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         rows = verifyQuery(q2, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
         assertEquals(1, rows);
         assertEquals(4, aggregateModel.getNumberOfCalls()); // Note: verifyQuery executes query twice
@@ -963,7 +963,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         int rows = verifyQuery(q, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
         assertEquals(2, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -988,7 +988,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         rows = verifyQuery(q2, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1008,7 +1008,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         rows = verifyQuery(q3, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1033,7 +1033,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         rows = verifyQuery(q4, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
 
         assertEquals(1, rows);
@@ -1058,7 +1058,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         rows = verifyQuery(q5, (n, result) -> {
             Array numbers = result.getArray(0);
             assertNotNull(numbers);
-            assert (numbers.count() > 0);
+            assertTrue(numbers.count() > 0);
         });
 
         assertEquals(2, rows);

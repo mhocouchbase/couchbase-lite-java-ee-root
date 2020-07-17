@@ -69,6 +69,7 @@ public abstract class AbstractTLSIdentity {
         this.certificates = certificates;
     }
 
+    // ??? this should be rolled up into the constructor above...
     protected AbstractTLSIdentity(@NonNull String keyAlias, @NonNull List<Certificate> certificates)
         throws CouchbaseLiteException {
         this.keyStore = null;

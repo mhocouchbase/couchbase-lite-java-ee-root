@@ -49,10 +49,14 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public class KeyStoreManagerDelegate extends KeyStoreManager {
+    private static final String PARAM_KEY_STORE = "key store";
+
     private static final Map<KeyStoreManager.SignatureDigestAlgorithm, String> DIGEST_ALGORITHM_TO_JAVA;
+
     static {
         final Map<KeyStoreManager.SignatureDigestAlgorithm, String> m = new HashMap<>();
         m.put(KeyStoreManager.SignatureDigestAlgorithm.NONE, "NONEwithRSA");
@@ -71,9 +75,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             final KeyPair keys = keyPair.getKeys();
             if (keys != null) { return keys.getPublic().getEncoded(); }
 
-            final KeyStore keyStore = keyPair.getKeyStore();
-            assert keyStore != null;
-            final Certificate cert  = keyStore.getCertificate(keyPair.getKeyAlias());
+            final KeyStore keyStore = Preconditions.assertNotNull(keyPair.getKeyStore(), PARAM_KEY_STORE);
+            final Certificate cert = keyStore.getCertificate(keyPair.getKeyAlias());
             return cert.getPublicKey().getEncoded();
         }
         catch (KeyStoreException e) {
@@ -91,9 +94,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             final KeyPair keys = keyPair.getKeys();
             if (keys != null) {
                 key = keys.getPrivate();
-            } else {
-                final KeyStore keyStore = keyPair.getKeyStore();
-                assert keyStore != null;
+            }
+            else {
+                final KeyStore keyStore = Preconditions.assertNotNull(keyPair.getKeyStore(), PARAM_KEY_STORE);
                 key = keyStore.getKey(keyPair.getKeyAlias(), keyPair.getKeyPassword());
                 if (!(key instanceof PrivateKey)) {
                     Log.e(LogDomain.LISTENER, "Failed obtaining private key for decryping");
@@ -101,7 +104,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 }
             }
         }
-        catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException  e) {
+        catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
             Log.e(LogDomain.LISTENER, "Failed obtaining private key", e);
             return null;
         }
@@ -112,7 +115,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             return cipher.doFinal(data);
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
-               BadPaddingException | IllegalBlockSizeException e) {
+            BadPaddingException | IllegalBlockSizeException e) {
             Log.e(LogDomain.LISTENER, "Failed decryping data", e);
             return null;
         }
@@ -129,9 +132,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             final KeyPair keys = keyPair.getKeys();
             if (keys != null) {
                 key = keys.getPrivate();
-            } else {
-                final KeyStore keyStore = keyPair.getKeyStore();
-                assert keyStore != null;
+            }
+            else {
+                final KeyStore keyStore = Preconditions.assertNotNull(keyPair.getKeyStore(), PARAM_KEY_STORE);
                 key = keyStore.getKey(keyPair.getKeyAlias(), keyPair.getKeyPassword());
                 if (!(key instanceof PrivateKey)) {
                     Log.e(LogDomain.LISTENER, "Failed obtaining private key for decryping");
@@ -151,7 +154,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             return sig.sign();
         }
         catch (SignatureException | UnrecoverableEntryException | NoSuchAlgorithmException |
-               InvalidKeyException | KeyStoreException e) {
+            InvalidKeyException | KeyStoreException e) {
             Log.e(LogDomain.LISTENER, "Failed signing key", e);
         }
 
@@ -170,9 +173,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration)
         throws CouchbaseLiteException {
+        final KeyStore store = Preconditions.assertNotNull(keyStore, PARAM_KEY_STORE);
         try {
-            assert keyStore != null;
-            if (findAlias(keyStore, alias)) {
+            if (findAlias(store, alias)) {
                 throw new CouchbaseLiteException("Key already exits @" + alias,
                     CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
             }
@@ -182,7 +185,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
             // Generate C4KeyPair:
             final C4KeyPair c4KeyPair = C4KeyPair.createKeyPair(
-                keyStore, alias,
+                store,
+                alias,
                 keyPassword,
                 KeyAlgorithm.RSA,
                 KeySize.BIT_2048,
@@ -194,16 +198,13 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 KeyAlgorithm.RSA, KeySize.BIT_2048, attributes, usage, expiration);
 
             // Store Private Key and Cert into the KeyStore
-            keyStore.setKeyEntry(alias, keyPair.getPrivate(), keyPassword, new Certificate[] {cert});
+            store.setKeyEntry(alias, keyPair.getPrivate(), keyPassword, new Certificate[] {cert});
         }
         catch (KeyStoreException e) {
             throw new CouchbaseLiteException("Failed setting keys and certificate in the KeyStore", e,
                 CBLError.Domain.CBLITE, CBLError.Code.CRYPTO, null);
         }
     }
-
-    @Override
-    public void createAnonymousCertEntry(@NonNull String alias, boolean isServer) throws CouchbaseLiteException { }
 
     @Override
     public void importEntry(
@@ -221,42 +222,39 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     public Certificate getCertificate(
         @Nullable KeyStore keyStore, @NonNull String keyAlias, @Nullable char[] keyPassword)
         throws CouchbaseLiteException {
-        try {
-            assert keyStore != null;
-            return keyStore.getCertificate(keyAlias);
-        }
+        final KeyStore store = Preconditions.assertNotNull(keyStore, PARAM_KEY_STORE);
+        try { return store.getCertificate(keyAlias); }
         catch (KeyStoreException e) {
-            throw new CouchbaseLiteException("Failed finding certificate @ " + keyAlias, e,
-                CBLError.Domain.CBLITE, CBLError.Code.CRYPTO, null);
+            throw new CouchbaseLiteException(
+                "Failed finding certificate @ " + keyAlias, e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO, null);
         }
     }
 
     @Override
-    public boolean findAlias(
-        @Nullable KeyStore keyStore,
-        @NonNull String keyAlias)
-        throws CouchbaseLiteException {
-        try {
-            assert keyStore != null;
-            return keyStore.containsAlias(keyAlias);
-        }
+    public boolean findAlias(@Nullable KeyStore keyStore, @NonNull String keyAlias) throws CouchbaseLiteException {
+        final KeyStore store = Preconditions.assertNotNull(keyStore, PARAM_KEY_STORE);
+        try { return store.containsAlias(keyAlias); }
         catch (KeyStoreException e) {
-            throw new CouchbaseLiteException("Failed finding alias @" + keyAlias, e,
-                CBLError.Domain.CBLITE, CBLError.Code.CRYPTO, null);
+            throw new CouchbaseLiteException(
+                "Failed finding alias @" + keyAlias, e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO, null);
         }
     }
 
     @Override
     public int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter)
         throws CouchbaseLiteException {
+        final KeyStore store = Preconditions.assertNotNull(keyStore, PARAM_KEY_STORE);
         int deleted = 0;
         try {
-            assert keyStore != null;
-            final Enumeration<String> aliases = keyStore.aliases();
+            final Enumeration<String> aliases = store.aliases();
             while (aliases.hasMoreElements()) {
                 final String alias = aliases.nextElement();
                 if (filter.test(alias)) {
-                    keyStore.deleteEntry(alias);
+                    store.deleteEntry(alias);
                     deleted++;
                 }
             }

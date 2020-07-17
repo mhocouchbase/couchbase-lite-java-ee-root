@@ -44,6 +44,7 @@ import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public class C4KeyPair extends C4NativePeer implements Closeable {
@@ -77,6 +78,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     private static final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+
     static {
         final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> m = new HashMap<>();
         m.put(0, KeyStoreManager.SignatureDigestAlgorithm.NONE);
@@ -140,7 +142,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         }
 
         final int token = KEY_PAIR_CONTEXT.reserveKey();
-        final C4KeyPair keyPair = new C4KeyPair(nativeImpl, token, keyStore, keyAlias, keyPwd, keys);
+        final C4KeyPair keyPair = new C4KeyPair(token, keyStore, keyAlias, keyPwd, keys);
         KEY_PAIR_CONTEXT.bind(token, keyPair);
 
         final long peer;
@@ -245,8 +247,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     private final int token;
-    @NonNull
-    private final C4KeyPair.NativeImpl impl;
     @SuppressFBWarnings("SE_BAD_FIELD")
     @Nullable
     private final KeyStore keyStore;
@@ -263,14 +263,12 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
     @SuppressWarnings("PMD.ArrayIsStoredDirectly")
     private C4KeyPair(
-        @NonNull C4KeyPair.NativeImpl impl,
         int token,
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword,
         @Nullable KeyPair keyPair) {
         super();
-        this.impl = impl;
         this.token = token;
         this.keyStore = keyStore;
         this.keyAlias = keyAlias;
@@ -312,7 +310,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         KeyStoreManager.KeySize keySize,
         @NonNull Map<String, String> attributes,
         @NonNull KeyStoreManager.CertUsage usage,
-        @Nullable Date expiration) throws CouchbaseLiteException {
+        @Nullable Date expiration)
+        throws CouchbaseLiteException {
         int i = 0;
         final String[][] attrs = new String[attributes.size()][];
         for (Map.Entry<String, String> attr: attributes.entrySet()) {
@@ -321,12 +320,13 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
         long validityInSeconds = 0;
         if (expiration != null) {
-            validityInSeconds = TimeUnit.MILLISECONDS.toSeconds(
-                expiration.getTime() - System.currentTimeMillis());
-            assert (validityInSeconds > 0);
+            validityInSeconds = Preconditions.assertPositive(
+                TimeUnit.MILLISECONDS.toSeconds(expiration.getTime() - System.currentTimeMillis()),
+                "valid time");
         }
 
-        final byte[] data = impl.nGenerateSelfSignedCertificate(
+
+        final byte[] data = nativeImpl.nGenerateSelfSignedCertificate(
             getPeer(),
             getC4KeyAlgorithm(algorithm),
             keySize.getBitLength(),
@@ -334,11 +334,10 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             usage.getCode(),
             validityInSeconds);
 
-        assert (data != null && data.length > 0);
+        Preconditions.assertNotNull(data, "data");
+        Preconditions.assertPositive(data.length, "data");
 
-        try {
-            return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data));
-        }
+        try { return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data)); }
         catch (CertificateException e) {
             throw new CouchbaseLiteException(
                 "Failed to create certificate",
@@ -355,7 +354,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         KEY_PAIR_CONTEXT.unbind(token);
         final long peer = getPeerAndClear();
         if (peer == 0) { return; }
-        impl.nFree(peer);
+        nativeImpl.nFree(peer);
     }
 
     @NonNull
@@ -375,7 +374,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             final long peer = getPeerUnchecked();
             if (peer == 0) { return; }
             KEY_PAIR_CONTEXT.unbind(token);
-            impl.nFree(peer);
+            nativeImpl.nFree(peer);
             Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
         }
         finally { super.finalize(); }
