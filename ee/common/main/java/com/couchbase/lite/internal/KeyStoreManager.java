@@ -36,6 +36,11 @@ import com.couchbase.lite.internal.utils.Fn;
 public abstract class KeyStoreManager {
     public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
 
+    public static final String ANON_COMMON_NAME = "CBLAnonymousCertificate";
+    public static final int ANON_EXPIRATION_YEARS = 1;
+
+    public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
+
     public enum KeyAlgorithm {RSA}
 
     public enum KeySize {
@@ -61,31 +66,6 @@ public abstract class KeyStoreManager {
         KeySize(int len) { this.len = len; }
 
         public int getBitLength() { return len; }
-    }
-
-    public enum CertAttribute {
-        COMMON_NAME("CN"),
-        PSEUDONYM("pseudonym"),
-        GIVEN_NAME("GN"),
-        SURNAME("SN"),
-        ORGANIZATION("O"),
-        ORGANIZATION_UNIT("OU"),
-        POSTAL_ADDRESS("postalAddress"),
-        LOCALITY("locality"),
-        POSTAL_CODE("postalCode"),
-        STATE_OR_PROVINCE("ST"),
-        COUNTRY("C"),
-        EMAIL_ADDRESS("rfc822Name"),
-        HOSTNAME("dNSName"),
-        URL("uniformResourceIdentifier"),
-        IP_ADDRESS("iPAddress"),
-        REGISTERED_ID("registeredID");
-
-        final String code;
-
-        CertAttribute(String code) { this.code = code; }
-
-        public String getCode() { return code; }
     }
 
     public enum CertUsage {
@@ -118,6 +98,9 @@ public abstract class KeyStoreManager {
         INSTANCE.compareAndSet(null, new KeyStoreManagerDelegate());
         return INSTANCE.get();
     }
+
+    @VisibleForTesting
+    public static void setInstance(KeyStoreManager mgr) { INSTANCE.set(mgr); }
 
 
     //-------------------------------------------------------------------------
@@ -185,12 +168,14 @@ public abstract class KeyStoreManager {
         @NonNull String keyAlias,
         @Nullable char[] keyPassword);
 
-    @Nullable
-    public abstract String createCertEntry(
+    public abstract void createCertEntry(
         @NonNull String alias,
         boolean isServer,
-        @NonNull Map<KeyStoreManager.CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration)
+        throws CouchbaseLiteException;
+
+    public abstract void createAnonymousCertEntry(@NonNull String alias, boolean isServer)
         throws CouchbaseLiteException;
 
     public abstract void importEntry(
@@ -202,15 +187,14 @@ public abstract class KeyStoreManager {
         @NonNull String targetAlias)
         throws CouchbaseLiteException;
 
+    public abstract boolean findAlias(@NonNull String keyAlias) throws CouchbaseLiteException;
+
     @Nullable
     public abstract Certificate getCertificate(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword)
         throws CouchbaseLiteException;
-
-    @Nullable
-    public abstract String findAnonymousCertAlias() throws CouchbaseLiteException;
 
     @VisibleForTesting
     public abstract int deleteEntries(Fn.Predicate<String> filter) throws CouchbaseLiteException;
@@ -221,7 +205,7 @@ public abstract class KeyStoreManager {
         @NonNull String alias,
         boolean isServer,
         @NonNull KeySize keySize,
-        @NonNull Map<CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration)
         throws CouchbaseLiteException;
 }

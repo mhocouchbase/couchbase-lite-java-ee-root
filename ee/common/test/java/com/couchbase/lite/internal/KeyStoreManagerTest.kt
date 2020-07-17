@@ -17,23 +17,35 @@ package com.couchbase.lite.internal
 
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.core.C4KeyPair
+import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Ignore
 import org.junit.Test
+import java.security.KeyStore
 import java.security.interfaces.RSAKey
 import java.util.Calendar
 
-class KeyManagerTest : PlatformBaseTest() {
+class KeyStoreManagerTest : PlatformBaseTest() {
+
     @Test
-    fun testCreateKeyPair() {
+    fun testGetKeyData() {
+        val pwd = "password".toCharArray()
+        val keyStore = KeyStore.getInstance("PKCS12")
+        keyStore.load(PlatformUtils.getAsset("teststore.p12"), pwd)
+
+        KeyStoreManager.getInstance().getKeyData(keyStore, "couchbase", pwd)
+    }
+
+    @Test
+    fun testGenerateRSAKeyPair() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
         val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
             "foo",
             true,
             KeyStoreManager.KeySize.BIT_2048,
-            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
+            mapOf(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
@@ -41,37 +53,16 @@ class KeyManagerTest : PlatformBaseTest() {
         assertEquals(2048, (keys.private as RSAKey).modulus.bitLength())
     }
 
+    @Ignore("BROKEN TEST: LiteCoreException{domain=1, code=22, msg=Can't parse certificate request data (X509 - The name tag or value is invalid : ASN1 - Out of data when parsing an ASN1 data structure)}")
     @Test
-    fun testCreateC4KeyPair() {
+    fun testGenerateSelfSignedCertificate() {
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
         val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
             "foo",
             true,
             KeyStoreManager.KeySize.BIT_2048,
-            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
-            exp.time
-        )
-        assertNotNull(keys)
-
-        val c4Keys = C4KeyPair.createKeyPair(
-            "foo",
-            KeyStoreManager.KeyAlgorithm.RSA,
-            KeyStoreManager.KeySize.BIT_2048
-        )
-        assertNotNull(c4Keys)
-    }
-
-    @Ignore("java.security.InvalidKeyException: Unsupported key algorithm: RSA. OnlyEC supported")
-    @Test
-    fun testCreateCertificate() {
-        val exp = Calendar.getInstance()
-        exp.add(Calendar.YEAR, 3)
-        val keys = KeyStoreManager.getInstance().generateRSAKeyPair(
-            "foo",
-            true,
-            KeyStoreManager.KeySize.BIT_2048,
-            mapOf(KeyStoreManager.CertAttribute.COMMON_NAME to "couchbase"),
+            mapOf(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "couchbase"),
             exp.time
         )
         assertNotNull(keys)
@@ -83,11 +74,11 @@ class KeyManagerTest : PlatformBaseTest() {
         )
         assertNotNull(c4Keys)
 
-        val subjectName: Map<KeyStoreManager.CertAttribute, String> = mapOf(
-            KeyStoreManager.CertAttribute.COMMON_NAME to "CouchbaseLite",
-            KeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
-            KeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
-            KeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+        val subjectName = mapOf(
+            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite",
+            "O" to "Couchbase",
+            "OU" to "Mobile",
+            "rfc822Name" to "lite@couchbase.com"
         )
 
         c4Keys.generateSelfSignedCertificate(

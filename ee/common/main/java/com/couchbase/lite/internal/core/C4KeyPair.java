@@ -47,7 +47,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             long c4KeyPair,
             byte algorithm,
             int keyBits,
-            String[][] subjectName,
+            String[][] attributes,
             byte usage);
 
         long nFromExternal(byte algorithm, int keyBits, long token) throws LiteCoreException;
@@ -82,27 +82,13 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         m.put(9, KeyStoreManager.SignatureDigestAlgorithm.RIPEMD160);
         C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
-    /**
-     * Convenience method for Android, which has only one safe keystore
-     * and doesn't use passwords for keys.
-     *
-     * @param keyAlias  the alias by which the key is known to the keystore
-     * @param algorithm key algorithm (must be KeyManager.KeyAlgorithm.RSA)
-     * @param keySize   key size
-     * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
-     * @throws CouchbaseLiteException on error
-     */
-    public static C4KeyPair createKeyPair(
-        @NonNull String keyAlias,
-        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize)
-        throws CouchbaseLiteException {
-        return createKeyPair(null, keyAlias, null, algorithm, keySize);
-    }
+
+    //-------------------------------------------------------------------------
+    // Static Factory Methods
+    //-------------------------------------------------------------------------
 
     /**
-     * Convenience method for Android, which has only one safe keystore
-     * and doesn't use passwords for keys.
+     * Create a C4Key pair.
      *
      * @param keyStore    the KeyStore object containing the cert and key pair
      * @param keyAlias    the alias by which the key is known to the keystore
@@ -136,6 +122,24 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         keyPair.setPeer(peer);
 
         return keyPair;
+    }
+
+    /**
+     * Convenience method for Android, which has only one safe keystore
+     * and doesn't use passwords for keys.
+     *
+     * @param keyAlias  the alias by which the key is known to the keystore
+     * @param algorithm key algorithm (must be KeyManager.KeyAlgorithm.RSA)
+     * @param keySize   key size
+     * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
+     * @throws CouchbaseLiteException on error
+     */
+    public static C4KeyPair createKeyPair(
+        @NonNull String keyAlias,
+        @NonNull KeyStoreManager.KeyAlgorithm algorithm,
+        KeyStoreManager.KeySize keySize)
+        throws CouchbaseLiteException {
+        return createKeyPair(null, keyAlias, null, algorithm, keySize);
     }
 
     //-------------------------------------------------------------------------
@@ -251,19 +255,19 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     public Certificate generateSelfSignedCertificate(
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
         KeyStoreManager.KeySize keySize,
-        @NonNull Map<KeyStoreManager.CertAttribute, String> nameComponents,
+        @NonNull Map<String, String> attributes,
         @NonNull KeyStoreManager.CertUsage usage) {
         int i = 0;
-        final String[][] components = new String[nameComponents.size()][];
-        for (Map.Entry<KeyStoreManager.CertAttribute, String> component: nameComponents.entrySet()) {
-            components[i++] = new String[] {component.getKey().getCode(), component.getValue()};
+        final String[][] attrs = new String[attributes.size()][];
+        for (Map.Entry<String, String> attr: attributes.entrySet()) {
+            attrs[i++] = new String[] {attr.getKey(), attr.getValue()};
         }
 
         final byte[] data = impl.nGenerateSelfSignedCertificate(
             getPeer(),
             getC4KeyAlgorithm(algorithm),
             keySize.getBitLength(),
-            components,
+            attrs,
             usage.getCode());
 
         try { return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data)); }

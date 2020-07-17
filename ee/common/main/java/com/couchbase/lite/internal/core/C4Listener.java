@@ -115,32 +115,6 @@ public class C4Listener extends C4NativePeer implements Closeable {
     static final NativeContext<C4Listener> LISTENER_CONTEXT = new NativeContext<>();
 
     //-------------------------------------------------------------------------
-    // Native callback methods
-    //-------------------------------------------------------------------------
-
-    // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
-    static boolean httpAuthCallback(long token, @Nullable String authHeader) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
-        if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
-            return false;
-        }
-        return listener.authenticateBasic(authHeader);
-    }
-
-    // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
-    static boolean certAuthCallback(long token, @Nullable byte[] clientCertData) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
-        if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
-            return false;
-        }
-        return listener.authenticateCert(clientCertData);
-    }
-
-    //-------------------------------------------------------------------------
     // Static Factory Methods
     //-------------------------------------------------------------------------
 
@@ -286,6 +260,32 @@ public class C4Listener extends C4NativePeer implements Closeable {
         listener.setPeer(peer);
 
         return listener;
+    }
+
+    //-------------------------------------------------------------------------
+    // Native callback methods
+    //-------------------------------------------------------------------------
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    static boolean httpAuthCallback(long token, @Nullable String authHeader) {
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
+        if (listener == null) {
+            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
+            return false;
+        }
+        return listener.authenticateBasic(authHeader);
+    }
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    static boolean certAuthCallback(long token, @Nullable byte[] clientCertData) {
+        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
+        if (listener == null) {
+            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
+            return false;
+        }
+        return listener.authenticateCert(clientCertData);
     }
 
 

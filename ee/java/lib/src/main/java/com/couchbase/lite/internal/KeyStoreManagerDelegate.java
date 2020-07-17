@@ -58,15 +58,15 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     public void free(@Nullable KeyStore keyStore, @NonNull String keyAlias, @Nullable char[] keyPassword) {
     }
 
-    @Nullable
     @Override
-    public String createCertEntry(
+    public void createCertEntry(
         @NonNull String alias,
         boolean isServer,
-        @NonNull Map<CertAttribute, String> attributes,
-        @NonNull Date expiration) throws CouchbaseLiteException {
-        return null;
-    }
+        @NonNull Map<String, String> attributes,
+        @NonNull Date expiration) throws CouchbaseLiteException { }
+
+    @Override
+    public void createAnonymousCertEntry(@NonNull String alias, boolean isServer) throws CouchbaseLiteException { }
 
     @Override
     public void importEntry(
@@ -86,11 +86,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         return null;
     }
 
-    @Nullable
     @Override
-    public String findAnonymousCertAlias() throws CouchbaseLiteException {
-        return null;
-    }
+    public boolean findAlias(@NonNull String keyAlias) throws CouchbaseLiteException { return true; }
 
     @Override
     public int deleteEntries(Fn.Predicate<String> filter) throws CouchbaseLiteException {
@@ -103,7 +100,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         @NonNull String alias,
         boolean isServer,
         @NonNull KeySize keySize,
-        @NonNull Map<CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration) throws CouchbaseLiteException {
         return null;
     }

@@ -60,9 +60,9 @@ public class URLEndpointListener {
             final TLSIdentity id = config.identity;
             if (id != null) { identity = id; }
             else {
-                final TLSIdentity anonId = TLSIdentity.getSavedAnonymousIdentity();
-                if (anonId != null) { identity = anonId; }
-                else { identity = TLSIdentity.createAnonymousServerIdentity(); }
+                final String uuid = config.database.getUuid();
+                if (uuid == null) { throw new IllegalArgumentException("Configured database is not open"); }
+                identity = TLSIdentity.getAnonymousIdentity(uuid + "@" + config.getPort());
             }
         }
     }

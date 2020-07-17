@@ -23,11 +23,8 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -36,31 +33,10 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
-import com.couchbase.lite.internal.utils.StringUtils;
 
 
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AbstractTLSIdentity {
-    public static final String ANON_IDENTITY_ALIAS = "CBL-ANON";
-
-    @NonNull
-    public static String createAnonymousServerCertificate() throws CouchbaseLiteException {
-        final String alias = StringUtils.getUniqueName(ANON_IDENTITY_ALIAS, 8);
-
-        final Map<KeyStoreManager.CertAttribute, String> attributes = new HashMap<>();
-        attributes.put(KeyStoreManager.CertAttribute.COMMON_NAME, "Couchbase Lite");
-        attributes.put(KeyStoreManager.CertAttribute.ORGANIZATION, "Couchbase");
-        attributes.put(KeyStoreManager.CertAttribute.ORGANIZATION_UNIT, "Mobile");
-        attributes.put(KeyStoreManager.CertAttribute.EMAIL_ADDRESS, "lite@couchbase.com");
-
-        final Calendar expiration = Calendar.getInstance();
-        expiration.add(Calendar.YEAR, 3);
-
-        KeyStoreManager.getInstance().createCertEntry(alias, true, attributes, expiration.getTime());
-
-        return alias;
-    }
-
     @NonNull
     private final String keyAlias;
     @NonNull

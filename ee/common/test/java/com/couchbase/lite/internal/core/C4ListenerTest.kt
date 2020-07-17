@@ -35,7 +35,6 @@ import java.io.IOException
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.NoSuchAlgorithmException
-import java.security.UnrecoverableKeyException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 
@@ -95,13 +94,10 @@ class C4ListenerTest : PlatformBaseTest() {
         override fun nGetUriFromPath(path: String?): String = ""
     }
 
-    private lateinit var cert: Certificate
-
     @Before
     fun setUpC4ListenerTest() {
         C4Listener.nativeImpl = impl
         C4Listener.LISTENER_CONTEXT.clear()
-        cert = getCert()
     }
 
     @After
@@ -110,7 +106,7 @@ class C4ListenerTest : PlatformBaseTest() {
     }
 
     @Test
-    fun testHttpListenerCreate() {
+    fun testCreateHttpListener() {
         assertEquals(0, C4Listener.LISTENER_CONTEXT.size())
 
         val listener = C4Listener.createHttpListener(
@@ -397,9 +393,9 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(0, pwd?.size)
     }
 
-    @Ignore("Incomplete")
+    @Ignore("BROKEN TEST")
     @Test
-    fun testTlsListenerCreate() {
+    fun testCreateTlsPasswordListener() {
         assertEquals(0, C4Listener.LISTENER_CONTEXT.size())
 
         val listener = C4Listener.createTlsListenerPasswordAuth(
@@ -410,7 +406,7 @@ class C4ListenerTest : PlatformBaseTest() {
             true,
             true,
             true,
-            cert,
+            loadTestCert(),
             null
         )
         assertNotNull(listener)
@@ -418,9 +414,32 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
     }
 
-    @Ignore("Incomplete")
+    @Ignore("BROKEN TEST")
     @Test
-    fun testTlsListenerAuthenticate() {
+    fun testCreateTlsCertificateListener() {
+        assertEquals(0, C4Listener.LISTENER_CONTEXT.size())
+
+        val listener = C4Listener.createTlsListenerCertAuth(
+            2222,
+            "en0",
+            "/here/there/everywhere",
+            ListenerCertificateAuthenticator.create { true },
+            true,
+            true,
+            true,
+            loadTestCert(),
+            null
+        )
+        assertNotNull(listener)
+
+        assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
+    }
+
+    @Ignore("BROKEN TEST")
+    @Test
+    fun testTlsCertificateListenerAuthenticate() {
+        val cert = loadTestCert()
+
         val certData = SecurityUtils.encodeCertificate(cert)
 
         var clientCert: Certificate? = null
@@ -448,19 +467,17 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(cert, clientCert)
     }
 
+
     @Throws(
         KeyStoreException::class,
         CertificateException::class,
         NoSuchAlgorithmException::class,
-        IOException::class,
-        UnrecoverableKeyException::class
+        IOException::class
     )
-    private fun getCert(): Certificate {
+    fun loadTestCert(): Certificate {
         val keystore = KeyStore.getInstance("PKCS12")
         keystore.load(PlatformUtils.getAsset("teststore.p12"), "password".toCharArray())
-        assertEquals(1, keystore.size())
-
         // Android has a funny idea of the alias name...
-        return keystore.getCertificate(keystore.aliases().nextElement())
+        return keystore.getCertificate("couchbase")
     }
 }

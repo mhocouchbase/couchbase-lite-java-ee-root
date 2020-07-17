@@ -55,7 +55,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     public static TLSIdentity createIdentity(
         @NonNull String alias,
         boolean isServer,
-        @NonNull Map<KeyStoreManager.CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration)
         throws CouchbaseLiteException {
         return new TLSIdentity();
@@ -63,11 +63,12 @@ public final class TLSIdentity extends AbstractTLSIdentity {
 
     public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException { }
 
-    @Nullable
-    static TLSIdentity getSavedAnonymousIdentity() { return null; }
-
-    @NonNull
-    static TLSIdentity createAnonymousServerIdentity() throws CouchbaseLiteException { return new TLSIdentity(); }
+    public static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
+        final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
+        final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
+        if (!keyStoreManager.findAlias(fullAlias)) { keyStoreManager.createAnonymousCertEntry(fullAlias, true); }
+        return getIdentity(fullAlias, null);
+    }
 
 
     public TLSIdentity() throws CouchbaseLiteException { super("couchbase", loadCerts()); }

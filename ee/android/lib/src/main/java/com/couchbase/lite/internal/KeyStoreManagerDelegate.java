@@ -41,6 +41,7 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.RSAKeyGenParameterSpec;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
@@ -165,12 +166,11 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         android.util.Log.d("###", "free @" + keyAlias);
     }
 
-    @Nullable
-    @Override
-    public String createCertEntry(
+     @Override
+    public void createCertEntry(
         @NonNull String alias,
         boolean isServer,
-        @NonNull Map<KeyStoreManager.CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration)
         throws CouchbaseLiteException {
         generateRSAKeyPair(alias, isServer, KeyStoreManager.KeySize.BIT_2048, attributes, expiration);
@@ -192,8 +192,17 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
             throw new CouchbaseLiteException("Failed creating identity", e);
         }
+    }
 
-        return alias;
+    @Override
+    public void createAnonymousCertEntry(@NonNull String alias, boolean isServer)  throws CouchbaseLiteException {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, ANON_COMMON_NAME);
+
+        final Calendar expiration = Calendar.getInstance();
+        expiration.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
+
+        createCertEntry(alias, isServer, attributes, expiration.getTime());
     }
 
     @Override
@@ -243,23 +252,22 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         }
     }
 
-    @Nullable
     @Override
-    public String findAnonymousCertAlias() throws CouchbaseLiteException {
+    public boolean findAlias(@NonNull String targetAlias) throws CouchbaseLiteException {
         try {
             final KeyStore keystore = KeyStore.getInstance(ANDROID_KEY_STORE);
 
             final Enumeration<String> aliases = keystore.aliases();
             while (aliases.hasMoreElements()) {
                 final String alias = aliases.nextElement();
-                if (alias.startsWith(ANON_IDENTITY_ALIAS)) { return alias; }
+                if (targetAlias.equals(alias)) { return true; }
             }
         }
         catch (KeyStoreException e) {
             throw new CouchbaseLiteException("Failed searching for a saved anonymous identity", e);
         }
 
-        return null;
+        return false;
     }
 
     @VisibleForTesting
@@ -281,6 +289,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         catch (KeyStoreException e) {
             throw new CouchbaseLiteException("Failed searching for a saved anonymous identity", e);
         }
+
         return deleted;
     }
 
@@ -290,18 +299,12 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         @NonNull String alias,
         boolean isServer,
         @NonNull KeySize keySize,
-        @NonNull Map<CertAttribute, String> attributes,
+        @NonNull Map<String, String> attributes,
         @NonNull Date expiration)
         throws CouchbaseLiteException {
-        final String dn = attributes.get(CertAttribute.COMMON_NAME);
+        final Map<String, String> localAttributes = new HashMap<>(attributes);
+        final String dn = localAttributes.remove(CERT_ATTRIBUTE_COMMON_NAME);
         if (dn == null) { throw new CouchbaseLiteException("Certificate must have a distinguished name (CN)"); }
-
-        final HashMap<String, String> localAttributes = new HashMap<>();
-        for (Map.Entry<CertAttribute, String> entry: attributes.entrySet()) {
-            final CertAttribute key = entry.getKey();
-            if (CertAttribute.COMMON_NAME.equals(key)) { continue; }
-            localAttributes.put(key.getCode(), entry.getValue());
-        }
 
         final Date now = new Date();
         final X500Principal subject = new X500Principal("CN=" + dn, localAttributes);

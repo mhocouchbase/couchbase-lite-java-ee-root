@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private const val KEY_ALIAS = "test-alias"
 
-
 class URLEndpointListenerTest : BaseReplicatorTest() {
     private var testListener: URLEndpointListener? = null
 
@@ -103,8 +102,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Ignore("unimplemented")
     @Test
     fun testBasicAuthWithTls() {
+        val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
         val listener = listenTls(
-            TLSIdentity.createAnonymousServerIdentity(),
+            TLSIdentity.getAnonymousIdentity(alias),
             ListenerPasswordAuthenticator.create { _, _ -> true })
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
@@ -227,14 +227,15 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val alias = StringUtils.getUniqueName(KEY_ALIAS, 8)
 
         val attributes = mapOf(
-            KeyStoreManager.CertAttribute.COMMON_NAME to "Couchbase Lite",
-            KeyStoreManager.CertAttribute.ORGANIZATION to "Couchbase",
-            KeyStoreManager.CertAttribute.ORGANIZATION_UNIT to "Mobile",
-            KeyStoreManager.CertAttribute.EMAIL_ADDRESS to "lite@couchbase.com"
+            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite",
+            "O" to "Couchbase",
+            "OU" to "Mobile",
+            "rfc822Name" to "lite@couchbase.com"
         )
 
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
+
         return TLSIdentity.createIdentity(alias, true, attributes, expiration.time)
     }
 
