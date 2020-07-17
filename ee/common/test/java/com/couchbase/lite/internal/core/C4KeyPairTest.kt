@@ -17,6 +17,7 @@ package com.couchbase.lite.internal.core
 
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
 import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.TestUtils
@@ -130,6 +131,7 @@ class C4KeyPairTest : PlatformBaseTest() {
     @After
     fun tearDownC4ListenerTest() {
         KeyStoreManager.setInstance(null)
+        C4KeyPair.nativeImpl = NativeC4KeyPair()
         C4KeyPair.KEY_PAIR_CONTEXT.clear()
         C4Listener.nativeImpl = NativeC4Listener()
     }
