@@ -56,7 +56,7 @@ class C4ListenerTest : PlatformBaseTest() {
             push: Boolean,
             pull: Boolean,
             deltaSync: Boolean
-        ): Long = 666L
+        ): Long = 0xdadL
 
         @Throws(LiteCoreException::class)
         override fun nStartTls(
@@ -74,7 +74,7 @@ class C4ListenerTest : PlatformBaseTest() {
             serverCert: ByteArray,
             requireClientCerts: Boolean,
             rootClientCerts: ByteArray?
-        ): Long = 666L
+        ): Long = 0xdadL
 
         override fun nFree(handle: Long) = Unit
 

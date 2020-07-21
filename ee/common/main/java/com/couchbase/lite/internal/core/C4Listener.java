@@ -43,6 +43,7 @@ import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.PlatformUtils;
+import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
@@ -129,7 +130,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         boolean deltaSync)
         throws CouchbaseLiteException {
         final int token = LISTENER_CONTEXT.reserveKey();
-        final C4Listener listener = new C4Listener(token, authenticator);
+        final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
         final long peer;
@@ -171,7 +172,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
         final int token = LISTENER_CONTEXT.reserveKey();
-        final C4Listener listener = new C4Listener(token, authenticator);
+        final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
         final long peer;
@@ -224,7 +225,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
         final int token = LISTENER_CONTEXT.reserveKey();
-        final C4Listener listener = new C4Listener(token, authenticator);
+        final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
         final long peer;
@@ -293,6 +294,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     private final int token;
+    @NonNull
+    private final NativeImpl impl;
     @Nullable
     private final ListenerAuthenticator authenticator;
 
@@ -300,8 +303,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
     // Constructors
     //-------------------------------------------------------------------------
 
-    protected C4Listener(int token, @Nullable ListenerAuthenticator authenticator) {
+    protected C4Listener(int token, @NonNull NativeImpl impl, @Nullable ListenerAuthenticator authenticator) {
+        Preconditions.assertNotZero(token, "token");
         this.token = token;
+        this.impl = Preconditions.assertNotNull(impl, "native impl");
         this.authenticator = authenticator;
     }
 
@@ -310,37 +315,32 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     @Override
-    public void close() {
-        LISTENER_CONTEXT.unbind(token);
-        final long peer = getPeerAndClear();
-        if (peer == 0) { return; }
-        nativeImpl.nFree(peer);
-    }
+    public void close() { close(getPeerAndClear()); }
 
     public void shareDb(@NonNull String name, @NonNull C4Database db) throws CouchbaseLiteException {
-        try { nativeImpl.nShareDb(getPeer(), name, db.getHandle()); }
+        try { impl.nShareDb(getPeer(), name, db.getHandle()); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
     }
 
     public void unshareDb(@NonNull C4Database db) throws CouchbaseLiteException {
-        try { nativeImpl.nUnshareDb(getPeer(), db.getHandle()); }
+        try { impl.nUnshareDb(getPeer(), db.getHandle()); }
         catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
     }
 
     @Nullable
     public List<String> getUrls(@NonNull C4Database db) {
-        try { return nativeImpl.nGetUrls(getPeer(), db.getHandle()); }
+        try { return impl.nGetUrls(getPeer(), db.getHandle()); }
         catch (LiteCoreException e) { Log.w(LogDomain.LISTENER, "Failed getting URLs", e); }
         return null;
     }
 
-    public int getPort() { return nativeImpl.nGetPort(getPeer()); }
+    public int getPort() { return impl.nGetPort(getPeer()); }
 
     @NonNull
-    public ConnectionStatus getConnectionStatus() { return nativeImpl.nGetConnectionStatus(getPeer()); }
+    public ConnectionStatus getConnectionStatus() { return impl.nGetConnectionStatus(getPeer()); }
 
     @Nullable
-    public String getUriFromPath(String path) { return nativeImpl.nGetUriFromPath(path); }
+    public String getUriFromPath(String path) { return impl.nGetUriFromPath(path); }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -350,11 +350,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
     @Override
     protected void finalize() throws Throwable {
         try {
-            final long peer = getPeerUnchecked();
+            final long peer = getPeerAndClear();
+            close(peer);
             if (peer == 0) { return; }
-            LISTENER_CONTEXT.unbind(token);
-            nativeImpl.nFree(peer);
-            Log.d(LogDomain.LISTENER, "Finalized without closing: " + this);
+            Log.d(LogDomain.LISTENER, "C4Listener finalized without closing: " + peer);
         }
         finally { super.finalize(); }
     }
@@ -418,5 +417,12 @@ public class C4Listener extends C4NativePeer implements Closeable {
         }
 
         return auth.authenticate(certs);
+    }
+
+    // !!! the impl may already have been GCed.
+    private void close(long peer) {
+        LISTENER_CONTEXT.unbind(token);
+        if (peer == 0) { return; }
+        impl.nFree(peer);
     }
 }
