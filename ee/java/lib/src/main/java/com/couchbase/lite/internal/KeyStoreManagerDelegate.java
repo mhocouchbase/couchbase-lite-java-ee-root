@@ -34,8 +34,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.BadPaddingException;
@@ -180,6 +180,11 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                     CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
             }
 
+            if (!attributes.containsKey(CERT_ATTRIBUTE_COMMON_NAME)) {
+                throw new CouchbaseLiteException("The Common Name attribute is required",
+                    CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
+            }
+
             // Generate KeyPair:
             final KeyPair keyPair = generateRSAKeyPair(alias, isServer, KeySize.BIT_2048, attributes, expiration);
 
@@ -196,6 +201,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             final CertUsage usage = isServer ? CertUsage.TLS_SERVER : CertUsage.TLS_CLIENT;
             final Certificate cert = c4KeyPair.generateSelfSignedCertificate(
                 KeyAlgorithm.RSA, KeySize.BIT_2048, attributes, usage, expiration);
+
+            // JDK-8236671:
+            if (keyPassword == null) { keyPassword = new char[0]; }
 
             // Store Private Key and Cert into the KeyStore
             store.setKeyEntry(alias, keyPair.getPrivate(), keyPassword, new Certificate[] {cert});
@@ -250,9 +258,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         final KeyStore store = Preconditions.assertNotNull(keyStore, PARAM_KEY_STORE);
         int deleted = 0;
         try {
-            final Enumeration<String> aliases = store.aliases();
-            while (aliases.hasMoreElements()) {
-                final String alias = aliases.nextElement();
+            final List<String> aliases = Collections.list(store.aliases());
+            for (int i = aliases.size() - 1; i >= 0; i--) {
+                final String alias = aliases.get(i);
                 if (filter.test(alias)) {
                     store.deleteEntry(alias);
                     deleted++;

@@ -40,22 +40,48 @@ import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.KeyStoreManager.KeyAlgorithm;
 import com.couchbase.lite.internal.KeyStoreManager.KeySize;
 import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
+/**
+ * <b>ENTERPRISE EDITION API</b><br><br>
+ * <p>
+ * TLSIdentity provides the identity information obtained from the given KeyStore,
+ * including a private key and X.509 certificate chain. Please note that the private key
+ * data will be not extracted out of the KeyStore. The TLSIdentity is used by
+ * URLEndpointListener to setup the TLS communication or by the Replicator to setup
+ * the client certificate authentication.
+ */
 public final class TLSIdentity extends AbstractTLSIdentity {
     private static final AtomicReference<KeyStore> INTERNAL_KEY_STORE = new AtomicReference<>();
 
+    /**
+     * Get a TLSIdentity object from the give KeyStore, key alias, and key password.
+     * The KeyStore must contain the private key along with the certificate chain at
+     * the given key alias and password, otherwise null will be returned.
+     * @param keyStore  KeyStore
+     * @param alias key alias
+     * @param keyPassword   key password if available
+     * @return A TLSIdentity object.
+     * @throws CouchbaseLiteException
+     */
     @Nullable
-    public static TLSIdentity getIdentity(
+    public static synchronized TLSIdentity getIdentity(
         @NonNull KeyStore keyStore,
         @NonNull String alias,
         @Nullable char[] keyPassword)
         throws CouchbaseLiteException {
         try {
+            Preconditions.assertNotNull(keyStore, "keyStore");
+            Preconditions.assertNotNull(alias, "alias");
+
             if (!KeyStoreManager.getInstance().findAlias(keyStore, alias)) { return null; }
 
             final Certificate[] certs = keyStore.getCertificateChain(alias);
             if (certs == null) { return null; }
+
+            // JDK-8236671:
+            if (keyPassword == null) { keyPassword = new char[0]; }
 
             final Key key = keyStore.getKey(alias, keyPassword);
             if (key == null) { return null; }
@@ -85,8 +111,20 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         }
     }
 
+    /**
+     * Create a self-signed certificate TLSIdentity object. The generated private key
+     * will be stored in the KeyStore along with its self-signed certificate.
+     * @param isServer  The flag indicating that the certificate is for server or client.
+     * @param attributes    The certificate attributes.
+     * @param expiration    The certificate expiration date.
+     * @param keyStore      The KeyStore object for storing the generated private key and certificate.
+     * @param alias         The key alias for storing the generated private key and certificate.
+     * @param keyPassword   The password to protect the private key entry in the KeyStore.
+     * @return A TLSIdentity object.
+     * @throws CouchbaseLiteException
+     */
     @NonNull
-    public static TLSIdentity createIdentity(
+    public static synchronized TLSIdentity createIdentity(
         boolean isServer,
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration,
@@ -94,9 +132,17 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @NonNull String alias,
         @Nullable char[] keyPassword)
         throws CouchbaseLiteException {
+        Preconditions.assertNotNull(attributes, "attributes");
+        Preconditions.assertNotNull(keyStore, "keyStore");
+        Preconditions.assertNotNull(alias, "alias");
+
+        // JDK-8236671:
+        if (keyPassword == null) { keyPassword = new char[0]; }
+
         // Create identity:
         KeyStoreManager.getInstance().createSelfSignedCertEntry(
             keyStore, alias, keyPassword, isServer, attributes, expiration);
+
         // Get identity from KeyStore to return:
         final TLSIdentity identity = getIdentity(keyStore, alias, keyPassword);
         if (identity == null) {
@@ -108,17 +154,16 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return identity;
     }
 
-    static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
+    static synchronized TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + "-" + alias;
-        final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
         final KeyStore keyStore = getInternalKeyStore();
-        if (!keyStoreManager.findAlias(null, fullAlias)) {
+        TLSIdentity identity = getIdentity(keyStore, fullAlias, null);
+        if (identity == null) {
             final Map<String, String> attributes = new HashMap<>();
             attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
-
-            keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
+            identity = createIdentity(true, attributes, null, keyStore, fullAlias, null);
         }
-        return getIdentity(keyStore, fullAlias, null);
+        return identity;
     }
 
     private static KeyStore getInternalKeyStore() {
@@ -132,10 +177,8 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
             throw new IllegalStateException("Cannot create an internal KeyStore", e);
         }
-
         return keyStore;
     }
-
 
     @VisibleForTesting
     TLSIdentity() { }

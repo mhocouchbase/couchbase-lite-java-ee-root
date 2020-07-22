@@ -45,7 +45,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         Assert.assertEquals(294, data?.size)
     }
 
-    @Ignore("failing in Java")
+    @Ignore("Need to fix the data to be decrypted")
     @Test
     fun testDecrypt() {
         val alias = newKeyAlias()
@@ -53,6 +53,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         val keyStore = loadPlatformKeyStore()
         loadTestKeys(keyStore, alias)
 
+        // FIXME: The data needs to be encrypted properly for testing:
         val data = KeyStoreManager.getInstance().decrypt(getC4KeyPair(keyStore, alias), Random.Default.nextBytes(256))
 
         Assert.assertNotNull(data)
@@ -76,7 +77,6 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
 
     // ??? Need a test for KeyStoreManager.free?
 
-    @Ignore("failing")
     @Test
     fun testCreateSelfSignedCertEntry() {
         val keyStore = KeyStore.getInstance("PKCS12")

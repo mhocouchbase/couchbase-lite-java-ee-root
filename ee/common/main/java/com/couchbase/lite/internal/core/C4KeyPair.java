@@ -90,6 +90,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
 
+    private static final long CERT_NOT_BEFORE_CLOCK_DRIFT_OFFSET_SECONDS = 60;
+
     //-------------------------------------------------------------------------
     // Static Factory Methods
     //-------------------------------------------------------------------------
@@ -320,8 +322,9 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             validityInSeconds = Preconditions.assertPositive(
                 TimeUnit.MILLISECONDS.toSeconds(expiration.getTime() - System.currentTimeMillis()),
                 "valid time");
+            Log.e(LogDomain.LISTENER, "Validity in Second: " + validityInSeconds);
+            validityInSeconds = validityInSeconds + CERT_NOT_BEFORE_CLOCK_DRIFT_OFFSET_SECONDS;
         }
-
 
         final byte[] data = impl.nGenerateSelfSignedCertificate(
             getPeer(),

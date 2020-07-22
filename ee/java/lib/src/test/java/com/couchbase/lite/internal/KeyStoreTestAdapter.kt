@@ -33,6 +33,8 @@ import java.util.Date
  */
 open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
     companion object {
+        var keyStore: KeyStore? = null
+
         @JvmStatic
         @AfterClass
         fun tearDownKeyStoreBaseTest() {
@@ -59,9 +61,11 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         fun deleteIdentity(alias: String) = loadDefaultKeyStore().deleteEntry(alias)
 
         fun loadDefaultKeyStore(): KeyStore {
-            val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-            keyStore.load(null)
-            return keyStore
+            if (keyStore == null) {
+                keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+                keyStore!!.load(null)
+            }
+            return keyStore!!
         }
     }
 
@@ -73,7 +77,6 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
 
     override fun getIdentity(alias: String): TLSIdentity? {
         val keyStore = loadPlatformKeyStore()
-        loadTestKeys(keyStore, alias)
         return TLSIdentity.getIdentity(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray())
     }
 
