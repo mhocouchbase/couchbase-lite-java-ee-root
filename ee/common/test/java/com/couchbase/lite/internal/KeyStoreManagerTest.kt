@@ -15,12 +15,14 @@
 //
 package com.couchbase.lite.internal
 
+import com.couchbase.lite.TLSIdentity
+import com.couchbase.lite.URLEndpointListener
 import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
 import org.junit.Assert
-import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
+import java.io.InputStream
 import java.security.KeyStore
 import java.util.Calendar
 import kotlin.random.Random
@@ -45,7 +47,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         Assert.assertEquals(294, data?.size)
     }
 
-    @Ignore("Need to fix the data to be decrypted")
+    @Ignore("!!! FAILING TEST")
     @Test
     fun testDecrypt() {
         val alias = newKeyAlias()
@@ -66,7 +68,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         val keyStore = loadPlatformKeyStore()
         loadTestKeys(keyStore, alias)
 
-        val data = KeyStoreManager.getInstance().signKey(
+        val data = KeyStoreManager.getInstance().sign(
             getC4KeyPair(keyStore, alias),
             KeyStoreManager.SignatureDigestAlgorithm.SHA256,
             Random.Default.nextBytes(256)
@@ -82,7 +84,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         val keyStore = KeyStore.getInstance("PKCS12")
         keyStore.load(null)
 
-        val attrs = mapOf(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase")
+        val attrs = mapOf(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase")
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
 
@@ -96,7 +98,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         )
     }
 
-    @Ignore("unimplemented for java")
+    @Ignore("!!! FAILING TEST (java)")
     @Test
     fun testImportEntry() {
         val keyStore = loadPlatformKeyStore()
@@ -150,5 +152,16 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
 
         Assert.assertFalse(KeyStoreManager.getInstance().findAlias(keyStore, alias1))
         Assert.assertTrue(KeyStoreManager.getInstance().findAlias(keyStore, alias2))
+    }
+
+    override fun importIdentity(
+        extType: String,
+        extStore: InputStream,
+        extStorePass: CharArray,
+        extAlias: String,
+        extKeyPass: CharArray,
+        alias: String
+    ): TLSIdentity? {
+        TODO("Not yet implemented")
     }
 }

@@ -566,6 +566,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testPushDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -614,6 +615,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testPullDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -800,6 +802,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
+    @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {

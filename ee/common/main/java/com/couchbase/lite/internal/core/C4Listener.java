@@ -167,14 +167,14 @@ public class C4Listener extends C4NativePeer implements Closeable {
         boolean pull,
         boolean deltaSync,
         @NonNull Certificate serverCert,
-        @Nullable C4KeyPair keyPair)
+        @Nullable C4KeyPair keys)
         throws CouchbaseLiteException {
-        if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
-
+        Preconditions.assertNotNull(dbPath, "database path");
+        Preconditions.assertNotNull(serverCert, "server cert");
+        final C4KeyPair keyPair = Preconditions.assertNotNull(keys, "key pair");
         final int token = LISTENER_CONTEXT.reserveKey();
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
-
         final long peer;
         try {
             peer = nativeImpl.nStartTls(

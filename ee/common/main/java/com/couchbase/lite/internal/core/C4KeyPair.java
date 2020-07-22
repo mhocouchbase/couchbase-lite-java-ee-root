@@ -189,22 +189,22 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     // This method is called by reflection.  Don't change its signature.
     @SuppressWarnings("unused")
     @Nullable
-    static byte[] decryptCallback(long token, @NonNull byte[] data) {
-        final C4KeyPair keyPair = getKeyPair(token);
-        if (keyPair == null) { return null; }
-        return KeyStoreManager.getInstance().decrypt(keyPair, data);
-    }
-
-    // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
-    @Nullable
-    static byte[] signKeyCallback(long token, int digestAlgorithm, @NonNull byte[] data) {
+    static byte[] signCallback(long token, int digestAlgorithm, @NonNull byte[] data) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
 
         final KeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
 
-        return KeyStoreManager.getInstance().signKey(keyPair, algorithm, data);
+        return KeyStoreManager.getInstance().sign(keyPair, algorithm, data);
+    }
+
+    // This method is called by reflection.  Don't change its signature.
+    @SuppressWarnings("unused")
+    @Nullable
+    static byte[] decryptCallback(long token, @NonNull byte[] data) {
+        final C4KeyPair keyPair = getKeyPair(token);
+        if (keyPair == null) { return null; }
+        return KeyStoreManager.getInstance().decrypt(keyPair, data);
     }
 
     // This method is called by reflection.  Don't change its signature.

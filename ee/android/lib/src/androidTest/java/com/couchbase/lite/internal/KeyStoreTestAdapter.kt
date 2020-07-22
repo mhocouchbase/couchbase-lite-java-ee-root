@@ -17,7 +17,11 @@ package com.couchbase.lite.internal
 
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.core.C4KeyPair
+import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.AfterClass
+import org.junit.Assert
+import org.junit.Ignore
+import org.junit.Test
 import java.io.InputStream
 import java.security.KeyStore
 import java.util.Date
@@ -41,13 +45,14 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         }
 
         fun importIdentity(
-             extType: String,
-             extStore: InputStream,
-             extStorePass: CharArray,
-             alias: String,
-             keyPass: CharArray
-        ): TLSIdentity {
-            return TLSIdentity.importIdentity(extType, extStore, extStorePass, alias, keyPass)
+            extType: String,
+            extStore: InputStream,
+            extStorePass: CharArray,
+            extAlias: String,
+            extKeyPass: CharArray,
+            alias: String
+        ): TLSIdentity? {
+            return TLSIdentity.importIdentity(extType, extStore, extStorePass, extAlias, extKeyPass, alias)
         }
 
         fun deleteIdentity(alias: String) = TLSIdentity.deleteIdentity(alias)
@@ -78,10 +83,11 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         extType: String,
         extStore: InputStream,
         extStorePass: CharArray,
-        alias: String,
-        keyPass: CharArray
+        extAlias: String,
+        extKeyPass: CharArray,
+        alias: String
     ): TLSIdentity? {
-        return TLSIdentity.importIdentity(extType, extStore, extStorePass, alias, keyPass)
+        TODO("Not yet implemented")
     }
 
     override fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair {
@@ -90,6 +96,16 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
 
     override fun createSelfSignedCertEntry(alias: String, isServer: Boolean) {
         KeyStoreManager.getInstance().createSelfSignedCertEntry(null, alias, null, isServer, get509Attributes(), null)
+    }
+
+    @Ignore("!!! FAILING TEST")
+    @Test
+    fun testImportIdentity() {
+        val alias = newKeyAlias()
+        val pwd = EXTERNAL_KEY_PASSWORD.toCharArray()
+        PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
+            Assert.assertNotNull(importIdentity(EXTERNAL_KEY_STORE_TYPE, it, pwd, EXTERNAL_KEY_ALIAS, pwd, alias))
+        }
     }
 }
 

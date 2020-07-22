@@ -21,7 +21,7 @@ import android.support.annotation.VisibleForTesting;
 
 import java.io.InputStream;
 import java.security.cert.Certificate;
-import java.util.ArrayList;
+import java.security.interfaces.RSAKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,9 +29,20 @@ import java.util.Map;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.KeyStoreManager;
+import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
+/**
+ * <b>ENTERPRISE EDITION API</b><br><br>
+ * <p>
+ * TLSIdentity provides the identity information obtained from the given KeyStore,
+ * including a private key and X.509 certificate chain. Please note that the private key
+ * data will be not extracted out of the KeyStore. The TLSIdentity is used by
+ * URLEndpointListener to setup the TLS communication or by the Replicator to setup
+ * the client certificate authentication.
+ */
 public final class TLSIdentity extends AbstractTLSIdentity {
     /**
      * Get the TLSIdentity of the given label from the secure storage.
@@ -40,11 +51,31 @@ public final class TLSIdentity extends AbstractTLSIdentity {
      * @return the identity
      * @throws CouchbaseLiteException on failure to get identity
      */
-    @NonNull
+    @Nullable
     public static TLSIdentity getIdentity(@NonNull String alias) throws CouchbaseLiteException {
-        final List<Certificate> certs = new ArrayList<>();
-        certs.add(KeyStoreManager.getInstance().getCertificate(null, alias, null));
-        return new TLSIdentity(alias, certs);
+        Preconditions.assertNotNull(alias, "alias");
+
+        final List<Certificate> certs = getManager().getCertificateChain(null, alias);
+        if (certs == null) {
+            Log.v(LogDomain.LISTENER, "No cert chain for: " + alias);
+            return null;
+        }
+
+        final RSAKey key = getManager().getKey(null, alias, null);
+        if (key == null) {
+            Log.v(LogDomain.LISTENER, "No private key for: " + alias);
+            return null;
+        }
+
+        final C4KeyPair keyPair = C4KeyPair.createKeyPair(
+            null,
+            alias,
+            null,
+            KeyStoreManager.KeyAlgorithm.RSA,
+            KeyStoreManager.KeySize.getKeySize(key.getModulus().bitLength()),
+            null);
+
+        return new TLSIdentity(alias, keyPair, certs);
     }
 
     /**
@@ -65,13 +96,19 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration)
         throws CouchbaseLiteException {
-        final String idAlias = Preconditions.assertNotNull(alias, "alias");
-        if (idAlias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
+        Preconditions.assertNotNull(alias, "alias");
+        Preconditions.assertNotNull(attributes, "attributes");
+        getManager().createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration);
+
+        final TLSIdentity identity = getIdentity(alias);
+        if (identity == null) {
             throw new CouchbaseLiteException(
-                "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
+                "Could not find new identity in the KeyStore",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
         }
-        KeyStoreManager.getInstance().createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration);
-        return getIdentity(alias);
+
+        return identity;
     }
 
     /**
@@ -80,9 +117,9 @@ public final class TLSIdentity extends AbstractTLSIdentity {
      * @param extType      KeyStore type, eg: "PKCS12"
      * @param extStore     An InputStream from the keystore
      * @param extStorePass The keystore password
-     * @param alias        The alias, in the external keystore, of the entry to be used.  This will be the alias for
-     *                     the entry in the Android keystore, too
-     * @param keyPass      The key password
+     * @param extAlias     The alias, in the external keystore, of the entry to be used.
+     * @param extKeyPass   The key password
+     * @param alias        The alias for the imported key
      * @return a TLSIdentity
      * @throws CouchbaseLiteException on error
      */
@@ -91,46 +128,52 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @NonNull String extType,
         @NonNull InputStream extStore,
         @Nullable char[] extStorePass,
-        @NonNull String alias,
-        @Nullable char[] keyPass)
+        @NonNull String extAlias,
+        @Nullable char[] extKeyPass,
+        @NonNull String alias)
         throws CouchbaseLiteException {
-        KeyStoreManager.getInstance().importEntry(extType, extStore, extStorePass, alias, keyPass, alias);
-        return getIdentity(alias);
+        getManager().importEntry(extType, extStore, extStorePass, extAlias, extKeyPass, alias);
+
+        final TLSIdentity identity = getIdentity(alias);
+        if (identity == null) {
+            throw new CouchbaseLiteException(
+                "Could not find imported identity in the KeyStore",
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
+        }
+
+        return identity;
     }
 
     /**
-     * @throws CouchbaseLiteException on error
+     * Delete an identity.
+     *
+     * @param alias the identity to delete
+     * @throws CouchbaseLiteException on failure
      */
-    @NonNull
-    public static TLSIdentity deleteIdentity(@NonNull String alias)
-        throws CouchbaseLiteException {
-        KeyStoreManager.getInstance().deleteEntries(null, alias::equals);
-        return getIdentity(alias);
+    public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException {
+        getManager().deleteEntries(null, alias::equals);
     }
 
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
-        final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
-        if (!keyStoreManager.findAlias(null, fullAlias)) {
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put(KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
 
-            keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
-        }
-        return getIdentity(fullAlias);
+        final KeyStoreManager keyStoreManager = KeyStoreManager.getInstance();
+        if (keyStoreManager.findAlias(null, fullAlias)) { return getIdentity(fullAlias); }
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
+
+        keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
+
+        return createIdentity(fullAlias, true, attributes, null);
     }
 
 
     @VisibleForTesting
     TLSIdentity() { }
 
-    @NonNull
-    Certificate getCert() { return getCerts().get(0); }
-
-    @NonNull
-    String getAlias() { return getKeyAlias(); }
-
-    private TLSIdentity(@NonNull String alias, @NonNull List<Certificate> certificates) throws CouchbaseLiteException {
-        super(alias, certificates);
+    private TLSIdentity(@NonNull String alias, @NonNull C4KeyPair keyPair, @NonNull List<Certificate> certificates) {
+        super(alias, keyPair, certificates);
     }
 }

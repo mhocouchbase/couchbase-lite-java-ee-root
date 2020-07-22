@@ -102,9 +102,12 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         extType: String,
         extStore: InputStream,
         extStorePass: CharArray,
-        alias: String,
-        keyPass: CharArray
-    ): TLSIdentity? = null
+        extAlias: String,
+        extKeyPass: CharArray,
+        alias: String
+    ): TLSIdentity? {
+        TODO("Not yet implemented")
+    }
 
     override fun createSelfSignedCertEntry(alias: String, isServer: Boolean) {
         KeyStoreManager.getInstance().createSelfSignedCertEntry(
@@ -117,10 +120,10 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         )
     }
 
-    override fun getC4KeyPair(keyStore: KeyStore, alias: String): C4KeyPair {
+    override fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair {
         val keyPair = KeyPair(
-            keyStore.getCertificate(alias).publicKey,
-            keyStore.getKey(alias, EXTERNAL_KEY_PASSWORD.toCharArray()) as PrivateKey
+            keyStore!!.getCertificate(alias).publicKey,
+            keyStore!!.getKey(alias, EXTERNAL_KEY_PASSWORD.toCharArray()) as PrivateKey
         );
 
         return C4KeyPair.createKeyPair(

@@ -19,8 +19,8 @@ import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +29,24 @@ import com.couchbase.lite.internal.support.Log;
 
 
 public class URLEndpointListener {
+    public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
+    public static final String CERT_ATTRIBUTE_PSEUDONYM = "pseudonym";
+    public static final String CERT_ATTRIBUTE_GIVEN_NAME = "GN";
+    public static final String CERT_ATTRIBUTE_SURNAME = "SN";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION = "O";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION_UNIT = "OU";
+    public static final String CERT_ATTRIBUTE_POSTAL_ADDRESS = "postalAddress";
+    public static final String CERT_ATTRIBUTE_LOCALITY = "locality";
+    public static final String CERT_ATTRIBUTE_POSTAL_CODE = "postalCode";
+    public static final String CERT_ATTRIBUTE_STATE_OR_PROVINCE = "ST";
+    public static final String CERT_ATTRIBUTE_COUNTRY = "C";
+    public static final String CERT_ATTRIBUTE_EMAIL_ADDRESS = "rfc822Name";
+    public static final String CERT_ATTRIBUTE_HOSTNAME = "dNSName";
+    public static final String CERT_ATTRIBUTE_URL = "uniformResourceIdentifier";
+    public static final String CERT_ATTRIBUTE_IP_ADDRESS = "iPAddress";
+    public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
+
+
     @NonNull
     private final Object lock = new Object();
 
@@ -84,30 +102,30 @@ public class URLEndpointListener {
     }
 
     /**
-     * Get the list of URLs for the listener
+     * Get the list of URIs for the listener
      *
      * @return a list of listener urls.
      */
     @NonNull
-    public List<URL> getUrls() {
-        final List<URL> urls = new ArrayList<>();
+    public List<URI> getUrls() {
+        final List<URI> uris = new ArrayList<>();
 
-        final List<String> urlStrs;
+        final List<String> uriStrs;
         synchronized (lock) {
-            if (c4Listener == null) { return urls; }
+            if (c4Listener == null) { return uris; }
 
-            urlStrs = c4Listener.getUrls(getConfig().getDatabase().getC4Database());
-            if (urlStrs == null) { return urls; }
+            uriStrs = c4Listener.getUrls(getConfig().getDatabase().getC4Database());
+            if (uriStrs == null) { return uris; }
         }
 
-        for (String url: urlStrs) {
-            try { urls.add(new URL(url)); }
-            catch (MalformedURLException e) {
-                Log.w(LogDomain.NETWORK, "Failed to encode url (ignored): " + url, e);
+        for (String uri: uriStrs) {
+            try { uris.add(new URI(uri)); }
+            catch (URISyntaxException e) {
+                Log.w(LogDomain.LISTENER, "Failed creating URI for: " + uri);
             }
         }
 
-        return urls;
+        return uris;
     }
 
     /**
@@ -157,6 +175,7 @@ public class URLEndpointListener {
     @NonNull
     private C4Listener startLocked() throws CouchbaseLiteException {
         final ListenerAuthenticator auth = config.getAuthenticator();
+        Log.d(LogDomain.LISTENER, "start with auth: " + auth);
 
         if (identity == null) {
             return C4Listener.createHttpListener(

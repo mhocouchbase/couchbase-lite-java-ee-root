@@ -18,6 +18,7 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.LogLevel
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.TLSIdentity
+import com.couchbase.lite.URLEndpointListener
 import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
@@ -38,10 +39,10 @@ abstract class KeyStoreBaseTest : PlatformBaseTest() {
         fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()
 
         fun get509Attributes() = mapOf(
-            KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test",
-            KeyStoreManager.CERT_ATTRIBUTE_ORGANIZATION to "Couchbase",
-            KeyStoreManager.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
-            KeyStoreManager.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
+            URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test",
+            URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION to "Couchbase",
+            URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
+            URLEndpointListener.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
     }
 
@@ -53,8 +54,9 @@ abstract class KeyStoreBaseTest : PlatformBaseTest() {
         extType: String,
         extStore: InputStream,
         extStorePass: CharArray,
-        alias: String,
-        keyPass: CharArray
+        extAlias: String,
+        extKeyPass: CharArray,
+        alias: String
     ): TLSIdentity?
 
     abstract fun createSelfSignedCertEntry(alias: String, isServer: Boolean)

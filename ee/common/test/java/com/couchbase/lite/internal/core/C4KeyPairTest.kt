@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal.core
 
+import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
@@ -28,6 +29,7 @@ import org.junit.Test
 import java.io.InputStream
 import java.security.KeyStore
 import java.security.cert.Certificate
+import java.security.interfaces.RSAPrivateKey
 import java.util.Date
 import kotlin.random.Random
 
@@ -76,7 +78,7 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
             return null
         }
 
-        override fun signKey(keyPair: C4KeyPair, digestAlgorithm: SignatureDigestAlgorithm, data: ByteArray): ByteArray? {
+        override fun sign(keyPair: C4KeyPair, digestAlgorithm: SignatureDigestAlgorithm, data: ByteArray): ByteArray? {
             calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
                 if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data))
             return null
@@ -86,6 +88,10 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
             calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
                 if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)))
         }
+
+        override fun getCertificateChain(keyStore: KeyStore?, keyAlias: String): MutableList<Certificate>? = null
+
+        override fun getKey(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?): RSAPrivateKey? = null
 
         override fun createSelfSignedCertEntry(
             keyStore: KeyStore?,
@@ -97,8 +103,6 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         ) = Unit
 
         override fun findAlias(keyStore: KeyStore?, keyAlias: String) = true
-
-        override fun getCertificate(keyStore: KeyStore?, keyAlias: String, keyPassword: CharArray?): Certificate? = null
 
         override fun deleteEntries(keyStore: KeyStore?, filter: Fn.Predicate<String>?) = 0
 
@@ -234,7 +238,7 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         val tokens = C4KeyPair.KEY_PAIR_CONTEXT.keySet()
         Assert.assertEquals(1, tokens.size)
 
-        C4KeyPair.signKeyCallback(tokens.iterator().next().toLong(), 0, data)
+        C4KeyPair.signCallback(tokens.iterator().next().toLong(), 0, data)
 
         Assert.assertEquals(1, keyStoreManagerMock.calls.size)
         val call = keyStoreManagerMock.calls[0]
@@ -263,7 +267,7 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         Assert.assertEquals("foo", call.alias)
     }
 
-    @Ignore("BROKEN TEST")
+    @Ignore("FAILING TEST")
     @Test
     fun generateSelfSignedCertificate() {
         val c4Keys = C4KeyPair.createKeyPair(
@@ -289,5 +293,16 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         Assert.assertEquals(2048, call.bits)
         Assert.assertNotEquals(0, call.token)
         Assert.assertEquals(attributes, call.data)
+    }
+
+    override fun importIdentity(
+        extType: String,
+        extStore: InputStream,
+        extStorePass: CharArray,
+        extAlias: String,
+        extKeyPass: CharArray,
+        alias: String
+    ): TLSIdentity? {
+        TODO("Not yet implemented")
     }
 }

@@ -14,22 +14,15 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.EXTERNAL_KEY_ALIAS
-import com.couchbase.lite.internal.EXTERNAL_KEY_PASSWORD
-import com.couchbase.lite.internal.EXTERNAL_KEY_STORE
-import com.couchbase.lite.internal.EXTERNAL_KEY_STORE_TYPE
 import com.couchbase.lite.internal.KeyStoreBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
-import com.couchbase.lite.internal.KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME
 import com.couchbase.lite.internal.KeyStoreTestAdaptor
-import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
-import java.security.KeyStore
 import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -110,7 +103,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("unimplemented")
+    @Ignore("!!! FAILING TEST")
     @Test
     fun testBasicAuthWithTls() {
         val alias = KeyStoreBaseTest.newKeyAlias()
@@ -120,7 +113,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("unimplemented")
+    @Ignore("!!! FAILING TEST")
     @Test
     fun testCertAuthenticator() {
         val identity = createIdentity()
@@ -134,7 +127,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
-    @Ignore("Failed on Android")
+    @Ignore("!!! FAILING TEST (android)")
     @Test
     fun testSimpleReplicationWithTLS() {
         val doc = MutableDocument("doc1")
@@ -145,7 +138,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val alias = KeyStoreBaseTest.newKeyAlias()
 
-        val attributes = mapOf(CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite Test")
+        val attributes = mapOf(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite Test")
 
         KeyStoreTestAdaptor.deleteIdentity(alias)
         val identity = KeyStoreTestAdaptor.createIdentity(true, attributes, null, alias)
@@ -164,7 +157,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         KeyStoreTestAdaptor.deleteIdentity(alias)
     }
 
-    @Ignore("Failed Everywhere")
+/*
     @Test
     fun testSimpleReplicationWithImportedIdentity() {
         val doc = MutableDocument("doc1")
@@ -173,16 +166,24 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
+        val alias = KeyStoreBaseTest.newKeyAlias()
+
         KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
-        val identity = KeyStoreTestAdaptor.importIdentity(
-            EXTERNAL_KEY_STORE_TYPE, PlatformUtils.getAsset(EXTERNAL_KEY_STORE)!!,
-            EXTERNAL_KEY_PASSWORD.toCharArray(),
-            EXTERNAL_KEY_ALIAS,
-            EXTERNAL_KEY_PASSWORD.toCharArray())
+        var identity: TLSIdentity? = null
+        PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
+            KeyStoreTestAdaptor.importIdentity(
+                EXTERNAL_KEY_STORE_TYPE,
+                it,
+                EXTERNAL_KEY_PASSWORD.toCharArray(),
+                EXTERNAL_KEY_ALIAS,
+                EXTERNAL_KEY_PASSWORD.toCharArray(),
+                alias
+            )
+        }
 
         val listener = listenTls(identity, null)
 
-        val certs = identity.certs
+        val certs = identity!!.certs
         assertEquals(1, certs.size)
         val cert = certs[0]
 
@@ -193,8 +194,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
     }
-
-/*
     @Test
     fun testClientCertAuthenticatorWithClosure() {
         // Listener:
@@ -267,7 +266,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = URLEndpointListener(configBuilder.build(), false)
         testListener = listener
 
-        // Start:
         listener.start()
 
         return listener
@@ -283,7 +281,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = URLEndpointListener(configBuilder.build(), false)
         testListener = listener
 
-        // Start:
         listener.start()
 
         return listener
@@ -301,7 +298,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        KeyStoreManager.getInstance().deleteEntries(null) { alias -> alias == identity.alias }
+        KeyStoreManager.getInstance().deleteEntries(null) { alias -> alias == identity.keyAlias }
     }
 }
 
