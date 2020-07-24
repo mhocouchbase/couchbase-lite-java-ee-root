@@ -58,6 +58,24 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
                 EXTERNAL_KEY_PASSWORD.toCharArray())
         }
 
+        fun importIdentity(
+            extType: String,
+            extStore: InputStream,
+            extStorePass: CharArray,
+            alias: String,
+            keyPass: CharArray
+        ): TLSIdentity {
+            val exKeyStore = KeyStore.getInstance(extType)
+            exKeyStore.load(extStore, extStorePass)
+
+            val protection = KeyStore.PasswordProtection(keyPass)
+            val entry = exKeyStore.getEntry(alias, protection)
+
+            val keyStore = loadDefaultKeyStore()
+            keyStore.setEntry(alias, entry, protection)
+            return TLSIdentity.getIdentity(keyStore, alias, keyPass)!!
+        }
+
         fun deleteIdentity(alias: String) = loadDefaultKeyStore().deleteEntry(alias)
 
         fun loadDefaultKeyStore(): KeyStore {

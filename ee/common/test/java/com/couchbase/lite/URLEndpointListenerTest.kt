@@ -14,16 +14,22 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.EXTERNAL_KEY_ALIAS
+import com.couchbase.lite.internal.EXTERNAL_KEY_PASSWORD
+import com.couchbase.lite.internal.EXTERNAL_KEY_STORE
+import com.couchbase.lite.internal.EXTERNAL_KEY_STORE_TYPE
 import com.couchbase.lite.internal.KeyStoreBaseTest
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.KeyStoreManager.CERT_ATTRIBUTE_COMMON_NAME
 import com.couchbase.lite.internal.KeyStoreTestAdaptor
+import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
+import java.security.KeyStore
 import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -128,7 +134,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
-    @Ignore("unimplemented")
+    @Ignore("Failed on Android")
     @Test
     fun testSimpleReplicationWithTLS() {
         val doc = MutableDocument("doc1")
@@ -158,6 +164,35 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         KeyStoreTestAdaptor.deleteIdentity(alias)
     }
 
+    @Ignore("Failed Everywhere")
+    @Test
+    fun testSimpleReplicationWithImportedIdentity() {
+        val doc = MutableDocument("doc1")
+        doc.setString("foo", "bar")
+        otherDB.save(doc)
+
+        assertEquals(0, baseTestDb.count)
+
+        KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
+        val identity = KeyStoreTestAdaptor.importIdentity(
+            EXTERNAL_KEY_STORE_TYPE, PlatformUtils.getAsset(EXTERNAL_KEY_STORE)!!,
+            EXTERNAL_KEY_PASSWORD.toCharArray(),
+            EXTERNAL_KEY_ALIAS,
+            EXTERNAL_KEY_PASSWORD.toCharArray())
+
+        val listener = listenTls(identity, null)
+
+        val certs = identity.certs
+        assertEquals(1, certs.size)
+        val cert = certs[0]
+
+        run(listener.endpointUri(), true, true, false, null, cert.encoded)
+
+        assertEquals(1, baseTestDb.count)
+        assertNotNull(baseTestDb.getDocument("doc1"))
+
+        KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
+    }
 
 /*
     @Test
