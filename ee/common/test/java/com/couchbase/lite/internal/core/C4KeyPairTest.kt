@@ -20,6 +20,7 @@ import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
+import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.Fn
 import org.junit.After
 import org.junit.Assert
@@ -67,26 +68,43 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         val calls = mutableListOf<StoreMgrCall>()
 
         override fun getKeyData(keyPair: C4KeyPair): ByteArray? {
-            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
-                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)))
+            calls.add(
+                StoreMgrCall(
+                    keyPair.keyStore, keyPair.keyAlias,
+                    if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)
+                )
+            )
             return null
         }
 
         override fun decrypt(keyPair: C4KeyPair, data: ByteArray): ByteArray? {
-            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
-                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data))
+            calls.add(
+                StoreMgrCall(
+                    keyPair.keyStore, keyPair.keyAlias,
+                    if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data
+                )
+            )
             return null
         }
 
-        override fun sign(keyPair: C4KeyPair, digestAlgorithm: SignatureDigestAlgorithm, data: ByteArray): ByteArray? {
-            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
-                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data))
+        override fun sign(keyPair: C4KeyPair, digestAlgorithm: Signature.SignatureDigestAlgorithm, data: ByteArray)
+                : ByteArray? {
+            calls.add(
+                StoreMgrCall(
+                    keyPair.keyStore, keyPair.keyAlias,
+                    if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!), data
+                )
+            )
             return null
         }
 
         override fun free(keyPair: C4KeyPair) {
-            calls.add(StoreMgrCall(keyPair.keyStore, keyPair.keyAlias,
-                if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)))
+            calls.add(
+                StoreMgrCall(
+                    keyPair.keyStore, keyPair.keyAlias,
+                    if (keyPair.keyPassword == null) null else String(keyPair.keyPassword!!)
+                )
+            )
         }
 
         override fun getCertificateChain(keyStore: KeyStore?, keyAlias: String): MutableList<Certificate>? = null

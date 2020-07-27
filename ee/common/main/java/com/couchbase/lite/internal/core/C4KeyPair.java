@@ -42,6 +42,7 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
+import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
@@ -77,16 +78,16 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         KEY_ALGORITHM_TO_C4 = Collections.unmodifiableMap(m);
     }
 
-    private static final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+    private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
     static {
-        final Map<Integer, KeyStoreManager.SignatureDigestAlgorithm> m = new HashMap<>();
-        m.put(0, KeyStoreManager.SignatureDigestAlgorithm.NONE);
-        m.put(4, KeyStoreManager.SignatureDigestAlgorithm.SHA1);
-        m.put(5, KeyStoreManager.SignatureDigestAlgorithm.SHA224);
-        m.put(6, KeyStoreManager.SignatureDigestAlgorithm.SHA256);
-        m.put(7, KeyStoreManager.SignatureDigestAlgorithm.SHA384);
-        m.put(8, KeyStoreManager.SignatureDigestAlgorithm.SHA512);
-        m.put(9, KeyStoreManager.SignatureDigestAlgorithm.RIPEMD160);
+        final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();
+        m.put(0, Signature.SignatureDigestAlgorithm.NONE);
+        m.put(4, Signature.SignatureDigestAlgorithm.SHA1);
+        m.put(5, Signature.SignatureDigestAlgorithm.SHA224);
+        m.put(6, Signature.SignatureDigestAlgorithm.SHA256);
+        m.put(7, Signature.SignatureDigestAlgorithm.SHA384);
+        m.put(8, Signature.SignatureDigestAlgorithm.SHA512);
+        // NOTE: RIPEMD160 is not supported by Java's Message Digest
         C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
 
@@ -193,7 +194,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return null; }
 
-        final KeyStoreManager.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
+        final Signature.SignatureDigestAlgorithm algorithm = getDigestAlgorithm(digestAlgorithm);
 
         return KeyStoreManager.getInstance().sign(keyPair, algorithm, data);
     }
@@ -235,8 +236,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         return c4Algorithm;
     }
 
-    private static KeyStoreManager.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
-        final KeyStoreManager.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
+    private static Signature.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
+        final Signature.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
         if (algorithm == null) {
             throw new IllegalArgumentException("Unrecognized algorithm algorithm: " + digestAlgorithm);
         }

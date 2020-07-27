@@ -55,25 +55,8 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
                 expiration,
                 loadDefaultKeyStore(),
                 alias,
-                EXTERNAL_KEY_PASSWORD.toCharArray())
-        }
-
-        fun importIdentity(
-            extType: String,
-            extStore: InputStream,
-            extStorePass: CharArray,
-            alias: String,
-            keyPass: CharArray
-        ): TLSIdentity {
-            val exKeyStore = KeyStore.getInstance(extType)
-            exKeyStore.load(extStore, extStorePass)
-
-            val protection = KeyStore.PasswordProtection(keyPass)
-            val entry = exKeyStore.getEntry(alias, protection)
-
-            val keyStore = loadDefaultKeyStore()
-            keyStore.setEntry(alias, entry, protection)
-            return TLSIdentity.getIdentity(keyStore, alias, keyPass)!!
+                EXTERNAL_KEY_PASSWORD.toCharArray()
+            )
         }
 
         fun deleteIdentity(alias: String) = loadDefaultKeyStore().deleteEntry(alias)
@@ -124,7 +107,7 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         val keyPair = KeyPair(
             keyStore!!.getCertificate(alias).publicKey,
             keyStore!!.getKey(alias, EXTERNAL_KEY_PASSWORD.toCharArray()) as PrivateKey
-        );
+        )
 
         return C4KeyPair.createKeyPair(
             keyStore,

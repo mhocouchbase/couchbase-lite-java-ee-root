@@ -18,6 +18,7 @@ package com.couchbase.lite.internal;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -27,7 +28,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -47,6 +47,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.URLEndpointListener;
 import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 import com.couchbase.lite.internal.utils.Preconditions;
@@ -87,14 +88,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Override
     public byte[] sign(
         @NonNull C4KeyPair keyPair,
-        @NonNull SignatureDigestAlgorithm digestAlgorithm,
+        @NonNull Signature.SignatureDigestAlgorithm digestAlgorithm,
         @NonNull byte[] data) {
-        final String algorithm = DIGEST_ALGORITHM_TO_JAVA.get(digestAlgorithm);
-        if (algorithm == null) {
-            Log.w(LogDomain.LISTENER, "Unsupported digest algorithm: " + digestAlgorithm);
-            return null;
-        }
-
         final String alias = keyPair.getKeyAlias();
 
         final Key key;
@@ -105,30 +100,25 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         else {
             final KeyStore keyStore = keyPair.getKeyStore();
             if (keyStore == null) {
-                Log.e(LogDomain.LISTENER, "Keystore is null");
+                Log.e(LogDomain.LISTENER, "Sign: keystore is null");
                 return null;
             }
 
             try { key = keyStore.getKey(alias, keyPair.getKeyPassword()); }
             catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
-                Log.w(LogDomain.LISTENER, "No key found for alias: " + alias, e);
+                Log.w(LogDomain.LISTENER, "Sign: no key found for alias " + alias, e);
                 return null;
             }
 
             if (!(key instanceof PrivateKey)) {
-                Log.w(LogDomain.LISTENER, "No private key found for alias: " + alias);
+                Log.w(LogDomain.LISTENER, "Sign: no private key found for alias " + alias);
                 return null;
             }
         }
 
-        try {
-            final Signature sig = Signature.getInstance(algorithm);
-            sig.initSign((PrivateKey) key);
-            sig.update(data);
-            return sig.sign();
-        }
-        catch (SignatureException | NoSuchAlgorithmException | InvalidKeyException e) {
-            Log.w(LogDomain.LISTENER, "Failed creating signature with: " + alias);
+        try { return Signature.signHashData((PrivateKey) key, data, digestAlgorithm); }
+        catch (SignatureException | NoSuchAlgorithmException | InvalidKeyException | IOException e) {
+            Log.w(LogDomain.LISTENER, "Sign: failed with " + alias, e);
             return null;
         }
     }
@@ -148,18 +138,18 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         else {
             final KeyStore keyStore = keyPair.getKeyStore();
             if (keyStore == null) {
-                Log.e(LogDomain.LISTENER, "Keystore is null");
+                Log.e(LogDomain.LISTENER, "Decrypt: keystore is null");
                 return null;
             }
 
             try { key = keyStore.getKey(alias, keyPair.getKeyPassword()); }
             catch (UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException e) {
-                Log.w(LogDomain.LISTENER, "No key found for alias: " + alias, e);
+                Log.w(LogDomain.LISTENER, "Decrypt: no key found for alias " + alias, e);
                 return null;
             }
 
             if (!(key instanceof PrivateKey)) {
-                Log.w(LogDomain.LISTENER, "No private key found for alias: " + alias);
+                Log.w(LogDomain.LISTENER, "Decrypt: no private key found for alias: " + alias);
                 return null;
             }
         }
@@ -171,7 +161,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
             BadPaddingException | IllegalBlockSizeException e) {
-            Log.w(LogDomain.LISTENER, "Failed decryping data with " + alias, e);
+            Log.w(LogDomain.LISTENER, "Decrypt: failed with " + alias, e);
             return null;
         }
     }

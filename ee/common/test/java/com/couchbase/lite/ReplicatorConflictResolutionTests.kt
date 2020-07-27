@@ -25,7 +25,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
-import java.util.concurrent.BrokenBarrierException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
@@ -61,15 +60,6 @@ fun CountDownLatch.stdWait(): Boolean {
     try {
         return this.await(2, TimeUnit.SECONDS)
     } catch (ignore: InterruptedException) {
-    }
-    return false
-}
-
-fun CyclicBarrier.stdWait(): Boolean {
-    try {
-        this.await(2, TimeUnit.SECONDS)
-        return true
-    } catch (ignore: BrokenBarrierException) {
     }
     return false
 }
@@ -1063,7 +1053,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         // This replicator uses a conflict resolver that prefers the local doc
         // It will choose the version of the doc with KEY1->VAL1
         val resolver1 = object : ConflictResolver {
-            var calls = 0;
+            var calls = 0
             override fun resolve(conflict: Conflict?): Document? {
                 calls++
                 latch1.countDown()
@@ -1095,7 +1085,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         // This replicator will use the remote resolver
         // It will choose the version of the doc with KEY2->VAL2
         val resolver2 = object : ConflictResolver {
-            var calls = 0;
+            var calls = 0
             override fun resolve(conflict: Conflict?): Document? {
                 calls++
                 return conflict?.remoteDocument

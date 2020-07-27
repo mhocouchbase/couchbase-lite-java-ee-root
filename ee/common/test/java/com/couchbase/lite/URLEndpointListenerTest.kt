@@ -157,7 +157,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         KeyStoreTestAdaptor.deleteIdentity(alias)
     }
 
-/*
+    /*
     @Test
     fun testSimpleReplicationWithImportedIdentity() {
         val doc = MutableDocument("doc1")
@@ -169,17 +169,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val alias = KeyStoreBaseTest.newKeyAlias()
 
         KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
-        var identity: TLSIdentity? = null
-        PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
-            KeyStoreTestAdaptor.importIdentity(
-                EXTERNAL_KEY_STORE_TYPE,
-                it,
-                EXTERNAL_KEY_PASSWORD.toCharArray(),
-                EXTERNAL_KEY_ALIAS,
-                EXTERNAL_KEY_PASSWORD.toCharArray(),
-                alias
-            )
-        }
+        val identity = KeyStoreTestAdaptor.importIdentity(
+            EXTERNAL_KEY_STORE_TYPE, PlatformUtils.getAsset(EXTERNAL_KEY_STORE)!!,
+            EXTERNAL_KEY_PASSWORD.toCharArray(),
+            EXTERNAL_KEY_ALIAS,
+            EXTERNAL_KEY_PASSWORD.toCharArray(),
+            alias
+        )
 
         val listener = listenTls(identity, null)
 
@@ -194,6 +190,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         KeyStoreTestAdaptor.deleteIdentity(EXTERNAL_KEY_ALIAS)
     }
+
     @Test
     fun testClientCertAuthenticatorWithClosure() {
         // Listener:

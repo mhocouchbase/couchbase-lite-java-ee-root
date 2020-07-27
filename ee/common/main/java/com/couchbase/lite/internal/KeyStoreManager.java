@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 
@@ -97,20 +98,6 @@ public abstract class KeyStoreManager {
         public byte getCode() { return code; }
     }
 
-    public enum SignatureDigestAlgorithm {NONE, SHA1, SHA224, SHA256, SHA384, SHA512, RIPEMD160}
-
-    static final Map<KeyStoreManager.SignatureDigestAlgorithm, String> DIGEST_ALGORITHM_TO_JAVA;
-    static {
-        final Map<KeyStoreManager.SignatureDigestAlgorithm, String> m = new HashMap<>();
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.NONE, "NONEwithRSA");
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA1, "SHA1withRSA");
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA224, "SHA224withRSA");
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA256, "SHA256withRSA");
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA384, "SHA384withRSA");
-        m.put(KeyStoreManager.SignatureDigestAlgorithm.SHA512, "SHA512withRSA");
-        DIGEST_ALGORITHM_TO_JAVA = Collections.unmodifiableMap(m);
-    }
-
     private static final AtomicReference<KeyStoreManager> INSTANCE = new AtomicReference<>();
 
     // PMD is just not very clever...
@@ -150,7 +137,7 @@ public abstract class KeyStoreManager {
     @Nullable
     public abstract byte[] sign(
         @NonNull C4KeyPair keyPair,
-        @NonNull SignatureDigestAlgorithm digestAlgorithm,
+        @NonNull Signature.SignatureDigestAlgorithm digestAlgorithm,
         @NonNull byte[] data);
 
     /**
@@ -226,7 +213,7 @@ public abstract class KeyStoreManager {
 
         final PublicKey key = cert.getPublicKey();
         if (key == null) {
-            Log.w(LogDomain.LISTENER, "No public key for alias: " + keyPair.getKeyAlias());
+            Log.w(LogDomain.LISTENER, "No public key for alias " + keyPair.getKeyAlias());
             return null;
         }
 
@@ -241,18 +228,18 @@ public abstract class KeyStoreManager {
         final KeyStore.Entry entry;
         try { entry = keyStore.getEntry(alias, protectionParam); }
         catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "No key found for alias: " + alias, e);
+            Log.w(LogDomain.LISTENER, "Key: no key found for alias: " + alias, e);
             return null;
         }
 
         if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "No private key found for alias: " + alias);
+            Log.w(LogDomain.LISTENER, "Key: no private key found for alias " + alias);
             return null;
         }
 
         final PrivateKey key = ((KeyStore.PrivateKeyEntry) entry).getPrivateKey();
         if (!(key instanceof RSAKey)) {
-            Log.w(LogDomain.LISTENER, "Unsupported key type for %s: %s", alias, key.getAlgorithm());
+            Log.w(LogDomain.LISTENER, "Key: unsupported algorithm (%s) for %s ", key.getAlgorithm(), alias);
             return null;
         }
 
@@ -265,7 +252,7 @@ public abstract class KeyStoreManager {
         final Certificate[] certs;
         try { certs = keyStore.getCertificateChain(alias); }
         catch (KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "No cert chain for: " + alias, e);
+            Log.w(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e);
             return null;
         }
 
@@ -288,7 +275,7 @@ public abstract class KeyStoreManager {
                 deleted++;
             }
             catch (KeyStoreException e) {
-                throw new CouchbaseLiteException("Failed deleting entry: " + alias, e);
+                throw new CouchbaseLiteException("Delete: failed with " + alias, e);
             }
         }
 

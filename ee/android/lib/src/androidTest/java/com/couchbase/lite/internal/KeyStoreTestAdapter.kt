@@ -44,17 +44,6 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
             return TLSIdentity.createIdentity(alias, isServer, attributes, expiration)
         }
 
-        fun importIdentity(
-            extType: String,
-            extStore: InputStream,
-            extStorePass: CharArray,
-            extAlias: String,
-            extKeyPass: CharArray,
-            alias: String
-        ): TLSIdentity? {
-            return TLSIdentity.importIdentity(extType, extStore, extStorePass, extAlias, extKeyPass, alias)
-        }
-
         fun deleteIdentity(alias: String) = TLSIdentity.deleteIdentity(alias)
     }
 

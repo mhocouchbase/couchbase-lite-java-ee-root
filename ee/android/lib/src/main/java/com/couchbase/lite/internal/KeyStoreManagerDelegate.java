@@ -35,7 +35,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.Signature;
+import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
@@ -59,6 +59,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.URLEndpointListener;
 import com.couchbase.lite.internal.core.C4KeyPair;
+import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 
@@ -94,15 +95,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Override
     public byte[] sign(
         @NonNull C4KeyPair keyPair,
-        @NonNull SignatureDigestAlgorithm digestAlgorithm,
+        @NonNull Signature.SignatureDigestAlgorithm digestAlgorithm,
         @NonNull byte[] data) {
-        final String algorithm = DIGEST_ALGORITHM_TO_JAVA.get(digestAlgorithm);
-        android.util.Log.d("###", "digest algorithm: " + algorithm);
-        if (algorithm == null) {
-            Log.w(LogDomain.LISTENER, "Unsupported digest algorithm: " + digestAlgorithm);
-            return null;
-        }
-
         final KeyStore keyStore = loadKeyStore();
         if (keyStore == null) { return null; }
 
@@ -111,23 +105,20 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         final KeyStore.Entry entry;
         try { entry = keyStore.getEntry(alias, null); }
         catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "No key found for alias: " + alias, e);
+            Log.w(LogDomain.LISTENER, "Sign: no key found for alias " + alias, e);
             return null;
         }
 
         if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "No private key found for alias: " + alias);
+            Log.w(LogDomain.LISTENER, "Sign: no private key found for alias " + alias);
             return null;
         }
 
-        try {
-            final Signature sig = Signature.getInstance(DIGEST_ALGORITHM_TO_JAVA.get(digestAlgorithm));
-            sig.initSign(((KeyStore.PrivateKeyEntry) entry).getPrivateKey());
-            sig.update(data);
-            return sig.sign();
-        }
-        catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {
-            Log.w(LogDomain.LISTENER, "Failed creating signature with: " + alias);
+        final PrivateKey privateKey = ((KeyStore.PrivateKeyEntry) entry).getPrivateKey();
+
+        try { return Signature.signHashData(privateKey, data, digestAlgorithm); }
+        catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | IOException e) {
+            Log.w(LogDomain.LISTENER, "Sign: failed with " + alias, e);
             return null;
         }
     }
@@ -144,12 +135,12 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         final KeyStore.Entry entry;
         try { entry = keyStore.getEntry(alias, null); }
         catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "No key found for alias: " + alias, e);
+            Log.w(LogDomain.LISTENER, "Decrypt: no key found for alias " + alias, e);
             return null;
         }
 
         if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "No private key found for alias: " + alias);
+            Log.w(LogDomain.LISTENER, "Decrypt: no private key found for alias: " + alias);
             return null;
         }
 
@@ -160,7 +151,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
             BadPaddingException | IllegalBlockSizeException e) {
-            Log.w(LogDomain.LISTENER, "Failed decryping data with " + alias, e);
+            Log.w(LogDomain.LISTENER, "Decrypt: failed with " + alias, e);
             return null;
         }
     }

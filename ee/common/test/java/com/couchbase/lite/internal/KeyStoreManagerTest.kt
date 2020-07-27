@@ -17,6 +17,7 @@ package com.couchbase.lite.internal
 
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.URLEndpointListener
+import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.After
 import org.junit.Assert
@@ -24,8 +25,11 @@ import org.junit.Ignore
 import org.junit.Test
 import java.io.InputStream
 import java.security.KeyStore
+import java.security.MessageDigest
 import java.util.Calendar
+import javax.crypto.Cipher
 import kotlin.random.Random
+
 
 class KeyStoreManagerTest : KeyStoreTestAdaptor() {
     @After
@@ -50,31 +54,42 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
     @Ignore("!!! FAILING TEST")
     @Test
     fun testDecrypt() {
+        val cleartext = "Hello!  It's me"
+
         val alias = newKeyAlias()
 
         val keyStore = loadPlatformKeyStore()
         loadTestKeys(keyStore, alias)
 
-        // FIXME: The data needs to be encrypted properly for testing:
-        val data = KeyStoreManager.getInstance().decrypt(getC4KeyPair(keyStore, alias), Random.Default.nextBytes(256))
+        val key = keyStore.getCertificate(alias).publicKey
+        val cipher = Cipher.getInstance(key.algorithm)
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val encrypted = cipher.doFinal(cleartext.toByteArray())
 
-        Assert.assertNotNull(data)
+        // FIXME: The data needs to be encrypted properly for testing:
+        val data = KeyStoreManager.getInstance().decrypt(getC4KeyPair(keyStore, alias), encrypted)
+
+        Assert.assertEquals(cleartext, String(data!!))
     }
 
     @Test
-    fun testSignKey() {
+    fun testSign() {
         val alias = newKeyAlias()
 
         val keyStore = loadPlatformKeyStore()
         loadTestKeys(keyStore, alias)
 
-        val data = KeyStoreManager.getInstance().sign(
+        val md = MessageDigest.getInstance("SHA-256")
+        md.update(Random.Default.nextBytes(256))
+        val digestData = md.digest()
+
+        val out = KeyStoreManager.getInstance().sign(
             getC4KeyPair(keyStore, alias),
-            KeyStoreManager.SignatureDigestAlgorithm.SHA256,
-            Random.Default.nextBytes(256)
+            Signature.SignatureDigestAlgorithm.SHA256,
+            digestData
         )
 
-        Assert.assertNotNull(data)
+        Assert.assertNotNull(out)
     }
 
     // ??? Need a test for KeyStoreManager.free?

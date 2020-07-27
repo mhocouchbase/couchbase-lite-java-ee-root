@@ -809,6 +809,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
+    @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
