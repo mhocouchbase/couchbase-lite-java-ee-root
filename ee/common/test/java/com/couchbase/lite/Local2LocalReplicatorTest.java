@@ -37,6 +37,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.FileUtils;
+import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
@@ -1089,6 +1090,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
     }
 
+    @FlakyTest
     @Test
     public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);

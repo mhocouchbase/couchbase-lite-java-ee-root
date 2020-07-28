@@ -71,7 +71,7 @@ ext {
     CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
-    CBL_COMMON_DIR= "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_JAVA_DIR = "${CBL_COMMON_ROOT_DIR}/java"
 

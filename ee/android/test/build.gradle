@@ -43,7 +43,7 @@ ext {
     CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
-    CBL_COMMON_DIR= "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
@@ -96,6 +96,11 @@ android {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
+                "../lib/src/androidTest/java",                   // EE Android tests
+            ]
+            assets.srcDirs = [
+                "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
+                "${CBL_COMMON_DIR}/test/assets",                 // Common assets
             ]
             res.srcDirs = [
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/res",     // Common test resources
