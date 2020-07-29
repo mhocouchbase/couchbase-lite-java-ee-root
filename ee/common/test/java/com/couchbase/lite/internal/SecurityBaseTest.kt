@@ -20,44 +20,58 @@ import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.URLEndpointListener
 import com.couchbase.lite.internal.core.C4KeyPair
+import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
 import com.couchbase.lite.internal.utils.StringUtils
-import java.io.InputStream
 import java.security.KeyStore
+import java.security.MessageDigest
 
 
-const val EXTERNAL_KEY_STORE = "teststore.p12"
-const val EXTERNAL_KEY_STORE_TYPE = "PKCS12"
-const val EXTERNAL_KEY_ALIAS = "couchbase"
-const val EXTERNAL_KEY_PASSWORD = "password"
-
-const val BASE_KEY_ALIAS = "test-alias"
-
-abstract class KeyStoreBaseTest : PlatformBaseTest() {
+abstract class SecurityBaseTest : PlatformBaseTest() {
     companion object {
-        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()
+        data class AlgorithmInfo(val signatureAlgorithm: String, val digestAlgorithm: String)
 
-        fun get509Attributes() = mapOf(
+        const val BASE_KEY_ALIAS = "test-alias"
+
+        const val EXTERNAL_KEY_STORE = "teststore.p12"
+        const val EXTERNAL_KEY_STORE_TYPE = "PKCS12"
+        const val EXTERNAL_KEY_ALIAS = "couchbase"
+        const val EXTERNAL_KEY_PASSWORD = "password"
+
+        val ALGORITHMS = mapOf(
+            Signature.SignatureDigestAlgorithm.NONE to AlgorithmInfo("NONEwithRSA", ""),
+            Signature.SignatureDigestAlgorithm.SHA1 to AlgorithmInfo("SHA1withRSA", "SHA-1"),
+            Signature.SignatureDigestAlgorithm.SHA224 to AlgorithmInfo("SHA224withRSA", "SHA-224"),
+            Signature.SignatureDigestAlgorithm.SHA256 to AlgorithmInfo("SHA256withRSA", "SHA-256"),
+            Signature.SignatureDigestAlgorithm.SHA384 to AlgorithmInfo("SHA384withRSA", "SHA-384"),
+            Signature.SignatureDigestAlgorithm.SHA512 to AlgorithmInfo("SHA512withRSA", "SHA-512")
+        )
+
+        val X509_ATTRIBUTES = mapOf(
             URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test",
             URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION to "Couchbase",
             URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
             URLEndpointListener.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
+
+        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()
+
+        fun createDigest(algorithm: Signature.SignatureDigestAlgorithm, data: ByteArray): ByteArray {
+            if (algorithm == Signature.SignatureDigestAlgorithm.NONE) {
+                return data
+            }
+
+            val md = MessageDigest.getInstance(ALGORITHMS[algorithm]!!.digestAlgorithm)
+            md.update(data)
+            return md.digest()
+        }
     }
 
     abstract fun loadPlatformKeyStore(): KeyStore
     abstract fun loadTestKeys(dstKeyStore: KeyStore, dstAlias: String)
     abstract fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair
     abstract fun getIdentity(alias: String): TLSIdentity?
-    abstract fun importIdentity(
-        extType: String,
-        extStore: InputStream,
-        extStorePass: CharArray,
-        extAlias: String,
-        extKeyPass: CharArray,
-        alias: String
-    ): TLSIdentity?
 
     abstract fun createSelfSignedCertEntry(alias: String, isServer: Boolean)
 

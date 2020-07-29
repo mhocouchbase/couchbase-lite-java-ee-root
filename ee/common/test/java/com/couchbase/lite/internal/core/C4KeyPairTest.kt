@@ -15,9 +15,9 @@
 //
 package com.couchbase.lite.internal.core
 
-import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.KeyStoreManager
-import com.couchbase.lite.internal.KeyStoreTestAdaptor
+import com.couchbase.lite.internal.PlatformSecurityTest
+import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
 import com.couchbase.lite.internal.security.Signature
@@ -34,7 +34,7 @@ import java.security.interfaces.RSAPrivateKey
 import java.util.Date
 import kotlin.random.Random
 
-class C4KeyPairTest : KeyStoreTestAdaptor() {
+class C4KeyPairTest : PlatformSecurityTest() {
     data class NativeCall(val alg: Byte, val bits: Int, val token: Long, val data: Any? = null)
 
     private val c4NativeMock = object : C4KeyPair.NativeImpl {
@@ -293,13 +293,10 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
             KeyStoreManager.KeyAlgorithm.RSA,
             KeyStoreManager.KeySize.BIT_2048
         )
-
-        val attributes = get509Attributes()
-
         val cert = c4Keys.generateSelfSignedCertificate(
             KeyStoreManager.KeyAlgorithm.RSA,
             KeyStoreManager.KeySize.BIT_2048,
-            attributes,
+            SecurityBaseTest.X509_ATTRIBUTES,
             KeyStoreManager.CertUsage.TLS_SERVER,
             null
         )
@@ -310,17 +307,6 @@ class C4KeyPairTest : KeyStoreTestAdaptor() {
         Assert.assertEquals(0, call.alg)
         Assert.assertEquals(2048, call.bits)
         Assert.assertNotEquals(0, call.token)
-        Assert.assertEquals(attributes, call.data)
-    }
-
-    override fun importIdentity(
-        extType: String,
-        extStore: InputStream,
-        extStorePass: CharArray,
-        extAlias: String,
-        extKeyPass: CharArray,
-        alias: String
-    ): TLSIdentity? {
-        TODO("Not yet implemented")
+        Assert.assertEquals(SecurityBaseTest.X509_ATTRIBUTES, call.data)
     }
 }

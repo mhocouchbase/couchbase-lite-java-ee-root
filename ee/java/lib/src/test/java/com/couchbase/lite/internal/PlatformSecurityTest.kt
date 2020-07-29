@@ -18,7 +18,6 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.core.C4KeyPair
 import org.junit.AfterClass
-import java.io.InputStream
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -31,7 +30,7 @@ import java.util.Date
  * 2. Developing tests that can be shared between CBL Android and Java as these APIs are the same API provided
  * by the CBL Android's TLSIdentity.
  */
-open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
+open class PlatformSecurityTest : SecurityBaseTest() {
     companion object {
         var keyStore: KeyStore? = null
 
@@ -81,24 +80,13 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         return TLSIdentity.getIdentity(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray())
     }
 
-    override fun importIdentity(
-        extType: String,
-        extStore: InputStream,
-        extStorePass: CharArray,
-        extAlias: String,
-        extKeyPass: CharArray,
-        alias: String
-    ): TLSIdentity? {
-        TODO("Not yet implemented")
-    }
-
     override fun createSelfSignedCertEntry(alias: String, isServer: Boolean) {
         KeyStoreManager.getInstance().createSelfSignedCertEntry(
             loadPlatformKeyStore(),
             alias,
             null,
             isServer,
-            get509Attributes(),
+            X509_ATTRIBUTES,
             null
         )
     }

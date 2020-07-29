@@ -20,14 +20,12 @@ import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.utils.PlatformUtils
 import org.junit.AfterClass
 import org.junit.Assert
-import org.junit.Ignore
 import org.junit.Test
-import java.io.InputStream
 import java.security.KeyStore
 import java.util.Date
 
 
-open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
+open class PlatformSecurityTest : SecurityBaseTest() {
     companion object {
         @JvmStatic
         @AfterClass
@@ -68,32 +66,44 @@ open class KeyStoreTestAdaptor : KeyStoreBaseTest() {
         return TLSIdentity.getIdentity(alias)
     }
 
-    override fun importIdentity(
-        extType: String,
-        extStore: InputStream,
-        extStorePass: CharArray,
-        extAlias: String,
-        extKeyPass: CharArray,
-        alias: String
-    ): TLSIdentity? {
-        TODO("Not yet implemented")
-    }
-
     override fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair {
         return C4KeyPair.createKeyPair(alias, KeyStoreManager.KeyAlgorithm.RSA, KeyStoreManager.KeySize.BIT_2048)
     }
 
     override fun createSelfSignedCertEntry(alias: String, isServer: Boolean) {
-        KeyStoreManager.getInstance().createSelfSignedCertEntry(null, alias, null, isServer, get509Attributes(), null)
+        KeyStoreManager.getInstance()
+            .createSelfSignedCertEntry(null, alias, null, isServer, SecurityBaseTest.X509_ATTRIBUTES, null)
     }
 
-    @Ignore("!!! FAILING TEST")
+    @Test
+    fun testImportEntry() {
+        val keyStore = loadPlatformKeyStore()
+
+        val alias = newKeyAlias()
+        Assert.assertNull(keyStore.getEntry(alias, null))
+
+        PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
+            KeyStoreManager.getInstance().importEntry(
+                EXTERNAL_KEY_STORE_TYPE,
+                it,
+                EXTERNAL_KEY_PASSWORD.toCharArray(),
+                EXTERNAL_KEY_ALIAS,
+                null,
+                alias
+            )
+        }
+
+        Assert.assertNotNull(keyStore.getEntry(alias, null))
+    }
+
     @Test
     fun testImportIdentity() {
         val alias = newKeyAlias()
         val pwd = EXTERNAL_KEY_PASSWORD.toCharArray()
         PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
-            Assert.assertNotNull(importIdentity(EXTERNAL_KEY_STORE_TYPE, it, pwd, EXTERNAL_KEY_ALIAS, pwd, alias))
+            Assert.assertNotNull(
+                TLSIdentity.importIdentity(EXTERNAL_KEY_STORE_TYPE, it, pwd, EXTERNAL_KEY_ALIAS, pwd, alias)
+            )
         }
     }
 }

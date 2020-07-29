@@ -69,8 +69,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @VisibleForTesting
     static final String ANDROID_KEY_STORE = "AndroidKeyStore";
 
-    protected static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
-
 
     //-------------------------------------------------------------------------
     // Constructor

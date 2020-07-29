@@ -15,31 +15,29 @@
 //
 package com.couchbase.lite.internal
 
-import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.URLEndpointListener
 import com.couchbase.lite.internal.security.Signature
-import com.couchbase.lite.internal.utils.PlatformUtils
+import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
 import org.junit.Assert
-import org.junit.Ignore
 import org.junit.Test
-import java.io.InputStream
-import java.security.KeyStore
-import java.security.MessageDigest
 import java.util.Calendar
 import javax.crypto.Cipher
-import kotlin.random.Random
 
 
-class KeyStoreManagerTest : KeyStoreTestAdaptor() {
+class KeyStoreManagerTest : PlatformSecurityTest() {
     @After
     fun tearDownKeyStoreManagerTest() {
         KeyStoreManager.getInstance()
             .deleteEntries(loadPlatformKeyStore()) { alias -> alias.startsWith(BASE_KEY_ALIAS) }
     }
 
+    @SlowTest
     @Test
     fun testGetKeyData() {
+        val testStore = loadTestKeyStore()
+        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey.encoded
+
         val alias = newKeyAlias()
 
         val keyStore = loadPlatformKeyStore()
@@ -48,56 +46,119 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         val data = KeyStoreManager.getInstance().getKeyData(getC4KeyPair(keyStore, alias))
 
         Assert.assertNotNull(data)
-        Assert.assertEquals(294, data?.size)
+        Assert.assertArrayEquals(key, data)
     }
 
-    @Ignore("!!! FAILING TEST")
+    @SlowTest
     @Test
-    fun testDecrypt() {
-        val cleartext = "Hello!  It's me"
+    fun testSign() {
+        val testStore = loadTestKeyStore()
+        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey
 
         val alias = newKeyAlias()
+
+        val data = "Ridin' shotgun down the avalanche".toByteArray(Charsets.UTF_8)
 
         val keyStore = loadPlatformKeyStore()
         loadTestKeys(keyStore, alias)
 
-        val key = keyStore.getCertificate(alias).publicKey
-        val cipher = Cipher.getInstance(key.algorithm)
-        cipher.init(Cipher.ENCRYPT_MODE, key)
-        val encrypted = cipher.doFinal(cleartext.toByteArray())
+        val algorithms = Signature.SignatureDigestAlgorithm.values()
+        for (algorithm in algorithms) {
+            val digest = createDigest(algorithm, data)
 
-        // FIXME: The data needs to be encrypted properly for testing:
+            val signedData = KeyStoreManager.getInstance().sign(getC4KeyPair(keyStore, alias), algorithm, digest)
+
+            val sig = java.security.Signature.getInstance(ALGORITHMS[algorithm]?.signatureAlgorithm)
+            sig.initVerify(key)
+            sig.update(data)
+
+            Assert.assertTrue("Failed using algorithm: ${algorithm}", sig.verify(signedData))
+        }
+    }
+
+    @SlowTest
+    @Test
+    fun testDecrypt() {
+        val testStore = loadTestKeyStore()
+        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey
+
+        val alias = newKeyAlias()
+
+        val cleartext = "Ridin' shotgun down the avalanche"
+
+        val keyStore = loadPlatformKeyStore()
+        loadTestKeys(keyStore, alias)
+
+        val cipher = Cipher.getInstance(KeyStoreManager.CIPHER_TYPE)
+        cipher.init(Cipher.ENCRYPT_MODE, key)
+        val encrypted = cipher.doFinal(cleartext.toByteArray(Charsets.UTF_8))
+
         val data = KeyStoreManager.getInstance().decrypt(getC4KeyPair(keyStore, alias), encrypted)
 
         Assert.assertEquals(cleartext, String(data!!))
     }
 
+    // ??? Need a test for KeyStoreManager.free?
+
+
     @Test
-    fun testSign() {
+    fun testFindAlias() {
+        val mgr = KeyStoreManager.getInstance()
+
         val alias = newKeyAlias()
 
         val keyStore = loadPlatformKeyStore()
+
+        Assert.assertFalse(mgr.findAlias(keyStore, alias))
+        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
+
         loadTestKeys(keyStore, alias)
 
-        val md = MessageDigest.getInstance("SHA-256")
-        md.update(Random.Default.nextBytes(256))
-        val digestData = md.digest()
-
-        val out = KeyStoreManager.getInstance().sign(
-            getC4KeyPair(keyStore, alias),
-            Signature.SignatureDigestAlgorithm.SHA256,
-            digestData
-        )
-
-        Assert.assertNotNull(out)
+        Assert.assertTrue(mgr.findAlias(keyStore, alias))
+        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
     }
 
-    // ??? Need a test for KeyStoreManager.free?
+    @Test
+    fun testGetKey() {
+        val mgr = KeyStoreManager.getInstance()
+
+        val alias = newKeyAlias()
+
+        val keyStore = loadPlatformKeyStore()
+
+        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS, null))
+        Assert.assertNull(mgr.getKey(keyStore, alias, null))
+
+        loadTestKeys(keyStore, alias)
+
+        // ??? there really must be more that we can test...
+        Assert.assertNotNull(mgr.getKey(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray()))
+        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS, EXTERNAL_KEY_PASSWORD.toCharArray()))
+    }
+
+    @Test
+    fun testGetCerts() {
+        val mgr = KeyStoreManager.getInstance()
+
+        val alias = newKeyAlias()
+
+        val keyStore = loadPlatformKeyStore()
+
+        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS))
+        Assert.assertNull(mgr.getCertificates(keyStore, alias))
+
+        loadTestKeys(keyStore, alias)
+
+        // ??? there really must be more that we can test...
+        Assert.assertNotNull(mgr.getCertificates(keyStore, alias))
+        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS))
+    }
 
     @Test
     fun testCreateSelfSignedCertEntry() {
-        val keyStore = KeyStore.getInstance("PKCS12")
-        keyStore.load(null)
+        val keyStore = loadPlatformKeyStore()
+
+        val alias = newKeyAlias()
 
         val attrs = mapOf(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase")
         val exp = Calendar.getInstance()
@@ -105,7 +166,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
 
         KeyStoreManager.getInstance().createSelfSignedCertEntry(
             keyStore,
-            "MyCert",
+            alias,
             null,
             true,
             attrs,
@@ -113,44 +174,7 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
         )
     }
 
-    @Ignore("!!! FAILING TEST (java)")
-    @Test
-    fun testImportEntry() {
-        val keyStore = loadPlatformKeyStore()
-
-        val alias = newKeyAlias()
-        Assert.assertNull(keyStore.getEntry(alias, null))
-
-        PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
-            KeyStoreManager.getInstance().importEntry(
-                EXTERNAL_KEY_STORE_TYPE,
-                it,
-                EXTERNAL_KEY_PASSWORD.toCharArray(),
-                EXTERNAL_KEY_ALIAS,
-                null,
-                alias
-            )
-        }
-
-        Assert.assertNotNull(keyStore.getEntry(alias, null))
-    }
-
-    @Test
-    fun testFindAlias() {
-        val alias = newKeyAlias()
-
-        val keyStore = loadPlatformKeyStore()
-
-        Assert.assertFalse(KeyStoreManager.getInstance().findAlias(keyStore, alias))
-
-        loadTestKeys(keyStore, alias)
-
-        Assert.assertTrue(KeyStoreManager.getInstance().findAlias(keyStore, alias))
-    }
-
-    // ??? How to test getCertificate?  Params are different on the two platforms.
-
-    @Ignore("!!! FAILING TEST : ConcurrentModificationException")
+    @SlowTest
     @Test
     fun testDeleteEntries() {
         val alias1 = newKeyAlias()
@@ -168,16 +192,5 @@ class KeyStoreManagerTest : KeyStoreTestAdaptor() {
 
         Assert.assertFalse(KeyStoreManager.getInstance().findAlias(keyStore, alias1))
         Assert.assertTrue(KeyStoreManager.getInstance().findAlias(keyStore, alias2))
-    }
-
-    override fun importIdentity(
-        extType: String,
-        extStore: InputStream,
-        extStorePass: CharArray,
-        extAlias: String,
-        extKeyPass: CharArray,
-        alias: String
-    ): TLSIdentity? {
-        TODO("Not yet implemented")
     }
 }

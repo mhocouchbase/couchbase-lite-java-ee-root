@@ -14,8 +14,8 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.KeyStoreBaseTest
-import com.couchbase.lite.internal.KeyStoreTestAdaptor
+import com.couchbase.lite.internal.PlatformSecurityTest
+import com.couchbase.lite.internal.SecurityBaseTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -109,7 +109,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Ignore("!!! FAILING TEST")
     @Test
     fun testBasicAuthWithTls() {
-        val alias = KeyStoreBaseTest.newKeyAlias()
+        val alias = SecurityBaseTest.newKeyAlias()
         val listener = listenTls(
             TLSIdentity.getAnonymousIdentity(alias),
             ListenerPasswordAuthenticator.create { _, _ -> true })
@@ -282,9 +282,10 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             val listener = listenTls(identity, null)
 
             val config = makeConfig(true, true, false, listener.endpoint(), null, false)
-            val repl = run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false) { r: Replicator ->
-                assertNull(r.serverCertificates)
-            }
+            val repl =
+                run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false) { r: Replicator ->
+                    assertNull(r.serverCertificates)
+                }
             assertTrue(Arrays.equals(cert.encoded, repl.serverCertificates!![0].encoded))
         } finally {
             deleteIdentity(identity)
@@ -404,18 +405,18 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun createIdentity(): TLSIdentity {
-        val alias = KeyStoreBaseTest.newKeyAlias()
+        val alias = SecurityBaseTest.newKeyAlias()
 
-        val attributes = KeyStoreBaseTest.get509Attributes()
+        val attributes = SecurityBaseTest.X509_ATTRIBUTES
 
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        return KeyStoreTestAdaptor.createIdentity(true, attributes, expiration.time, alias)
+        return PlatformSecurityTest.createIdentity(true, attributes, expiration.time, alias)
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        KeyStoreTestAdaptor.deleteIdentity(identity.keyAlias)
+        PlatformSecurityTest.deleteIdentity(identity.keyAlias)
     }
 
     private fun makeConfig(

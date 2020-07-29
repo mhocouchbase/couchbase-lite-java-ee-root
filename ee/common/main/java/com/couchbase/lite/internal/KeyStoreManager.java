@@ -52,6 +52,8 @@ public abstract class KeyStoreManager {
     public static final String ANON_COMMON_NAME = "CBLAnonymousCertificate";
     public static final int ANON_EXPIRATION_YEARS = 1;
 
+    protected static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
+
     protected static final String ERROR_LOADING_KEYSTORE = "Failed loading keystore";
 
     public enum KeyAlgorithm {RSA}

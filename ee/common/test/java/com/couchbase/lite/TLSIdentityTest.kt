@@ -14,7 +14,8 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.KeyStoreTestAdaptor
+import com.couchbase.lite.internal.PlatformSecurityTest
+import com.couchbase.lite.internal.SecurityBaseTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -26,18 +27,16 @@ import java.util.Date
 import kotlin.math.abs
 
 
-class TLSIdentityTest : KeyStoreTestAdaptor() {
+class TLSIdentityTest : PlatformSecurityTest() {
 
     @Test
     fun testCreateIdentity() {
         val alias = newKeyAlias()
 
-        val attributes = get509Attributes()
-
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        assertNotNull(createIdentity(true, attributes, expiration.time, alias))
+        assertNotNull(createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, expiration.time, alias))
     }
 
     @Ignore("FAILING TEST (android)")
@@ -50,8 +49,7 @@ class TLSIdentityTest : KeyStoreTestAdaptor() {
         assertNull(identity)
 
         // Create:
-        val attrs = get509Attributes()
-        identity = createIdentity(true, attrs, null, alias)
+        identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
         validateCertificate(identity, true)
 
@@ -78,8 +76,7 @@ class TLSIdentityTest : KeyStoreTestAdaptor() {
         assertNull(identity)
 
         // Create:
-        val attrs = get509Attributes()
-        identity = createIdentity(false, attrs, null, alias)
+        identity = createIdentity(false, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
         validateCertificate(identity, false)
 
@@ -104,8 +101,7 @@ class TLSIdentityTest : KeyStoreTestAdaptor() {
         var identity: TLSIdentity?
 
         // Create:
-        val attrs = get509Attributes()
-        identity = createIdentity(true, attrs, null, alias)
+            identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
         validateCertificate(identity, true)
 
@@ -115,7 +111,7 @@ class TLSIdentityTest : KeyStoreTestAdaptor() {
         validateCertificate(identity!!, true)
 
         // Create again with the same alias:
-        createIdentity(true, attrs, null, alias)
+        createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
     }
 
     @Test(expected = CouchbaseLiteException::class)
@@ -132,10 +128,9 @@ class TLSIdentityTest : KeyStoreTestAdaptor() {
         var identity = getIdentity(alias)
         assertNull(identity)
 
-        val attrs = get509Attributes()
         val expiration = Date(System.currentTimeMillis() + 60000)
 
-        identity = createIdentity(true, attrs, expiration, alias)
+        identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, expiration, alias)
         assertNotNull(identity)
         assertEquals(1, identity.certs.count())
         validateCertificate(identity, true)

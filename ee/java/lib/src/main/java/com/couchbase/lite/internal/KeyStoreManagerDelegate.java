@@ -55,8 +55,6 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 @SuppressWarnings({"PMD.GodClass"})
 public class KeyStoreManagerDelegate extends KeyStoreManager {
-    private static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
-
 
     //-------------------------------------------------------------------------
     // Constructor
