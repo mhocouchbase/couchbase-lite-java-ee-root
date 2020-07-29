@@ -52,6 +52,7 @@ import static org.junit.Assert.assertTrue;
 
 public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
+    @FlakyTest
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
