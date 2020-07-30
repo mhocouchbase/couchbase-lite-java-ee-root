@@ -52,6 +52,7 @@ public class URLEndpointListener {
 
     @NonNull
     private final URLEndpointListenerConfiguration config;
+
     @Nullable
     private final TLSIdentity identity;
 

@@ -16,18 +16,17 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
-import com.couchbase.lite.internal.utils.Preconditions;
+import java.util.Map;
+
+import com.couchbase.lite.internal.core.C4Replicator;
 
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
-    @NonNull
-    private ServerCertificateVerificationMode certificateVerificationMode
-        = ServerCertificateVerificationMode.CA_CERT;
-
+    private boolean acceptOnlySelfSignedServerCertificate;
 
     public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
         super(config);
-        this.certificateVerificationMode = config.certificateVerificationMode;
+        this.acceptOnlySelfSignedServerCertificate = config.acceptOnlySelfSignedServerCertificate;
     }
 
     public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
@@ -35,28 +34,37 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
     }
 
     /**
-     * Sets the replicator verification mode.
-     * The default value is ServerCertificateVerificationMode.CA_CERT.
+     * Specify whether the replicator will accept any and only self-signed certificates.
+     * Any non-self-signed certificates will be rejected to avoid accidentally using
+     * this mode with the non-self-signed certs in production. The default value is false.
      *
-     * @param mode Specifies the way the replicator verifies the server identity when using TLS communication
+     * @param acceptOnlySelfSignedServerCertificate Whether the replicator will accept
+     *                                              any and only self-signed certificates.
      * @return this.
      */
     @NonNull
-    public ReplicatorConfiguration setServerCertificateVerificationMode(
-        @NonNull ServerCertificateVerificationMode mode) {
+    public ReplicatorConfiguration setAcceptOnlySelfSignedServerCertificate(
+        boolean acceptOnlySelfSignedServerCertificate) {
         checkReadOnly();
-        this.certificateVerificationMode = Preconditions.assertNotNull(mode, "certificate verification mode");
+        this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
         return getReplicatorConfiguration();
     }
 
     /**
-     * Return the replicator verification mode.
+     * Return whether the replicator will accept any and only self-signed server certificates.
      */
     @NonNull
-    public ServerCertificateVerificationMode getServerCertificateVerificationMode() {
-        return certificateVerificationMode;
+    public boolean isAcceptOnlySelfSignedServerCertificate() {
+        return acceptOnlySelfSignedServerCertificate;
     }
 
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }
+
+    @Override
+    protected Map<String, Object> effectiveOptions() {
+        final Map<String, Object> options = super.effectiveOptions();
+        options.put(C4Replicator.REPLICATOR_OPTION_SELF_SIGNED_SERVER_CERT, acceptOnlySelfSignedServerCertificate);
+        return options;
+    }
 }

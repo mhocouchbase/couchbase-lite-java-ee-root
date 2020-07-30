@@ -265,9 +265,13 @@ public abstract class KeyStoreManager {
         try { aliases = keyStore.aliases(); }
         catch (KeyStoreException e) { throw new CouchbaseLiteException("Failed deleting entries", e); }
 
+        // Convert enumeration to list and delete entry starting from the end of
+        // the list to avoid ConcurrentModificationException when deleting items
+        // while iterating:
         int deleted = 0;
-        while (aliases.hasMoreElements()) {
-            final String alias = aliases.nextElement();
+        final List<String> aliaslist = Collections.list(aliases);
+        for (int i = aliaslist.size() - 1; i >= 0; i--) {
+            final String alias = aliaslist.get(i);
             if (!filter.test(alias)) { continue; }
 
             try {
@@ -278,7 +282,6 @@ public abstract class KeyStoreManager {
                 throw new CouchbaseLiteException("Delete: failed with " + alias, e);
             }
         }
-
         return deleted;
     }
 }

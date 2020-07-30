@@ -15,14 +15,17 @@
 package com.couchbase.lite
 
 import com.couchbase.lite.internal.KeyStoreBaseTest
-import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.KeyStoreTestAdaptor
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
+import java.security.cert.Certificate
+import java.util.Arrays
 import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -127,34 +130,29 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
-    @Ignore("!!! FAILING TEST (android)")
     @Test
-    fun testSimpleReplicationWithTLS() {
-        val doc = MutableDocument("doc1")
-        doc.setString("foo", "bar")
-        otherDB.save(doc)
+    fun testReplicationWithTLS() {
+        val identity = createIdentity()
+        try {
+            val doc = MutableDocument("doc1")
+            doc.setString("foo", "bar")
+            otherDB.save(doc)
 
-        assertEquals(0, baseTestDb.count)
+            assertEquals(0, baseTestDb.count)
 
-        val alias = KeyStoreBaseTest.newKeyAlias()
+            val listener = listenTls(identity, null)
 
-        val attributes = mapOf(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase Lite Test")
+            val certs = identity.certs
+            assertEquals(1, certs.size)
 
-        KeyStoreTestAdaptor.deleteIdentity(alias)
-        val identity = KeyStoreTestAdaptor.createIdentity(true, attributes, null, alias)
+            val cert = certs[0]
+            run(listener.endpointUri(), true, true, false, null, cert)
 
-        val listener = listenTls(identity, null)
-
-        val certs = identity.certs
-        assertEquals(1, certs.size)
-
-        val cert = certs[0]
-        run(listener.endpointUri(), true, true, false, null, cert.encoded)
-
-        assertEquals(1, baseTestDb.count)
-        assertNotNull(baseTestDb.getDocument("doc1"))
-
-        KeyStoreTestAdaptor.deleteIdentity(alias)
+            assertEquals(1, baseTestDb.count)
+            assertNotNull(baseTestDb.getDocument("doc1"))
+        } finally {
+            deleteIdentity(identity)
+        }
     }
 
     /*
@@ -252,8 +250,130 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
     */
 
-    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
+    @Test
+    fun testReplicatorServerCert() {
+        val identity = createIdentity()
+        val cert = identity.certs[0]
 
+        try {
+            val listener = listenTls(identity, null)
+
+            val config = makeConfig(true, true, false, listener.endpoint(), cert, false)
+            val repl = run(config, 0, null, false, false) { r: Replicator ->
+                assertNull(r.serverCertificates)
+                r.addChangeListener {
+                    if (it.status.activityLevel == AbstractReplicator.ActivityLevel.IDLE) {
+                        assertTrue(Arrays.equals(cert.encoded, r.serverCertificates!![0].encoded))
+                    }
+                }
+            }
+            assertTrue(Arrays.equals(cert.encoded, repl.serverCertificates!![0].encoded))
+        } finally {
+            deleteIdentity(identity)
+        }
+    }
+
+    @Test
+    fun testReplicatorServerCertWithError() {
+        val identity = createIdentity()
+        val cert = identity.certs[0]
+
+        try {
+            val listener = listenTls(identity, null)
+
+            val config = makeConfig(true, true, false, listener.endpoint(), null, false)
+            val repl = run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false) { r: Replicator ->
+                assertNull(r.serverCertificates)
+            }
+            assertTrue(Arrays.equals(cert.encoded, repl.serverCertificates!![0].encoded))
+        } finally {
+            deleteIdentity(identity)
+        }
+    }
+
+    @Test
+    fun testReplicatorServerCertWithTLSDisabled() {
+        val listener = listenHttp(false, null)
+
+        val config = makeConfig(true, true, false, listener.endpoint(), null, false)
+        val repl = run(config, 0, null, false, false) { r: Replicator ->
+            assertNull(r.serverCertificates)
+        }
+        assertNull(repl.serverCertificates)
+    }
+
+    @Test
+    fun testPinnedServerCert() {
+        val identity = createIdentity()
+        val cert = identity.certs[0]
+
+        val wrongIdentity = createIdentity()
+        val wrongCert = wrongIdentity.certs[0]
+
+        try {
+            val listener = listenTls(identity, null)
+
+            // Error as no pinned server certificate:
+            var config = makeConfig(true, true, false, listener.endpoint(), null, false)
+            run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false, null)
+
+            // Error as wrong pinned server certificate:
+            config = makeConfig(true, true, false, listener.endpoint(), wrongCert, false)
+            run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false, null)
+
+            // Success with correct pinned server certificate:
+            config = makeConfig(true, true, false, listener.endpoint(), cert, false)
+            run(config, 0, null, false, false, null)
+        } finally {
+            deleteIdentity(identity)
+            deleteIdentity(wrongIdentity)
+        }
+    }
+
+    @Test
+    fun testAcceptOnlySelfSignedServerCert() {
+        val identity = createIdentity()
+        val cert = identity.certs[0]
+
+        try {
+            val listener = listenTls(identity, null)
+
+            // Error as acceptOnlySelfSignedServerCert = false and no pinned server certificate:
+            var config = makeConfig(true, true, false, listener.endpoint(), null, false)
+            run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false, null)
+
+            // Success with acceptOnlySelfSignedServerCert = true and no pinned server certificate:
+            config = makeConfig(true, true, false, listener.endpoint(), cert, true)
+            run(config, 0, null, false, false, null)
+        } finally {
+            deleteIdentity(identity)
+        }
+    }
+
+    @Test
+    fun testSetBothPinnedServerCertAndAcceptOnlySelfSignedServerCert() {
+        val identity = createIdentity()
+        val cert = identity.certs[0]
+
+        val wrongIdentity = createIdentity()
+        val wrongCert = wrongIdentity.certs[0]
+
+        try {
+            val listener = listenTls(identity, null)
+            // Error as wrong pinned server certificate even though acceptOnlySelfSignedServerCertificate = true:
+            var config = makeConfig(true, true, false, listener.endpoint(), wrongCert, true)
+            run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false, null)
+
+            // Success with correct pinned server certificate:
+            config = makeConfig(true, true, false, listener.endpoint(), cert, true)
+            run(config, 0, null, false, false, null)
+        } finally {
+            deleteIdentity(identity)
+            deleteIdentity(wrongIdentity)
+        }
+    }
+
+    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
         // Listener:
         val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
             .setPort(portFactory.getAndIncrement())
@@ -295,11 +415,24 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        KeyStoreManager.getInstance().deleteEntries(null) { alias -> alias == identity.keyAlias }
+        KeyStoreTestAdaptor.deleteIdentity(identity.keyAlias)
+    }
+
+    private fun makeConfig(
+        push: Boolean,
+        pull: Boolean,
+        continuous: Boolean,
+        target: Endpoint?,
+        pinnedServerCert: Certificate?,
+        acceptOnlySelfSignedCert: Boolean /* EE Only */
+    ): ReplicatorConfiguration {
+        val config = makeConfig(push, pull, continuous, target, pinnedServerCert)
+        config.isAcceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedCert
+        return config
     }
 }
 
 fun URLEndpointListener.endpointUri() =
     URI(if (config.isTlsDisabled) "ws" else "wss", null, "localhost", port, "/${config.database.name}", null, null)
 
-
+fun URLEndpointListener.endpoint() = URLEndpoint(endpointUri())
