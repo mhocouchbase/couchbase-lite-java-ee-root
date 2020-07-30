@@ -65,12 +65,7 @@ public class URLEndpointListenerConfiguration {
          * @return the TLS Endpoint configuration.
          */
         public URLEndpointListenerConfiguration build() {
-            if (!disableTls) {
-                if (identity == null) {
-                    throw new IllegalStateException("TLS connections must have a TLS identity");
-                }
-            }
-            else {
+            if (disableTls) {
                 if (identity != null) {
                     throw new IllegalStateException("Connection with TLS disabled cannot have a TLS identity");
                 }
@@ -80,7 +75,6 @@ public class URLEndpointListenerConfiguration {
                         "Connection with TLS disabled cannot us a ListenerCertificateAuthenticator");
                 }
             }
-
             return new URLEndpointListenerConfiguration(
                 database,
                 networkInterface,

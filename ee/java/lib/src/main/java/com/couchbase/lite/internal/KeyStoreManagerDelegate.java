@@ -209,7 +209,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         throws CouchbaseLiteException {
         Preconditions.assertNotNull(keyStore, "keystore");
 
-        checkAlias((alias));
         if (findAlias(keyStore, alias)) {
             throw new CouchbaseLiteException(
                 "Key already exits: " + alias,

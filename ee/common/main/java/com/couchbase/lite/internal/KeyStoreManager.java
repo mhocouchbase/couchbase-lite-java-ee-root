@@ -112,6 +112,13 @@ public abstract class KeyStoreManager {
         return INSTANCE.get();
     }
 
+    public static final void checkAlias(@NonNull String alias) throws CouchbaseLiteException {
+        if (alias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
+            throw new CouchbaseLiteException(
+                    "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
+        }
+    }
+
     @VisibleForTesting
     public static void setInstance(KeyStoreManager mgr) { INSTANCE.set(mgr); }
 
@@ -196,13 +203,6 @@ public abstract class KeyStoreManager {
 
     public abstract int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter)
         throws CouchbaseLiteException;
-
-    protected final void checkAlias(@NonNull String alias) throws CouchbaseLiteException {
-        if (alias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
-            throw new CouchbaseLiteException(
-                "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
-        }
-    }
 
     protected final byte[] getEncodedKey(KeyStore keyStore, @NonNull C4KeyPair keyPair) {
         final Certificate cert;

@@ -98,6 +98,8 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         throws CouchbaseLiteException {
         Preconditions.assertNotNull(alias, "alias");
         Preconditions.assertNotNull(attributes, "attributes");
+        KeyStoreManager.checkAlias(alias);
+
         getManager().createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration);
 
         final TLSIdentity identity = getIdentity(alias);
@@ -132,6 +134,12 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         @Nullable char[] extKeyPass,
         @NonNull String alias)
         throws CouchbaseLiteException {
+        Preconditions.assertNotNull(extType, "extType");
+        Preconditions.assertNotNull(extStore, "extStore");
+        Preconditions.assertNotNull(extAlias, "extAlias");
+        Preconditions.assertNotNull(alias, "alias");
+        KeyStoreManager.checkAlias(alias);
+
         getManager().importEntry(extType, extStore, extStorePass, extAlias, extKeyPass, alias);
 
         final TLSIdentity identity = getIdentity(alias);
@@ -166,7 +174,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
 
         keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
 
-        return createIdentity(fullAlias, true, attributes, null);
+        return getIdentity(fullAlias);
     }
 
 

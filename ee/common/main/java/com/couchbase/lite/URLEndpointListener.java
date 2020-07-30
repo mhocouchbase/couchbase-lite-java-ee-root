@@ -140,6 +140,15 @@ public class URLEndpointListener {
     }
 
     /**
+     * Get the TLS identity used by the listener
+     * @return TLS identity.
+     */
+    @Nullable
+    public TLSIdentity getTlsIdentity() {
+        return identity;
+    }
+
+    /**
      * Start the listener
      */
     public void start() throws CouchbaseLiteException {

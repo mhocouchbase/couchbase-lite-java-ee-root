@@ -106,17 +106,19 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
-    @Ignore("!!! FAILING TEST")
     @Test
     fun testBasicAuthWithTls() {
-        val alias = SecurityBaseTest.newKeyAlias()
-        val listener = listenTls(
-            TLSIdentity.getAnonymousIdentity(alias),
-            ListenerPasswordAuthenticator.create { _, _ -> true })
-        run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
+        val identity = createIdentity()
+        try {
+            val listener = listenTls(identity, ListenerPasswordAuthenticator.create { _, _ -> true })
+            run(listener.endpointUri(), true, true, false,
+                    BasicAuthenticator("daniel", "123"), identity.certs[0])
+        } finally {
+            deleteIdentity(identity)
+        }
     }
 
-    @Ignore("!!! FAILING TEST")
+    @Ignore("NEED IMPLEMENTATION")
     @Test
     fun testCertAuthenticator() {
         val identity = createIdentity()
@@ -131,7 +133,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     @Test
-    fun testReplicationWithTLS() {
+    fun testReplicationWithTLSIdentity() {
         val identity = createIdentity()
         try {
             val doc = MutableDocument("doc1")
@@ -152,6 +154,31 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             assertNotNull(baseTestDb.getDocument("doc1"))
         } finally {
             deleteIdentity(identity)
+        }
+    }
+
+    @Test
+    fun testReplicationWithAnonymousTLSIdentity() {
+        var identity: TLSIdentity? = null
+        try {
+            val doc = MutableDocument("doc1")
+            doc.setString("foo", "bar")
+            otherDB.save(doc)
+
+            assertEquals(0, baseTestDb.count)
+
+            val listener = listenTls(null, null)
+            assertNotNull(listener.tlsIdentity)
+            identity = listener.tlsIdentity
+
+            var config = makeConfig(true, true, false,
+                listener.endpoint(), null, true)
+            run(config, 0, null, false, false, null)
+
+            assertEquals(1, baseTestDb.count)
+            assertNotNull(baseTestDb.getDocument("doc1"))
+        } finally {
+            if (identity != null) { deleteIdentity(identity!!) }
         }
     }
 
@@ -344,7 +371,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             run(config, CBLError.Code.TLS_CERT_UNTRUSTED, CBLError.Domain.CBLITE, false, false, null)
 
             // Success with acceptOnlySelfSignedServerCert = true and no pinned server certificate:
-            config = makeConfig(true, true, false, listener.endpoint(), cert, true)
+            config = makeConfig(true, true, false, listener.endpoint(), null, true)
             run(config, 0, null, false, false, null)
         } finally {
             deleteIdentity(identity)

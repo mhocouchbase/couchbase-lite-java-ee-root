@@ -119,6 +119,8 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         Preconditions.assertNotNull(keyStore, "keyStore");
         Preconditions.assertNotNull(alias, "alias");
         Preconditions.assertNotNull(attributes, "attributes");
+        KeyStoreManager.checkAlias((alias));
+
         // JDK-8236671:
         if (keyPassword == null) { keyPassword = new char[0]; }
 
@@ -180,7 +182,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         attributes.put(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
         getManager().createSelfSignedCertEntry(keyStore, fullAlias, null, true, attributes, null);
 
-        return createIdentity(true, attributes, null, keyStore, fullAlias, null);
+        return getIdentity(keyStore, fullAlias, null);
     }
 
     @VisibleForTesting

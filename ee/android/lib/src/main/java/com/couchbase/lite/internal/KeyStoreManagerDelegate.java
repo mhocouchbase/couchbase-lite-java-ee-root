@@ -198,8 +198,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration)
         throws CouchbaseLiteException {
-
-        checkAlias((alias));
         if (findAlias(null, alias)) {
             throw new CouchbaseLiteException(
                 "Key already exits: " + alias,
