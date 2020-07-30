@@ -42,7 +42,7 @@ plugins {
     id 'com.github.kt3k.coveralls'
 
     // handy plugin for discovering task dependencies
-    // id 'com.dorongold.task-tree' version "1.5"
+    //id 'com.dorongold.task-tree' version "1.5"
 }
 
 
@@ -77,7 +77,6 @@ ext {
 
     CBL_NATIVE_LIBRARIES = []
     CBL_CORE_NATIVE_DIR = "${CBL_COMMON_ROOT_DIR}/lite-core"
-    CBL_CRYPTO_LIB = "${CBL_CORE_NATIVE_DIR}/macos/x86_64/libmbedcrypto.a"
 
     GENERATED_DIR = "${buildDir}/generated/sources"
     REPORTS_DIR = "${buildDir}/reports"
@@ -212,6 +211,7 @@ model {
     toolChains {
         visualCpp(VisualCpp)
         clang(Clang)
+        gcc(Gcc)
     }
 
     repositories {
@@ -238,9 +238,9 @@ model {
                 binaries.withType(StaticLibraryBinary) {
                     def os = targetPlatform.operatingSystem
                     if (os.macOsX) {
-                        staticLibraryFile = file(CBL_CRYPTO_LIB)
+                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/macos/x86_64/libmbedcrypto.a")
                     } else if (os.linux) {
-                        staticLibraryFile = file(CBL_CRYPTO_LIB)
+                        staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/linux/x86_64/libmbedcrypto.a")
                     } else if (os.windows) {
                         staticLibraryFile = file("${CBL_CORE_NATIVE_DIR}/windows/x86_64/mbedcrypto.lib")
                     }
@@ -274,31 +274,30 @@ model {
             }
 
             binaries.all {
-                if (targetPlatform.operatingSystem.macOsX) {
+                if (targetPlatform.operatingSystem.windows) {
+                    cppCompiler.args "-I${CBL_JNI_INCLUDE_DIR}"
+                    cppCompiler.args "-I${JAVA_INCLUDE}"
+                    cppCompiler.args "-I${JAVA_INCLUDE}/win32"
+                    cppCompiler.args "/MD"
+                    cppCompiler.args "-DCOUCHBASE_ENTERPRISE"
+                }
+                else if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
                     cppCompiler.args '-I', JAVA_INCLUDE
                     cppCompiler.args '-I', "${JAVA_INCLUDE}/darwin"
                     cppCompiler.args '-std=c++11'
                     cppCompiler.args '-stdlib=libc++'
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
-                } else if (targetPlatform.operatingSystem.linux) {
+                }
+                else if (targetPlatform.operatingSystem.linux) {
                     def libCxxIncDir = properties.getProperty('LINUX_LIBCXX_INCDIR')
                     if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
                     cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
                     cppCompiler.args '-I', JAVA_INCLUDE
                     cppCompiler.args '-I', "${JAVA_INCLUDE}/linux"
-                    cppCompiler.args '-std=c++11'
-                    cppCompiler.args '-stdlib=libc++'
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                     def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
                     if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
-                    linker.args '-stdlib=libc++'
-                } else if (targetPlatform.operatingSystem.windows) {
-                    cppCompiler.args "-I${CBL_JNI_INCLUDE_DIR}"
-                    cppCompiler.args "-I${JAVA_INCLUDE}"
-                    cppCompiler.args "-I${JAVA_INCLUDE}/win32"
-                    cppCompiler.args "/MD"
-                    cppCompiler.args "-DCOUCHBASE_ENTERPRISE"
                 }
             }
         }
@@ -434,10 +433,15 @@ spotbugs { toolVersion = '4.0.3' }
 test {
     if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
 
+    if (System.env.LD_LIBRARY_PATH != null) {
+        jvmArgs "-Djava.library.path=${System.env.LD_LIBRARY_PATH}"
+    }
+
     testLogging {
         outputs.upToDateWhen { false }
 
         events = [ "failed", "skipped" ] 
+
         //showStandardStreams = true
 
         showCauses = true
