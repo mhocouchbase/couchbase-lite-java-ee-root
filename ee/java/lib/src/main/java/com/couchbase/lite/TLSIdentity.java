@@ -19,14 +19,18 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
+import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.interfaces.RSAKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.KeyStoreManager;
@@ -143,22 +147,41 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         getManager().deleteEntries(null, alias::equals);
     }
 
+    /**
+     * Default KeyStore for storing anonymous identity.
+     */
+    private static final AtomicReference<KeyStore> DEFAULT_KEY_STORE = new AtomicReference<>();
+
+    private static KeyStore getDefaultKeyStore() throws
+        KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+        KeyStore keyStore = DEFAULT_KEY_STORE.get();
+        if (keyStore != null) { return keyStore; }
+
+        keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null);
+
+        DEFAULT_KEY_STORE.compareAndSet(null, keyStore);
+        return DEFAULT_KEY_STORE.get();
+    }
+
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final KeyStore keyStore;
-        try { keyStore = KeyStore.getInstance(KeyStore.getDefaultType()); }
-        catch (KeyStoreException e) { throw new IllegalStateException("Cannot create an internal KeyStore", e); }
+        try {
+            keyStore = getDefaultKeyStore();
+        }
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            throw new IllegalStateException("Cannot get default KeyStore", e);
+        }
 
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
-
         if (getManager().findAlias(keyStore, fullAlias)) { getIdentity(keyStore, fullAlias, null); }
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
-        getManager().createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
+        getManager().createSelfSignedCertEntry(keyStore, fullAlias, null, true, attributes, null);
 
         return createIdentity(true, attributes, null, keyStore, fullAlias, null);
     }
-
 
     @VisibleForTesting
     TLSIdentity() { }
