@@ -40,7 +40,7 @@ open class PlatformSecurityTest : SecurityBaseTest() {
             expiration: Date?,
             alias: String
         ): TLSIdentity {
-            return TLSIdentity.createIdentity(alias, isServer, attributes, expiration)
+            return TLSIdentity.createIdentity(isServer, attributes, expiration, alias)
         }
 
         fun deleteIdentity(alias: String) = TLSIdentity.deleteIdentity(alias)

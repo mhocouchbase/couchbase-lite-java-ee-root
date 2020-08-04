@@ -114,7 +114,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ _, _ -> true }),
+            ListenerPasswordAuthenticator { _, _ -> true },
             true,
             true,
             true
@@ -130,7 +130,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ _, _ -> true }),
+            ListenerPasswordAuthenticator { _, _ -> true },
             true,
             true,
             true
@@ -219,11 +219,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -248,11 +248,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -276,11 +276,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -310,11 +310,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -344,11 +344,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -378,11 +378,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ u, p ->
+            ListenerPasswordAuthenticator { u, p ->
                 user = u
                 pwd = p
                 true
-            }),
+            },
             true,
             true,
             true
@@ -413,7 +413,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator({ _, _ -> true }),
+            ListenerPasswordAuthenticator { _, _ -> true },
             true,
             true,
             true,
@@ -434,7 +434,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerCertificateAuthenticator({ true }),
+            ListenerCertificateAuthenticator { true },
             true,
             true,
             true,
@@ -458,10 +458,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerCertificateAuthenticator({ certs ->
+            ListenerCertificateAuthenticator { certs ->
                 clientCert = certs[0]
                 true
-            }),
+            },
             true,
             true,
             true,

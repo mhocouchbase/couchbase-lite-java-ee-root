@@ -16,6 +16,7 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.security.cert.Certificate;
@@ -32,8 +33,34 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 @SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AbstractTLSIdentity {
-    protected static KeyStoreManager getManager() { return KeyStoreManager.getInstance(); }
+    public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
+    public static final String CERT_ATTRIBUTE_PSEUDONYM = "pseudonym";
+    public static final String CERT_ATTRIBUTE_GIVEN_NAME = "GN";
+    public static final String CERT_ATTRIBUTE_SURNAME = "SN";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION = "O";
+    public static final String CERT_ATTRIBUTE_ORGANIZATION_UNIT = "OU";
+    public static final String CERT_ATTRIBUTE_POSTAL_ADDRESS = "postalAddress";
+    public static final String CERT_ATTRIBUTE_LOCALITY = "locality";
+    public static final String CERT_ATTRIBUTE_POSTAL_CODE = "postalCode";
+    public static final String CERT_ATTRIBUTE_STATE_OR_PROVINCE = "ST";
+    public static final String CERT_ATTRIBUTE_COUNTRY = "C";
+    public static final String CERT_ATTRIBUTE_EMAIL_ADDRESS = "rfc822Name";
+    public static final String CERT_ATTRIBUTE_HOSTNAME = "dNSName";
+    public static final String CERT_ATTRIBUTE_URL = "uniformResourceIdentifier";
+    public static final String CERT_ATTRIBUTE_IP_ADDRESS = "iPAddress";
+    public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
 
+    @Nullable
+    public static String getKeyAlias(@Nullable AbstractTLSIdentity identity) {
+        return (identity == null) ? null : identity.getKeyAlias();
+    }
+
+    @Nullable
+    public static Certificate getCert(@Nullable AbstractTLSIdentity identity) {
+        return (identity == null) ? null : identity.getCert();
+    }
+
+    protected static KeyStoreManager getManager() { return KeyStoreManager.getInstance(); }
 
     @NonNull
     private final String keyAlias;
@@ -61,9 +88,6 @@ public abstract class AbstractTLSIdentity {
     }
 
     @NonNull
-    public Certificate getCert() { return certificates.get(0); }
-
-    @NonNull
     public List<Certificate> getCerts() { return certificates; }
 
     @NonNull
@@ -73,5 +97,8 @@ public abstract class AbstractTLSIdentity {
     public Date getExpiration() { return ((X509Certificate) getCert()).getNotAfter(); }
 
     @NonNull
-    public String getKeyAlias() { return keyAlias; }
+    Certificate getCert() { return certificates.get(0); }
+
+    @NonNull
+    String getKeyAlias() { return keyAlias; }
 }

@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.Key;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -56,7 +57,7 @@ import javax.security.auth.x500.X500Principal;
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.URLEndpointListener;
+import com.couchbase.lite.TLSIdentity;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
@@ -98,22 +99,10 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         if (keyStore == null) { return null; }
 
         final String alias = keyPair.getKeyAlias();
+        final PrivateKey key = getPrivateKey(keyStore, alias);
+        if (key == null) { return null; }
 
-        final KeyStore.Entry entry;
-        try { entry = keyStore.getEntry(alias, null); }
-        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "Sign: no key found for alias " + alias, e);
-            return null;
-        }
-
-        if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "Sign: no private key found for alias " + alias);
-            return null;
-        }
-
-        final PrivateKey privateKey = ((KeyStore.PrivateKeyEntry) entry).getPrivateKey();
-
-        try { return Signature.signHashData(privateKey, data, digestAlgorithm); }
+        try { return Signature.signHashData(key, data, digestAlgorithm); }
         catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | IOException e) {
             Log.w(LogDomain.LISTENER, "Sign: failed with " + alias, e);
             return null;
@@ -123,27 +112,16 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Nullable
     @Override
     public byte[] decrypt(@NonNull C4KeyPair keyPair, @NonNull byte[] data) {
-        android.util.Log.d("###", "decrypt @" + keyPair.getKeyAlias());
         final KeyStore keyStore = loadKeyStore();
         if (keyStore == null) { return null; }
 
         final String alias = keyPair.getKeyAlias();
-
-        final KeyStore.Entry entry;
-        try { entry = keyStore.getEntry(alias, null); }
-        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "Decrypt: no key found for alias " + alias, e);
-            return null;
-        }
-
-        if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "Decrypt: no private key found for alias: " + alias);
-            return null;
-        }
+        final PrivateKey key = getPrivateKey(keyStore, alias);
+        if (key == null) { return null; }
 
         try {
             final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-            cipher.init(Cipher.DECRYPT_MODE, (((KeyStore.PrivateKeyEntry) entry).getPrivateKey()));
+            cipher.init(Cipher.DECRYPT_MODE, key);
             return cipher.doFinal(data);
         }
         catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException |
@@ -154,9 +132,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     }
 
     @Override
-    public void free(@NonNull C4KeyPair keyPair) {
-        android.util.Log.d("###", "free @" + keyPair.getKeyAlias());
-    }
+    public void free(@NonNull C4KeyPair keyPair) { }
 
     //-------------------------------------------------------------------------
     // Keystore management
@@ -211,7 +187,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         }
 
         final Map<String, String> localAttributes = new HashMap<>(attributes);
-        final String dn = localAttributes.remove(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME);
+        final String dn = localAttributes.remove(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME);
         if (dn == null) {
             throw new CouchbaseLiteException(
                 "The Common Name (CN) attribute is required",
@@ -334,5 +310,21 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             Log.e(LogDomain.LISTENER, "Failed to load key store", e);
         }
         return null;
+    }
+
+    private PrivateKey getPrivateKey(KeyStore keyStore, String alias) {
+        final Key key;
+        try { key = keyStore.getKey(alias, null); }
+        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
+            Log.w(LogDomain.LISTENER, "No key found for alias " + alias, e);
+            return null;
+        }
+
+        if (!(key instanceof PrivateKey)) {
+            Log.w(LogDomain.LISTENER, "No private key found for alias " + alias);
+            return null;
+        }
+
+        return (PrivateKey) key;
     }
 }

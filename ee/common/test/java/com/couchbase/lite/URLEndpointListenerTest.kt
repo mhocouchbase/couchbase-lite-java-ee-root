@@ -15,8 +15,10 @@
 package com.couchbase.lite
 
 import com.couchbase.lite.CBLError.Code.TLS_HANDSHAKE_FAILED
+import com.couchbase.lite.internal.AbstractTLSIdentity
 import com.couchbase.lite.internal.PlatformSecurityTest
 import com.couchbase.lite.internal.SecurityBaseTest
+import com.couchbase.lite.internal.utils.FlakyTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -42,23 +44,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         testListener?.stop()
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun testBuilderDisallowIdentityWithDisabledTLS() {
-        URLEndpointListenerConfiguration.Builder(otherDB)
-            .setTlsDisabled(true)
-            .setAuthenticator(ListenerCertificateAuthenticator({ true }))
-            .build()
-    }
-
-    @Test(expected = IllegalStateException::class)
-    fun testBuilderDisallowCertAuthWithDisabledTLS() {
-        URLEndpointListenerConfiguration.Builder(otherDB)
-            .setTlsDisabled(true)
-            .setAuthenticator(ListenerPasswordAuthenticator({ _, _ -> true }))
-            .setTlsIdentity(TLSIdentity())
-            .build()
-    }
-
     @Test
     fun testPasswordAuthenticatorNullServerAuthenticator() {
         val listener = listenHttp(false, null)
@@ -74,9 +59,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Test
     fun testPasswordAuthenticatorBadUser() {
         try {
-            val listener = listenHttp(false, ListenerPasswordAuthenticator({ username, password ->
+            val listener = listenHttp(false, ListenerPasswordAuthenticator { username, password ->
                 "daniel" == username && ("123" == String(password))
-            }))
+            })
 
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daneil", "123"))
         } catch (e: CouchbaseLiteException) {
@@ -89,9 +74,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         try {
             val listener = listenHttp(
                 false,
-                ListenerPasswordAuthenticator({ username, password ->
+                ListenerPasswordAuthenticator { username, password ->
                     "daniel" == username && ("123" == String(password))
-                })
+                }
             )
 
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "456"))
@@ -104,9 +89,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun testPasswordAuthenticatorSucceeds() {
         val listener = listenHttp(
             false,
-            ListenerPasswordAuthenticator({ username, password ->
+            ListenerPasswordAuthenticator { username, password ->
                 (username == "daniel") && (String(password) == "123")
-            })
+            }
         )
 
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
@@ -116,7 +101,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun testPasswordAuthenticatorWithTls() {
         val identity = createIdentity()
         try {
-            val listener = listenTls(identity, ListenerPasswordAuthenticator({ _, _ -> true }))
+            val listener = listenTls(identity, ListenerPasswordAuthenticator { _, _ -> true })
             run(
                 listener.endpointUri(), true, true, false,
                 BasicAuthenticator("daniel", "123"), identity.certs[0]
@@ -126,6 +111,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
+    @FlakyTest
     @Test
     fun testCertAuthenticatorWithCallbackSucceeds() {
         val serverIdentity = createIdentity()
@@ -133,7 +119,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         try {
             val listener = listenTls(
                 serverIdentity,
-                ListenerCertificateAuthenticator({ true })
+                ListenerCertificateAuthenticator { true }
             )
             run(
                 listener.endpointUri(), true, true, false,
@@ -255,7 +241,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             assertNotNull(listener.tlsIdentity)
             identity = listener.tlsIdentity
 
-            var config = makeConfig(
+            val config = makeConfig(
                 true, true, false,
                 listener.endpoint(), null, true
             )
@@ -431,12 +417,12 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         auth: ListenerPasswordAuthenticator?
     ): URLEndpointListener {
         // Listener:
-        val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
-            .setPort(portFactory.getAndIncrement())
-            .setTlsDisabled(!tls)
-            .setAuthenticator(auth)
+        val config = URLEndpointListenerConfiguration(otherDB)
+        config.port = portFactory.getAndIncrement()
+        config.setDisableTls(!tls)
+        config.setAuthenticator(auth)
 
-        val listener = URLEndpointListener(configBuilder.build(), false)
+        val listener = URLEndpointListener(config)
         testListener = listener
 
         listener.start()
@@ -449,12 +435,12 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         auth: ListenerAuthenticator?
     ): URLEndpointListener {
         // Listener:
-        val configBuilder = URLEndpointListenerConfiguration.Builder(otherDB)
-            .setPort(portFactory.getAndIncrement())
-            .setAuthenticator(auth)
-        identity?.let { configBuilder.setTlsIdentity(it) }
+        val config = URLEndpointListenerConfiguration(otherDB)
+        config.setPort(portFactory.getAndIncrement())
+        config.setAuthenticator(auth)
+        identity?.let { config.tlsIdentity = it }
 
-        val listener = URLEndpointListener(configBuilder.build(), false)
+        val listener = URLEndpointListener(config)
         testListener = listener
 
         listener.start()
@@ -474,7 +460,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     private fun deleteIdentity(identity: TLSIdentity) {
-        PlatformSecurityTest.deleteIdentity(identity.keyAlias)
+        val id = AbstractTLSIdentity.getKeyAlias(identity) ?: return
+        PlatformSecurityTest.deleteIdentity(id)
     }
 
     private fun makeConfig(

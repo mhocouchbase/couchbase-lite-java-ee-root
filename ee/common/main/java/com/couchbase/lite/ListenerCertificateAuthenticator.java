@@ -16,64 +16,27 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
 import java.security.cert.Certificate;
 import java.util.List;
+
+import com.couchbase.lite.internal.core.InternalCertAuthenticator;
 
 
 /**
  * A Listener Certificate Authenticator Delegate
  */
-public class ListenerCertificateAuthenticator
-    implements ListenerAuthenticator, ListenerCertificateAuthenticatorDelegate {
-
-    //-------------------------------------------------------------------------
-    // Fields
-    //-------------------------------------------------------------------------
-
-    @Nullable
-    private final List<Certificate> rootCerts;
-
-    @Nullable
-    private final ListenerCertificateAuthenticatorDelegate delegate;
+public class ListenerCertificateAuthenticator extends InternalCertAuthenticator {
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
     public ListenerCertificateAuthenticator(@NonNull List<Certificate> rootCerts) {
-        this.rootCerts = rootCerts;
-        this.delegate = null;
+        super(rootCerts, null);
     }
 
     public ListenerCertificateAuthenticator(@NonNull ListenerCertificateAuthenticatorDelegate delegate) {
-        this.rootCerts = null;
-        this.delegate = delegate;
-    }
-
-    //-------------------------------------------------------------------------
-    // Delegate
-    //-------------------------------------------------------------------------
-
-    @Override
-    public boolean authenticate(@NonNull List<Certificate> certs) {
-        if (delegate != null) { return delegate.authenticate(certs); }
-
-        throw new IllegalStateException("No delegate has been set");
-    }
-
-    //-------------------------------------------------------------------------
-    // Internal
-    //-------------------------------------------------------------------------
-
-    /**
-     * FIXME: CBL-1182
-     * Used by C4Listener to get the root certs. It needs public accessor as C4Listener is
-     * in a different package.
-     */
-    @Nullable
-    public List<Certificate> getRootCerts() {
-        return rootCerts;
+        super(null, delegate);
     }
 }

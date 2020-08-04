@@ -92,13 +92,13 @@ public final class TLSIdentity extends AbstractTLSIdentity {
      */
     @NonNull
     public static TLSIdentity createIdentity(
-        @NonNull String alias,
         boolean isServer,
         @NonNull Map<String, String> attributes,
-        @Nullable Date expiration)
+        @Nullable Date expiration,
+        @NonNull String alias)
         throws CouchbaseLiteException {
-        Preconditions.assertNotNull(alias, "alias");
         Preconditions.assertNotNull(attributes, "attributes");
+        Preconditions.assertNotNull(alias, "alias");
         KeyStoreManager.checkAlias(alias);
 
         getManager().createSelfSignedCertEntry(null, alias, null, isServer, attributes, expiration);
@@ -171,7 +171,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         if (keyStoreManager.findAlias(null, fullAlias)) { return getIdentity(fullAlias); }
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
+        attributes.put(CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
 
         keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
 

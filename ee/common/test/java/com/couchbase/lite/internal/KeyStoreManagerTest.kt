@@ -15,7 +15,7 @@
 //
 package com.couchbase.lite.internal
 
-import com.couchbase.lite.URLEndpointListener
+import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
@@ -160,7 +160,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val alias = newKeyAlias()
 
-        val attrs = mapOf(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase")
+        val attrs = mapOf(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME to "Couchbase")
         val exp = Calendar.getInstance()
         exp.add(Calendar.YEAR, 3)
 

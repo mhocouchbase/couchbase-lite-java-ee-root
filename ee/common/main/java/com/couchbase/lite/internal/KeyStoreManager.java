@@ -64,13 +64,11 @@ public abstract class KeyStoreManager {
         final int len;
 
         private static final Map<Integer, KeySize> KEY_SIZES;
-
         static {
             final Map<Integer, KeySize> m = new HashMap<>();
-            for (KeySize keySize : KeySize.values()) { m.put(keySize.len, keySize); }
+            for (KeySize keySize: KeySize.values()) { m.put(keySize.len, keySize); }
             KEY_SIZES = Collections.unmodifiableMap(m);
         }
-
         public static KeySize getKeySize(int bitLen) {
             final KeySize keySize = KEY_SIZES.get(bitLen);
             if (keySize == null) {
@@ -114,7 +112,7 @@ public abstract class KeyStoreManager {
         return INSTANCE.get();
     }
 
-    public static final void checkAlias(@NonNull String alias) throws CouchbaseLiteException {
+    public static void checkAlias(@NonNull String alias) throws CouchbaseLiteException {
         if (alias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
             throw new CouchbaseLiteException(
                 "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);

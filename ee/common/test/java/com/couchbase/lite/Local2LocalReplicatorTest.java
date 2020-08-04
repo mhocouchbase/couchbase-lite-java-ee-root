@@ -298,6 +298,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     @Test
     public void testContinuousPushFilter() throws CouchbaseLiteException, InterruptedException { testPushFilter(true); }
 
+    @FlakyTest
     @Test
     public void testPullFilter() throws CouchbaseLiteException, InterruptedException { testPullFilter(false); }
 

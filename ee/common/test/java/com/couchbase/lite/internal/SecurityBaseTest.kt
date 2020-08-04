@@ -18,7 +18,6 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.LogLevel
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.TLSIdentity
-import com.couchbase.lite.URLEndpointListener
 import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.PlatformUtils
@@ -49,10 +48,10 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
         )
 
         val X509_ATTRIBUTES = mapOf(
-            URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test",
-            URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION to "Couchbase",
-            URLEndpointListener.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
-            URLEndpointListener.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
+            TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test",
+            TLSIdentity.CERT_ATTRIBUTE_ORGANIZATION to "Couchbase",
+            TLSIdentity.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
+            TLSIdentity.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
         fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()

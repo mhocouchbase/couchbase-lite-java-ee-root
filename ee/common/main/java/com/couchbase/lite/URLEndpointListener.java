@@ -21,31 +21,16 @@ import android.support.annotation.Nullable;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.couchbase.lite.internal.AbstractTLSIdentity;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
 
 
 public class URLEndpointListener {
-    public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
-    public static final String CERT_ATTRIBUTE_PSEUDONYM = "pseudonym";
-    public static final String CERT_ATTRIBUTE_GIVEN_NAME = "GN";
-    public static final String CERT_ATTRIBUTE_SURNAME = "SN";
-    public static final String CERT_ATTRIBUTE_ORGANIZATION = "O";
-    public static final String CERT_ATTRIBUTE_ORGANIZATION_UNIT = "OU";
-    public static final String CERT_ATTRIBUTE_POSTAL_ADDRESS = "postalAddress";
-    public static final String CERT_ATTRIBUTE_LOCALITY = "locality";
-    public static final String CERT_ATTRIBUTE_POSTAL_CODE = "postalCode";
-    public static final String CERT_ATTRIBUTE_STATE_OR_PROVINCE = "ST";
-    public static final String CERT_ATTRIBUTE_COUNTRY = "C";
-    public static final String CERT_ATTRIBUTE_EMAIL_ADDRESS = "rfc822Name";
-    public static final String CERT_ATTRIBUTE_HOSTNAME = "dNSName";
-    public static final String CERT_ATTRIBUTE_URL = "uniformResourceIdentifier";
-    public static final String CERT_ATTRIBUTE_IP_ADDRESS = "iPAddress";
-    public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
-
 
     @NonNull
     private final Object lock = new Object();
@@ -54,9 +39,7 @@ public class URLEndpointListener {
     private final URLEndpointListenerConfiguration config;
 
     @Nullable
-    private final TLSIdentity identity;
-
-    private final boolean readOnly;
+    private TLSIdentity identity;
 
 
     @Nullable
@@ -69,21 +52,12 @@ public class URLEndpointListener {
     // Constructors
     //-------------------------------------------------------------------------
 
-    public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config, boolean readOnly)
-        throws CouchbaseLiteException {
-        this.config = config;
-        this.readOnly = readOnly;
-
-        if (config.disableTls) { identity = null; }
-        else {
-            final TLSIdentity id = config.identity;
-            if (id != null) { identity = id; }
-            else {
-                final String uuid = config.database.getUuid();
-                if (uuid == null) { throw new IllegalArgumentException("Configured database is not open"); }
-                identity = TLSIdentity.getAnonymousIdentity(uuid + "@" + config.getPort());
-            }
+    public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config) {
+        if (config.getDatabase().getUuid() == null) {
+            throw new IllegalArgumentException("Configured database is not open");
         }
+        this.config = new URLEndpointListenerConfiguration(config, true);
+        identity = (config.isTlsDisabled()) ? null : config.getTlsIdentity();
     }
 
     //-------------------------------------------------------------------------
@@ -98,6 +72,11 @@ public class URLEndpointListener {
     @NonNull
     public URLEndpointListenerConfiguration getConfig() { return config; }
 
+    /**
+     * Get the listener's port.
+     *
+     * @return the listener's port.
+     */
     public int getPort() {
         synchronized (lock) { return (c4Listener == null) ? -1 : getCachedPort(c4Listener); }
     }
@@ -141,6 +120,7 @@ public class URLEndpointListener {
 
     /**
      * Get the TLS identity used by the listener
+     *
      * @return TLS identity.
      */
     @Nullable
@@ -187,41 +167,49 @@ public class URLEndpointListener {
         final ListenerAuthenticator auth = config.getAuthenticator();
         Log.d(LogDomain.LISTENER, "start with auth: " + auth);
 
-        if (identity == null) {
+        if (config.isTlsDisabled()) {
             return C4Listener.createHttpListener(
-                config.port,
-                config.networkInterface,
-                config.database.getPath(),
+                config.getPort(),
+                config.getNetworkInterface(),
+                config.getDatabase().getPath(),
                 (ListenerPasswordAuthenticator) auth,
                 true,
-                !readOnly,
-                config.enableDeltaSync
+                !config.isReadOnly(),
+                config.isDeltaSyncEnabled()
             );
         }
 
+        if (identity == null) {
+            final String uuid = getDbUuid();
+            identity = TLSIdentity.getAnonymousIdentity(uuid + "@" + config.getPort());
+        }
+
+        final Certificate serverCert = AbstractTLSIdentity.getCert(identity);
+        if (serverCert == null) { throw new IllegalStateException("Server cert is null"); }
+
         if ((auth == null) || (auth instanceof ListenerPasswordAuthenticator)) {
             return C4Listener.createTlsListenerPasswordAuth(
-                config.port,
-                config.networkInterface,
-                config.database.getPath(),
+                config.getPort(),
+                config.getNetworkInterface(),
+                config.getDatabase().getPath(),
                 (ListenerPasswordAuthenticator) auth,
                 true,
-                !readOnly,
-                config.enableDeltaSync,
-                identity.getCert(),
+                !config.isReadOnly(),
+                config.isDeltaSyncEnabled(),
+                serverCert,
                 identity.getKeyPair()
             );
         }
 
         return C4Listener.createTlsListenerCertAuth(
-            config.port,
-            config.networkInterface,
-            config.database.getPath(),
+            config.getPort(),
+            config.getNetworkInterface(),
+            config.getDatabase().getPath(),
             (ListenerCertificateAuthenticator) auth,
             true,
-            !readOnly,
-            config.enableDeltaSync,
-            identity.getCert(),
+            !config.isReadOnly(),
+            config.isDeltaSyncEnabled(),
+            serverCert,
             identity.getKeyPair()
         );
     }
@@ -233,6 +221,12 @@ public class URLEndpointListener {
     private int getCachedPort(@NonNull C4Listener listener) {
         if (port == 0) { port = listener.getPort(); }
         return port;
+    }
+
+    private String getDbUuid() {
+        final String uuid = config.getDatabase().getUuid();
+        if (uuid == null) { throw new IllegalArgumentException("Configured database is not open"); }
+        return uuid;
     }
 }
 

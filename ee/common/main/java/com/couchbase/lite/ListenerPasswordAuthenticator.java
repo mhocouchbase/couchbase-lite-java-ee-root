@@ -17,33 +17,16 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 
+import com.couchbase.lite.internal.core.InternalPwdAuthenticator;
+
 
 /**
  * Authenticator for HTTP Listener password authentication
  */
-public final class ListenerPasswordAuthenticator
-    implements ListenerAuthenticator, ListenerPasswordAuthenticatorDelegate {
-
-    //-------------------------------------------------------------------------
-    // Fields
-    //-------------------------------------------------------------------------
-
-    @NonNull
-    private final ListenerPasswordAuthenticatorDelegate delegate;
-
+public final class ListenerPasswordAuthenticator extends InternalPwdAuthenticator {
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    public ListenerPasswordAuthenticator(@NonNull ListenerPasswordAuthenticatorDelegate delegate) {
-        this.delegate = delegate;
-    }
-
-    //-------------------------------------------------------------------------
-    // Delegate Methods
-    //-------------------------------------------------------------------------
-
-    public boolean authenticate(@NonNull String username, @NonNull char[] password) {
-        return delegate.authenticate(username, password);
-    }
+    public ListenerPasswordAuthenticator(@NonNull ListenerPasswordAuthenticatorDelegate delegate) { super(delegate); }
 }

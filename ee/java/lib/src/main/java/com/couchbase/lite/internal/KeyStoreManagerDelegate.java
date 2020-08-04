@@ -44,7 +44,7 @@ import javax.crypto.NoSuchPaddingException;
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.URLEndpointListener;
+import com.couchbase.lite.TLSIdentity;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
@@ -221,7 +221,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             expiration = expDate.getTime();
         }
 
-        if (!attributes.containsKey(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME)) {
+        if (!attributes.containsKey(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME)) {
             throw new CouchbaseLiteException(
                 "The Common Name (CN) attribute is required",
                 CBLError.Domain.CBLITE,

@@ -140,16 +140,28 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return identity;
     }
 
-    /**
-     * Delete an identity.
-     *
-     * @param keyStore  The KeyStore object containing the identity.
-     * @param alias the identity to delete
-     * @throws CouchbaseLiteException on failure
-     */
-    public static void deleteIdentity(@NonNull KeyStore keyStore, @NonNull String alias)
+    static void deleteIdentity(@NonNull KeyStore keyStore, @NonNull String alias)
         throws CouchbaseLiteException {
         getManager().deleteEntries(keyStore, alias::equals);
+    }
+
+    static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
+        final KeyStore keyStore;
+        try {
+            keyStore = getDefaultKeyStore();
+        }
+        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            throw new IllegalStateException("Cannot get default KeyStore", e);
+        }
+
+        final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
+        if (getManager().findAlias(keyStore, fullAlias)) { getIdentity(keyStore, fullAlias, null); }
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
+        getManager().createSelfSignedCertEntry(keyStore, fullAlias, null, true, attributes, null);
+
+        return getIdentity(keyStore, fullAlias, null);
     }
 
     /**
@@ -167,25 +179,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
 
         DEFAULT_KEY_STORE.compareAndSet(null, keyStore);
         return DEFAULT_KEY_STORE.get();
-    }
-
-    static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
-        final KeyStore keyStore;
-        try {
-            keyStore = getDefaultKeyStore();
-        }
-        catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
-            throw new IllegalStateException("Cannot get default KeyStore", e);
-        }
-
-        final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
-        if (getManager().findAlias(keyStore, fullAlias)) { getIdentity(keyStore, fullAlias, null); }
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put(URLEndpointListener.CERT_ATTRIBUTE_COMMON_NAME, KeyStoreManager.ANON_COMMON_NAME);
-        getManager().createSelfSignedCertEntry(keyStore, fullAlias, null, true, attributes, null);
-
-        return getIdentity(keyStore, fullAlias, null);
     }
 
     @VisibleForTesting

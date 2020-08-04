@@ -230,7 +230,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         LISTENER_CONTEXT.bind(token, listener);
 
         byte[] rootClientCerts = null;
-        final List<Certificate> rootClientCertList = authenticator.getRootCerts();
+        final List<Certificate> rootClientCertList = ((InternalCertAuthenticator) authenticator).getRootCerts();
         if (rootClientCertList != null) {
             try {
                 rootClientCerts = SecurityUtils.encodeCertificateChain(rootClientCertList);
@@ -376,9 +376,9 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
     boolean authenticateBasic(@Nullable String authHeader) {
         // !!! The password is now in a base64 encoded String
-        ListenerPasswordAuthenticator auth = null;
-        if (authenticator instanceof ListenerPasswordAuthenticator) {
-            auth = (ListenerPasswordAuthenticator) authenticator;
+        InternalPwdAuthenticator auth = null;
+        if (authenticator instanceof InternalPwdAuthenticator) {
+            auth = (InternalPwdAuthenticator) authenticator;
         }
 
         if (auth == null) { return true; }
@@ -415,9 +415,9 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
 
     boolean authenticateCert(@Nullable byte[] clientCert) {
-        ListenerCertificateAuthenticator auth = null;
-        if (authenticator instanceof ListenerCertificateAuthenticator) {
-            auth = (ListenerCertificateAuthenticator) authenticator;
+        InternalCertAuthenticator auth = null;
+        if (authenticator instanceof InternalCertAuthenticator) {
+            auth = (InternalCertAuthenticator) authenticator;
         }
         if (auth == null) { return true; }
 
