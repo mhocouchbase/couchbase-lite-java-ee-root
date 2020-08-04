@@ -20,6 +20,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.InputStream;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.interfaces.RSAKey;
 import java.util.Date;
@@ -61,7 +62,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             return null;
         }
 
-        final RSAKey key = getManager().getKey(null, alias, null);
+        final PrivateKey key = getManager().getKey(null, alias, null);
         if (key == null) {
             Log.v(LogDomain.LISTENER, "No private key for: " + alias);
             return null;
@@ -72,7 +73,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             alias,
             null,
             KeyStoreManager.KeyAlgorithm.RSA,
-            KeyStoreManager.KeySize.getKeySize(key.getModulus().bitLength()),
+            KeyStoreManager.KeySize.getKeySize(((RSAKey) key).getModulus().bitLength()),
             null);
 
         return new TLSIdentity(alias, keyPair, certs);

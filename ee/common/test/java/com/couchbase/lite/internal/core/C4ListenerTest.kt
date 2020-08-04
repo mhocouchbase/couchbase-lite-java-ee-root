@@ -114,7 +114,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true
@@ -130,7 +130,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true
@@ -149,7 +149,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true
@@ -168,7 +168,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true
@@ -178,7 +178,12 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
         val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
 
-        assertFalse(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.AUTH_MODE_BASIC} usr:pass foo"))
+        assertFalse(
+            C4Listener.httpAuthCallback(
+                key.toLong(),
+                "${C4Listener.AUTH_MODE_BASIC} usr:pass foo"
+            )
+        )
     }
 
     @Test
@@ -187,7 +192,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true
@@ -197,7 +202,12 @@ class C4ListenerTest : PlatformBaseTest() {
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
         val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
 
-        assertFalse(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.AUTH_MODE_BASIC} !$@£ᘺ"))
+        assertFalse(
+            C4Listener.httpAuthCallback(
+                key.toLong(),
+                "${C4Listener.AUTH_MODE_BASIC} !$@£ᘺ"
+            )
+        )
     }
 
     @Test
@@ -209,11 +219,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -238,11 +248,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -266,11 +276,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -300,11 +310,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -334,11 +344,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -368,11 +378,11 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { u, p ->
+            ListenerPasswordAuthenticator({ u, p ->
                 user = u
                 pwd = p
                 true
-            },
+            }),
             true,
             true,
             true
@@ -403,7 +413,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerPasswordAuthenticator.create { _, _ -> true },
+            ListenerPasswordAuthenticator({ _, _ -> true }),
             true,
             true,
             true,
@@ -424,7 +434,7 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerCertificateAuthenticator.create { true },
+            ListenerCertificateAuthenticator({ true }),
             true,
             true,
             true,
@@ -448,10 +458,10 @@ class C4ListenerTest : PlatformBaseTest() {
             2222,
             "en0",
             "/here/there/everywhere",
-            ListenerCertificateAuthenticator.create { certs ->
+            ListenerCertificateAuthenticator({ certs ->
                 clientCert = certs[0]
                 true
-            },
+            }),
             true,
             true,
             true,

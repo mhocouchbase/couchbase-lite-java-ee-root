@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.interfaces.RSAKey;
@@ -77,7 +78,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         // JDK-8236671:
         if (keyPassword == null) { keyPassword = new char[0]; }
 
-        final RSAKey key = getManager().getKey(keyStore, alias, keyPassword);
+        final PrivateKey key = getManager().getKey(keyStore, alias, keyPassword);
         if (key == null) {
             Log.v(LogDomain.LISTENER, "No private key for: " + alias);
             return null;
@@ -88,10 +89,10 @@ public final class TLSIdentity extends AbstractTLSIdentity {
             alias,
             keyPassword,
             KeyStoreManager.KeyAlgorithm.RSA,
-            KeyStoreManager.KeySize.getKeySize(key.getModulus().bitLength()),
+            KeyStoreManager.KeySize.getKeySize(((RSAKey) key).getModulus().bitLength()),
             null);
 
-        return new TLSIdentity(alias, keyPair, certs);
+        return new TLSIdentity(keyStore, alias, keyPair, certs);
     }
 
     /**
@@ -142,11 +143,13 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     /**
      * Delete an identity.
      *
+     * @param keyStore  The KeyStore object containing the identity.
      * @param alias the identity to delete
      * @throws CouchbaseLiteException on failure
      */
-    public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException {
-        getManager().deleteEntries(null, alias::equals);
+    public static void deleteIdentity(@NonNull KeyStore keyStore, @NonNull String alias)
+        throws CouchbaseLiteException {
+        getManager().deleteEntries(keyStore, alias::equals);
     }
 
     /**
@@ -189,6 +192,7 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     TLSIdentity() { }
 
     private TLSIdentity(
+        @NonNull KeyStore keyStore,
         @NonNull String keyAlias,
         @NonNull C4KeyPair keyPair,
         @NonNull List<Certificate> certificates) {

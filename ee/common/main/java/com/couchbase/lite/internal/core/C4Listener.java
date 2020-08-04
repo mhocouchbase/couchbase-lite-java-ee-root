@@ -44,6 +44,7 @@ import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
+import com.couchbase.lite.internal.utils.SecurityUtils;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
@@ -228,6 +229,17 @@ public class C4Listener extends C4NativePeer implements Closeable {
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
+        byte[] rootClientCerts = null;
+        final List<Certificate> rootClientCertList = authenticator.getRootCerts();
+        if (rootClientCertList != null) {
+            try {
+                rootClientCerts = SecurityUtils.encodeCertificateChain(rootClientCertList);
+            }
+            catch (CertificateEncodingException e) {
+                throw new CouchbaseLiteException("Failed to encode certificates in PEM format", e);
+            }
+        }
+
         final long peer;
         try {
             peer = nativeImpl.nStartTls(
@@ -244,7 +256,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 keyPair.getPeer(),
                 serverCert.getEncoded(),
                 true,
-                null);
+                rootClientCerts);
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -364,8 +376,11 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
     boolean authenticateBasic(@Nullable String authHeader) {
         // !!! The password is now in a base64 encoded String
+        ListenerPasswordAuthenticator auth = null;
+        if (authenticator instanceof ListenerPasswordAuthenticator) {
+            auth = (ListenerPasswordAuthenticator) authenticator;
+        }
 
-        final ListenerPasswordAuthenticator auth = (ListenerPasswordAuthenticator) authenticator;
         if (auth == null) { return true; }
 
         if (authHeader == null) { return false; }
@@ -400,7 +415,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
 
     boolean authenticateCert(@Nullable byte[] clientCert) {
-        final ListenerCertificateAuthenticator auth = (ListenerCertificateAuthenticator) authenticator;
+        ListenerCertificateAuthenticator auth = null;
+        if (authenticator instanceof ListenerCertificateAuthenticator) {
+            auth = (ListenerCertificateAuthenticator) authenticator;
+        }
         if (auth == null) { return true; }
 
         // ??? Handle null content
@@ -418,6 +436,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
         return auth.authenticate(certs);
     }
+
+    //-------------------------------------------------------------------------
+    // Private methods
+    //-------------------------------------------------------------------------
 
     // !!! the impl may already have been GCed.
     private void close(long peer) {

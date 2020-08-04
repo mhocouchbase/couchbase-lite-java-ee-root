@@ -64,11 +64,13 @@ public abstract class KeyStoreManager {
         final int len;
 
         private static final Map<Integer, KeySize> KEY_SIZES;
+
         static {
             final Map<Integer, KeySize> m = new HashMap<>();
-            for (KeySize keySize: KeySize.values()) { m.put(keySize.len, keySize); }
+            for (KeySize keySize : KeySize.values()) { m.put(keySize.len, keySize); }
             KEY_SIZES = Collections.unmodifiableMap(m);
         }
+
         public static KeySize getKeySize(int bitLen) {
             final KeySize keySize = KEY_SIZES.get(bitLen);
             if (keySize == null) {
@@ -115,7 +117,7 @@ public abstract class KeyStoreManager {
     public static final void checkAlias(@NonNull String alias) throws CouchbaseLiteException {
         if (alias.startsWith(KeyStoreManager.ANON_IDENTITY_ALIAS)) {
             throw new CouchbaseLiteException(
-                    "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
+                "Attempt to use reserved identity prefix " + KeyStoreManager.ANON_IDENTITY_ALIAS);
         }
     }
 
@@ -175,7 +177,7 @@ public abstract class KeyStoreManager {
         throws CouchbaseLiteException;
 
     @Nullable
-    public abstract RSAKey getKey(
+    public abstract PrivateKey getKey(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword);
@@ -223,7 +225,7 @@ public abstract class KeyStoreManager {
     }
 
     @Nullable
-    protected final RSAKey getRSAKey(
+    protected final PrivateKey getPrivateKey(
         @NonNull String alias,
         KeyStore keyStore,
         KeyStore.ProtectionParameter protectionParam) {
@@ -245,7 +247,7 @@ public abstract class KeyStoreManager {
             return null;
         }
 
-        return (RSAKey) key;
+        return key;
     }
 
 

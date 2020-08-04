@@ -25,14 +25,6 @@ public final class ListenerPasswordAuthenticator
     implements ListenerAuthenticator, ListenerPasswordAuthenticatorDelegate {
 
     //-------------------------------------------------------------------------
-    // Static Factory Methods
-    //-------------------------------------------------------------------------
-
-    public static ListenerPasswordAuthenticator create(@NonNull ListenerPasswordAuthenticatorDelegate delegate) {
-        return new ListenerPasswordAuthenticator(delegate);
-    }
-
-    //-------------------------------------------------------------------------
     // Fields
     //-------------------------------------------------------------------------
 
@@ -43,12 +35,12 @@ public final class ListenerPasswordAuthenticator
     // Constructor
     //-------------------------------------------------------------------------
 
-    private ListenerPasswordAuthenticator(@NonNull ListenerPasswordAuthenticatorDelegate delegate) {
+    public ListenerPasswordAuthenticator(@NonNull ListenerPasswordAuthenticatorDelegate delegate) {
         this.delegate = delegate;
     }
 
     //-------------------------------------------------------------------------
-    // Public Methods
+    // Delegate Methods
     //-------------------------------------------------------------------------
 
     public boolean authenticate(@NonNull String username, @NonNull char[] password) {

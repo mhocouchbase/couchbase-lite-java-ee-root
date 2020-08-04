@@ -40,7 +40,6 @@ import java.security.SignatureException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.interfaces.RSAKey;
 import java.security.spec.RSAKeyGenParameterSpec;
 import java.util.Calendar;
 import java.util.Date;
@@ -174,10 +173,10 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @Nullable
     @Override
-    public RSAKey getKey(@Nullable KeyStore ignore1, @NonNull String alias, @Nullable char[] ignore2) {
+    public PrivateKey getKey(@Nullable KeyStore ignore1, @NonNull String alias, @Nullable char[] ignore2) {
         final KeyStore keyStore = loadKeyStore();
         if (keyStore == null) { throw new IllegalStateException(ERROR_LOADING_KEYSTORE); }
-        return getRSAKey(alias, keyStore, null);
+        return getPrivateKey(alias, keyStore, null);
     }
 
     @Nullable

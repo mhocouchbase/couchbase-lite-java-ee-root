@@ -16,6 +16,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.security.cert.Certificate;
 import java.util.List;
@@ -24,52 +25,55 @@ import java.util.List;
 /**
  * A Listener Certificate Authenticator Delegate
  */
-public abstract class ListenerCertificateAuthenticator
+public class ListenerCertificateAuthenticator
     implements ListenerAuthenticator, ListenerCertificateAuthenticatorDelegate {
 
     //-------------------------------------------------------------------------
-    // Implementation classes
+    // Fields
     //-------------------------------------------------------------------------
 
-    static final class RootCertAuthenticator extends ListenerCertificateAuthenticator {
-        @NonNull
-        private final List<Certificate> rootCerts;
+    @Nullable
+    private final List<Certificate> rootCerts;
 
-        RootCertAuthenticator(@NonNull List<Certificate> rootCerts) { this.rootCerts = rootCerts; }
-
-        @Override
-        public boolean authenticate(@NonNull List<Certificate> certs) {
-            return false;
-        }
-    }
-
-    static final class DelegatingCertAuthenticator extends ListenerCertificateAuthenticator {
-        @NonNull
-        private final ListenerCertificateAuthenticatorDelegate delegate;
-
-        DelegatingCertAuthenticator(@NonNull ListenerCertificateAuthenticatorDelegate delegate) {
-            this.delegate = delegate;
-        }
-
-        @Override
-        public boolean authenticate(@NonNull List<Certificate> certs) { return delegate.authenticate(certs); }
-    }
-
-    //-------------------------------------------------------------------------
-    // Static Factory Methods
-    //-------------------------------------------------------------------------
-
-    public static ListenerCertificateAuthenticator create(@NonNull List<Certificate> rootCerts) {
-        return new RootCertAuthenticator(rootCerts);
-    }
-
-    public static ListenerCertificateAuthenticator create(@NonNull ListenerCertificateAuthenticatorDelegate delegate) {
-        return new DelegatingCertAuthenticator(delegate);
-    }
+    @Nullable
+    private final ListenerCertificateAuthenticatorDelegate delegate;
 
     //-------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------
 
-    ListenerCertificateAuthenticator() {}
+    public ListenerCertificateAuthenticator(@NonNull List<Certificate> rootCerts) {
+        this.rootCerts = rootCerts;
+        this.delegate = null;
+    }
+
+    public ListenerCertificateAuthenticator(@NonNull ListenerCertificateAuthenticatorDelegate delegate) {
+        this.rootCerts = null;
+        this.delegate = delegate;
+    }
+
+    //-------------------------------------------------------------------------
+    // Delegate
+    //-------------------------------------------------------------------------
+
+    @Override
+    public boolean authenticate(@NonNull List<Certificate> certs) {
+        if (delegate != null) { return delegate.authenticate(certs); }
+
+        throw new IllegalStateException("No delegate has been set");
+    }
+
+    //-------------------------------------------------------------------------
+    // Internal
+    //-------------------------------------------------------------------------
+
+    /**
+     * FIXME: CBL-1182
+     * Used by C4Listener to get the root certs. It needs public accessor as C4Listener is
+     * in a different package.
+     */
+    @Nullable
+    public List<Certificate> getRootCerts() {
+        return rootCerts;
+    }
 }

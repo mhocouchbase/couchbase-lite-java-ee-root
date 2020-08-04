@@ -31,7 +31,6 @@ import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.security.interfaces.RSAKey;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -181,14 +180,14 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @Nullable
     @Override
-    public RSAKey getKey(@Nullable KeyStore store, @NonNull String alias, @Nullable char[] pwd) {
+    public PrivateKey getKey(@Nullable KeyStore store, @NonNull String alias, @Nullable char[] pwd) {
         final KeyStore keyStore = Preconditions.assertNotNull(store, "keystore");
 
         final KeyStore.ProtectionParameter protectionParam = (pwd == null)
             ? null
             : new KeyStore.PasswordProtection(pwd);
 
-        return getRSAKey(alias, keyStore, protectionParam);
+        return getPrivateKey(alias, keyStore, protectionParam);
     }
 
     @Nullable
