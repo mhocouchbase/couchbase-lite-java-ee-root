@@ -17,12 +17,16 @@ package com.couchbase.lite.internal
 
 import com.couchbase.lite.LogLevel
 import com.couchbase.lite.PlatformBaseTest
+import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.security.Signature
+import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
 import com.couchbase.lite.internal.utils.StringUtils
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import java.security.KeyStore
 import java.security.MessageDigest
 
@@ -54,6 +58,14 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
             TLSIdentity.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
+        @JvmStatic
+        @BeforeClass
+        fun setupSecurityBaseTest() = deleteTestAliases()
+
+        @JvmStatic
+        @AfterClass
+        fun tearDownSecurityBaseTest() = deleteTestAliases()
+
         fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()
 
         fun createDigest(algorithm: Signature.SignatureDigestAlgorithm, data: ByteArray): ByteArray {
@@ -65,14 +77,22 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
             md.update(data)
             return md.digest()
         }
+
+        fun deleteTestAliases() {
+            PlatformSecurityTest.deleteEntries(Fn.Predicate { alias ->
+                alias.startsWith(BASE_KEY_ALIAS)
+            })
+        }
     }
 
+    // There are some functions that have to be static
+    // Try, though, to keep as many as possible, here.
     abstract fun loadPlatformKeyStore(): KeyStore
-    abstract fun loadTestKeys(dstKeyStore: KeyStore, dstAlias: String)
-    abstract fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair
-    abstract fun getIdentity(alias: String): TLSIdentity?
-
+    abstract fun loadTestKey(dstAlias: String)
+    abstract fun loadIdentity(alias: String): TLSIdentity?
     abstract fun createSelfSignedCertEntry(alias: String, isServer: Boolean)
+    abstract fun createC4KeyPair(alias: String): C4KeyPair
+    abstract fun getIdentity(alias: String): TLSIdentity?
 
     fun loadTestKeyStore(): KeyStore {
         val externalStore = KeyStore.getInstance(EXTERNAL_KEY_STORE_TYPE)
@@ -80,15 +100,6 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
             externalStore.load(`in`, EXTERNAL_KEY_PASSWORD.toCharArray())
         }
         return externalStore
-    }
-
-    fun loadTestKeys(dstKeyStore: KeyStore, dstAlias: String, dstPwd: String?) {
-        val extKeyStore = loadTestKeyStore()
-        dstKeyStore.setEntry(
-            dstAlias,
-            extKeyStore.getEntry(EXTERNAL_KEY_ALIAS, KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())),
-            if (dstPwd == null) null else KeyStore.PasswordProtection(dstPwd.toCharArray())
-        )
     }
 
     fun dumpKeystore() {

@@ -140,11 +140,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return identity;
     }
 
-    static void deleteIdentity(@NonNull KeyStore keyStore, @NonNull String alias)
-        throws CouchbaseLiteException {
-        getManager().deleteEntries(keyStore, alias::equals);
-    }
-
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final KeyStore keyStore;
         try {
@@ -162,6 +157,12 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         getManager().createSelfSignedCertEntry(keyStore, fullAlias, null, true, attributes, null);
 
         return getIdentity(keyStore, fullAlias, null);
+    }
+
+    @VisibleForTesting
+    static void deleteIdentity(@NonNull KeyStore keyStore, @NonNull String alias)
+        throws CouchbaseLiteException {
+        getManager().deleteEntries(keyStore, alias::equals);
     }
 
     /**

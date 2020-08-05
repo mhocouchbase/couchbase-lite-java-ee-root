@@ -154,16 +154,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return identity;
     }
 
-    /**
-     * Delete an identity.
-     *
-     * @param alias the identity to delete
-     * @throws CouchbaseLiteException on failure
-     */
-    public static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException {
-        getManager().deleteEntries(null, alias::equals);
-    }
-
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
 
@@ -176,6 +166,11 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         keyStoreManager.createSelfSignedCertEntry(null, fullAlias, null, true, attributes, null);
 
         return getIdentity(fullAlias);
+    }
+
+    @VisibleForTesting
+    static void deleteIdentity(@NonNull String alias) throws CouchbaseLiteException {
+        getManager().deleteEntries(null, alias::equals);
     }
 
 

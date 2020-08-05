@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal
 
+import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.SlowTest
@@ -35,15 +36,13 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
     @SlowTest
     @Test
     fun testGetKeyData() {
-        val testStore = loadTestKeyStore()
-        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey.encoded
+        val key = loadTestKeyStore().getCertificate(EXTERNAL_KEY_ALIAS).publicKey.encoded
 
         val alias = newKeyAlias()
 
-        val keyStore = loadPlatformKeyStore()
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
-        val data = KeyStoreManager.getInstance().getKeyData(getC4KeyPair(keyStore, alias))
+        val data = KeyStoreManager.getInstance().getKeyData(createC4KeyPair(alias))
 
         Assert.assertNotNull(data)
         Assert.assertArrayEquals(key, data)
@@ -59,14 +58,13 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val data = "Ridin' shotgun down the avalanche".toByteArray(Charsets.UTF_8)
 
-        val keyStore = loadPlatformKeyStore()
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
         val algorithms = Signature.SignatureDigestAlgorithm.values()
         for (algorithm in algorithms) {
             val digest = createDigest(algorithm, data)
 
-            val signedData = KeyStoreManager.getInstance().sign(getC4KeyPair(keyStore, alias), algorithm, digest)
+            val signedData = KeyStoreManager.getInstance().sign(createC4KeyPair(alias), algorithm, digest)
 
             val sig = java.security.Signature.getInstance(ALGORITHMS[algorithm]?.signatureAlgorithm)
             sig.initVerify(key)
@@ -86,14 +84,13 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val cleartext = "Ridin' shotgun down the avalanche"
 
-        val keyStore = loadPlatformKeyStore()
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
         val cipher = Cipher.getInstance(KeyStoreManager.CIPHER_TYPE)
         cipher.init(Cipher.ENCRYPT_MODE, key)
         val encrypted = cipher.doFinal(cleartext.toByteArray(Charsets.UTF_8))
 
-        val data = KeyStoreManager.getInstance().decrypt(getC4KeyPair(keyStore, alias), encrypted)
+        val data = KeyStoreManager.getInstance().decrypt(createC4KeyPair(alias), encrypted)
 
         Assert.assertEquals(cleartext, String(data!!))
     }
@@ -112,7 +109,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         Assert.assertFalse(mgr.findAlias(keyStore, alias))
         Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
 
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
         Assert.assertTrue(mgr.findAlias(keyStore, alias))
         Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
@@ -129,7 +126,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS, null))
         Assert.assertNull(mgr.getKey(keyStore, alias, null))
 
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
         // ??? there really must be more that we can test...
         Assert.assertNotNull(mgr.getKey(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray()))
@@ -147,7 +144,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS))
         Assert.assertNull(mgr.getCertificates(keyStore, alias))
 
-        loadTestKeys(keyStore, alias)
+        loadTestKey(alias)
 
         // ??? there really must be more that we can test...
         Assert.assertNotNull(mgr.getCertificates(keyStore, alias))
@@ -182,8 +179,8 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val keyStore = loadPlatformKeyStore()
 
-        loadTestKeys(keyStore, alias1)
-        loadTestKeys(keyStore, alias2)
+        loadTestKey(alias1)
+        loadTestKey(alias2)
 
         Assert.assertTrue(KeyStoreManager.getInstance().findAlias(keyStore, alias1))
         Assert.assertTrue(KeyStoreManager.getInstance().findAlias(keyStore, alias2))

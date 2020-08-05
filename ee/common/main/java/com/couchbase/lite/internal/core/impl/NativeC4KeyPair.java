@@ -15,6 +15,9 @@
 //
 package com.couchbase.lite.internal.core.impl;
 
+import android.support.annotation.NonNull;
+
+import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.core.C4KeyPair;
 
 
@@ -27,6 +30,7 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         return fromExternal(algorithm, keySizeInBits, context);
     }
 
+    @NonNull
     @Override
     public byte[] nGenerateSelfSignedCertificate(
         long c4KeyPair,
@@ -34,7 +38,8 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         int keyBits,
         String[][] subjectName,
         byte usage,
-        long validityInSeconds) {
+        long validityInSeconds)
+        throws LiteCoreException {
         return generateSelfSignedCertificate(c4KeyPair, algorithm, keyBits, subjectName, usage, validityInSeconds);
     }
 
@@ -46,13 +51,15 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
     // Native Methods
     //-------------------------------------------------------------------------
 
+    @NonNull
     private static native byte[] generateSelfSignedCertificate(
         long c4KeyPair,
         byte algorithm,
         int keyBits,
         String[][] nameComponents,
         byte usage,
-        long validityInSeconds);
+        long validityInSeconds)
+        throws LiteCoreException;
 
     private static native long fromExternal(byte algorithm, int keySizeInBits, long context);
 

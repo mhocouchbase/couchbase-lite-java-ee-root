@@ -16,7 +16,6 @@ package com.couchbase.lite
 
 import com.couchbase.lite.CBLError.Code.TLS_HANDSHAKE_FAILED
 import com.couchbase.lite.internal.AbstractTLSIdentity
-import com.couchbase.lite.internal.PlatformSecurityTest
 import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.utils.FlakyTest
 import org.junit.After

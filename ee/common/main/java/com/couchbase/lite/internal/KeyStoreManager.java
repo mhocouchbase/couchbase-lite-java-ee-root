@@ -30,6 +30,7 @@ import java.security.cert.Certificate;
 import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
@@ -55,6 +56,8 @@ public abstract class KeyStoreManager {
     protected static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
 
     protected static final String ERROR_LOADING_KEYSTORE = "Failed loading keystore";
+
+    private static final long CLOCK_DRIFT_MS = 60 * 1000; // accommodate one minute of clock drift.
 
     public enum KeyAlgorithm {RSA}
 
@@ -248,16 +251,11 @@ public abstract class KeyStoreManager {
         return key;
     }
 
-
     @Nullable
     protected final List<Certificate> getCertificates(KeyStore keyStore, @NonNull String alias) {
-        final Certificate[] certs;
+        Certificate[] certs = null;
         try { certs = keyStore.getCertificateChain(alias); }
-        catch (KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e);
-            return null;
-        }
-
+        catch (KeyStoreException e) { Log.d(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e); }
         return ((certs == null) || (certs.length <= 0)) ? null : new ArrayList<>(Arrays.asList(certs));
     }
 
@@ -285,5 +283,24 @@ public abstract class KeyStoreManager {
             }
         }
         return deleted;
+    }
+
+    // ??? expirations too far in the future will fail too.
+    // should probably check for them...
+    protected final long getExpirationMs(@Nullable Date expiration) {
+        if (expiration == null) {
+            final Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
+            return calendar.getTime().getTime();
+        }
+
+        final long now = System.currentTimeMillis();
+        final long expMs = expiration.getTime();
+        if (expMs < now - CLOCK_DRIFT_MS) {
+            throw new IllegalArgumentException(
+                "Key/certificate expiration date must be in the future: " + expiration);
+        }
+
+        return Math.max(expMs, now + CLOCK_DRIFT_MS);
     }
 }

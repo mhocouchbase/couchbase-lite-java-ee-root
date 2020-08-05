@@ -42,7 +42,6 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.spec.RSAKeyGenParameterSpec;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +67,6 @@ import com.couchbase.lite.internal.utils.Fn;
 public class KeyStoreManagerDelegate extends KeyStoreManager {
     @VisibleForTesting
     static final String ANDROID_KEY_STORE = "AndroidKeyStore";
-
 
     //-------------------------------------------------------------------------
     // Constructor
@@ -180,28 +178,18 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 CBLError.Code.CRYPTO);
         }
 
-        if (expiration == null) {
-            final Calendar expDate = Calendar.getInstance();
-            expDate.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
-            expiration = expDate.getTime();
-        }
-
         final Map<String, String> localAttributes = new HashMap<>(attributes);
         final String dn = localAttributes.remove(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME);
-        if (dn == null) {
-            throw new CouchbaseLiteException(
-                "The Common Name (CN) attribute is required",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.CRYPTO);
-        }
+        if (dn == null) { throw new IllegalArgumentException("The Common Name (CN) attribute is required"); }
         final X500Principal subject = new X500Principal("CN=" + dn, localAttributes);
+
+        final Date exp = new Date(getExpirationMs(expiration));
 
         // Generate KeyPair (and Cert) in the store
         try {
             final KeyPairGenerator keyFactory = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                ? initKeyFactoryM(alias, expiration, subject)
-                : initKeyFactoryPreM(alias, expiration, subject);
-
+                ? initKeyFactoryM(alias, exp, subject)
+                : initKeyFactoryPreM(alias, exp, subject);
             keyFactory.generateKeyPair();
         }
         catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {

@@ -38,6 +38,7 @@ import static org.junit.Assert.fail;
 abstract class MockConnection implements MessageEndpointConnection {
     private final ThreadFactory factory = new ThreadFactory() {
         final AtomicInteger id = new AtomicInteger(1);
+
         @Override
         public Thread newThread(@NonNull Runnable runnable) {
             final Thread thread = new Thread(runnable, "MockConnection #" + id.getAndIncrement());
@@ -822,6 +823,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, false);
     }
 
+    @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringSend() throws CouchbaseLiteException {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
@@ -1080,6 +1082,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertNull(baseTestDb.getDocument("doc2"));
     }
 
+    @FlakyTest
     @Test
     public void testPushPullWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -1165,7 +1168,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
     void verifyChangeStatus(
         String expectedDomain,
-        int expectedCode, ReplicatorChange change)
+        int expectedCode,
+        ReplicatorChange change)
         throws CouchbaseLiteException {
         Replicator.Status status = change.getStatus();
 
@@ -1179,10 +1183,9 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         }
 
         assertNotNull(error);
-        if ((expectedCode != error.getCode())
-            || ((expectedDomain != null) && (!expectedDomain.equals(error.getDomain())))) {
-            throw new RuntimeException("Expected error " + expectedDomain + "/" + expectedCode + " but got:", error);
-        }
+        assertTrue(
+            (expectedCode == error.getCode())
+                && ((expectedDomain == null) || (expectedDomain.equals(error.getDomain()))));
     }
 
     private ReplicatorConfiguration makeConfig(

@@ -13,11 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-package com.couchbase.lite.internal
+package com.couchbase.lite
 
-import com.couchbase.lite.TLSIdentity
+import com.couchbase.lite.internal.KeyStoreManager
+import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.core.C4KeyPair
-import org.junit.AfterClass
+import com.couchbase.lite.internal.utils.Fn
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -32,15 +33,7 @@ import java.util.Date
  */
 open class PlatformSecurityTest : SecurityBaseTest() {
     companion object {
-        var keyStore: KeyStore? = null
-
-        @JvmStatic
-        @AfterClass
-        fun tearDownKeyStoreBaseTest() {
-            KeyStoreManager.getInstance().deleteEntries(loadDefaultKeyStore()) { alias ->
-                alias.startsWith(BASE_KEY_ALIAS)
-            }
-        }
+        private var defaultKeyStore: KeyStore? = null
 
         fun createIdentity(
             isServer: Boolean,
@@ -58,24 +51,35 @@ open class PlatformSecurityTest : SecurityBaseTest() {
             )
         }
 
-        fun deleteIdentity(alias: String) = loadDefaultKeyStore().deleteEntry(alias)
+        fun deleteIdentity(alias: String) = TLSIdentity.deleteIdentity(loadDefaultKeyStore(), alias)
+
+        fun deleteEntries(filter: Fn.Predicate<String>) =
+            KeyStoreManager.getInstance().deleteEntries(loadDefaultKeyStore(), filter)
 
         fun loadDefaultKeyStore(): KeyStore {
-            if (keyStore == null) {
-                keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-                keyStore!!.load(null)
+            if (defaultKeyStore == null) {
+                val ks = KeyStore.getInstance(KeyStore.getDefaultType())
+                ks.load(null)
+                defaultKeyStore = ks
             }
-            return keyStore!!
+            return defaultKeyStore!!
         }
     }
 
     override fun loadPlatformKeyStore(): KeyStore = loadDefaultKeyStore()
 
-    override fun loadTestKeys(dstKeyStore: KeyStore, dstAlias: String) {
-        loadTestKeys(dstKeyStore, dstAlias, EXTERNAL_KEY_PASSWORD)
+    override fun loadTestKey(dstAlias: String) {
+        val extKeyStore = loadTestKeyStore()
+        val dstKeyStore = loadPlatformKeyStore()
+        val protection = KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())
+        dstKeyStore.setEntry(
+            dstAlias,
+            extKeyStore.getEntry(EXTERNAL_KEY_ALIAS, protection),
+            protection
+        )
     }
 
-    override fun getIdentity(alias: String): TLSIdentity? {
+    override fun loadIdentity(alias: String): TLSIdentity? {
         val keyStore = loadPlatformKeyStore()
         return TLSIdentity.getIdentity(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray())
     }
@@ -91,10 +95,12 @@ open class PlatformSecurityTest : SecurityBaseTest() {
         )
     }
 
-    override fun getC4KeyPair(dstKeyStore: KeyStore, alias: String): C4KeyPair {
+    override fun createC4KeyPair(alias: String): C4KeyPair {
+        val keyStore = loadPlatformKeyStore()
+
         val keyPair = KeyPair(
-            keyStore!!.getCertificate(alias).publicKey,
-            keyStore!!.getKey(alias, EXTERNAL_KEY_PASSWORD.toCharArray()) as PrivateKey
+            keyStore.getCertificate(alias).publicKey,
+            keyStore.getKey(alias, EXTERNAL_KEY_PASSWORD.toCharArray()) as PrivateKey
         )
 
         return C4KeyPair.createKeyPair(
@@ -106,5 +112,8 @@ open class PlatformSecurityTest : SecurityBaseTest() {
             keyPair
         )
     }
+
+    override fun getIdentity(alias: String) =
+        TLSIdentity.getIdentity(loadPlatformKeyStore(), alias, EXTERNAL_KEY_PASSWORD.toCharArray())
 }
 

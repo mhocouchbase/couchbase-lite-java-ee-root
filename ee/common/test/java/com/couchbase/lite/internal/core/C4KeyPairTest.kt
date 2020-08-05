@@ -15,9 +15,8 @@
 //
 package com.couchbase.lite.internal.core
 
+import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.internal.KeyStoreManager
-import com.couchbase.lite.internal.PlatformSecurityTest
-import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
 import com.couchbase.lite.internal.core.impl.NativeC4Listener
 import com.couchbase.lite.internal.security.Signature
@@ -25,7 +24,6 @@ import com.couchbase.lite.internal.utils.Fn
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import java.io.InputStream
 import java.security.KeyStore
@@ -36,6 +34,8 @@ import kotlin.random.Random
 
 class C4KeyPairTest : PlatformSecurityTest() {
     data class NativeCall(val alg: Byte, val bits: Int, val token: Long, val data: Any? = null)
+
+    data class StoreMgrCall(val store: KeyStore?, val alias: String, val pwd: String?, val data: Any? = null)
 
     private val c4NativeMock = object : C4KeyPair.NativeImpl {
         val calls = mutableListOf<NativeCall>()
@@ -48,7 +48,7 @@ class C4KeyPairTest : PlatformSecurityTest() {
             usage: Byte,
             validityInSeconds: Long
         ): ByteArray {
-            calls.add(NativeCall(algorithm, keyBits, 0L, attributes))
+            calls.add(NativeCall(algorithm, keyBits, c4KeyPair, attributes))
             return Random.Default.nextBytes(256)
         }
 
@@ -61,8 +61,6 @@ class C4KeyPairTest : PlatformSecurityTest() {
 
         fun reset() = calls.clear()
     }
-
-    data class StoreMgrCall(val store: KeyStore?, val alias: String, val pwd: String?, val data: Any? = null)
 
     private val keyStoreManagerMock = object : KeyStoreManager() {
         val calls = mutableListOf<StoreMgrCall>()
@@ -285,7 +283,6 @@ class C4KeyPairTest : PlatformSecurityTest() {
         Assert.assertEquals("foo", call.alias)
     }
 
-    @Ignore("FAILING TEST")
     @Test
     fun generateSelfSignedCertificate() {
         val c4Keys = C4KeyPair.createKeyPair(
@@ -296,17 +293,22 @@ class C4KeyPairTest : PlatformSecurityTest() {
         val cert = c4Keys.generateSelfSignedCertificate(
             KeyStoreManager.KeyAlgorithm.RSA,
             KeyStoreManager.KeySize.BIT_2048,
-            SecurityBaseTest.X509_ATTRIBUTES,
+            X509_ATTRIBUTES,
             KeyStoreManager.CertUsage.TLS_SERVER,
-            null
+            0
         )
 
         Assert.assertNotNull(cert)
-        Assert.assertEquals(1, c4NativeMock.calls.size)
-        val call = c4NativeMock.calls[0]
-        Assert.assertEquals(0, call.alg)
+        Assert.assertEquals(2, c4NativeMock.calls.size)
+        // the createKeyPair call is first.
+        val call = c4NativeMock.calls[1]
+
+        Assert.assertEquals(0.toByte(), call.alg)
         Assert.assertEquals(2048, call.bits)
         Assert.assertNotEquals(0, call.token)
-        Assert.assertEquals(SecurityBaseTest.X509_ATTRIBUTES, call.data)
+        for (attr in call.data as Array<*>) {
+            val att = attr as Array<*>
+            Assert.assertEquals(X509_ATTRIBUTES[att[0]], att[1])
+        }
     }
 }

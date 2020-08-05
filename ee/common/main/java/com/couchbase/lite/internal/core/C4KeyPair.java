@@ -19,23 +19,16 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
-import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import com.couchbase.lite.CBLError;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
@@ -50,13 +43,15 @@ import com.couchbase.lite.internal.utils.Preconditions;
 
 public class C4KeyPair extends C4NativePeer implements Closeable {
     public interface NativeImpl {
+        @NonNull
         byte[] nGenerateSelfSignedCertificate(
             long c4KeyPair,
             byte algorithm,
             int keyBits,
             String[][] attributes,
             byte usage,
-            long validityInSeconds);
+            long validityInSeconds)
+            throws LiteCoreException;
 
         long nFromExternal(byte algorithm, int keyBits, long token) throws LiteCoreException;
 
@@ -72,6 +67,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
+
     static {
         final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
         m.put(KeyStoreManager.KeyAlgorithm.RSA, (byte) 0x00);
@@ -79,6 +75,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+
     static {
         final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();
         m.put(0, Signature.SignatureDigestAlgorithm.NONE);
@@ -90,8 +87,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         // NOTE: RIPEMD160 is not supported by Java's Message Digest
         C4_TO_DIGEST_ALGORITHM = Collections.unmodifiableMap(m);
     }
-
-    private static final long CERT_NOT_BEFORE_CLOCK_DRIFT_OFFSET_SECONDS = 60;
 
     //-------------------------------------------------------------------------
     // Static Factory Methods
@@ -305,12 +300,13 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     // Public Methods
     //-------------------------------------------------------------------------
 
-    public Certificate generateSelfSignedCertificate(
+    @NonNull
+    public byte[] generateSelfSignedCertificate(
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
         KeyStoreManager.KeySize keySize,
         @NonNull Map<String, String> attributes,
         @NonNull KeyStoreManager.CertUsage usage,
-        @Nullable Date expiration)
+        long expSecond)
         throws CouchbaseLiteException {
         int i = 0;
         final String[][] attrs = new String[attributes.size()][];
@@ -318,33 +314,17 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
             attrs[i++] = new String[] {attr.getKey(), attr.getValue()};
         }
 
-        long validityInSeconds = 0;
-        if (expiration != null) {
-            validityInSeconds = Preconditions.assertPositive(
-                TimeUnit.MILLISECONDS.toSeconds(expiration.getTime() - System.currentTimeMillis()),
-                "valid time");
-            Log.e(LogDomain.LISTENER, "Validity in Second: " + validityInSeconds);
-            validityInSeconds = validityInSeconds + CERT_NOT_BEFORE_CLOCK_DRIFT_OFFSET_SECONDS;
+        try {
+            return impl.nGenerateSelfSignedCertificate(
+                getPeer(),
+                getC4KeyAlgorithm(algorithm),
+                keySize.getBitLength(),
+                attrs,
+                usage.getCode(),
+                expSecond);
         }
-
-        final byte[] data = impl.nGenerateSelfSignedCertificate(
-            getPeer(),
-            getC4KeyAlgorithm(algorithm),
-            keySize.getBitLength(),
-            attrs,
-            usage.getCode(),
-            validityInSeconds);
-
-        Preconditions.assertNotNull(data, "data");
-        Preconditions.assertPositive(data.length, "data");
-
-        try { return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(data)); }
-        catch (CertificateException e) {
-            throw new CouchbaseLiteException(
-                "Failed to create certificate",
-                e,
-                CBLError.Domain.CBLITE,
-                CBLError.Code.CRYPTO);
+        catch (LiteCoreException e) {
+            throw CBLStatus.convertException(e);
         }
     }
 

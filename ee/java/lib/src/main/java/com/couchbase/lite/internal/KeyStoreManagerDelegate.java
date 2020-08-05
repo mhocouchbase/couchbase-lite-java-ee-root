@@ -18,6 +18,7 @@ package com.couchbase.lite.internal;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
@@ -31,10 +32,12 @@ import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.util.Calendar;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -173,7 +176,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @Override
     public boolean findAlias(@Nullable KeyStore store, @NonNull String targetAlias) {
         final KeyStore keyStore = Preconditions.assertNotNull(store, "keystore");
-
         try { return keyStore.containsAlias(targetAlias); }
         catch (KeyStoreException e) { throw new IllegalStateException(ERROR_LOADING_KEYSTORE, e); }
     }
@@ -215,35 +217,14 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 CBLError.Code.CRYPTO);
         }
 
-        if (expiration == null) {
-            final Calendar expDate = Calendar.getInstance();
-            expDate.add(Calendar.YEAR, ANON_EXPIRATION_YEARS);
-            expiration = expDate.getTime();
-        }
-
         if (!attributes.containsKey(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME)) {
-            throw new CouchbaseLiteException(
-                "The Common Name (CN) attribute is required",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.CRYPTO);
+            throw new IllegalArgumentException("The Common Name (CN) attribute is required");
         }
 
-        // Generate KeyPair:
-        final KeyPair keyPair;
-        try {
-            final KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(KeySize.BIT_2048.getBitLength());
-            keyPair = gen.generateKeyPair();
-        }
-        catch (NoSuchAlgorithmException e) {
-            throw new CouchbaseLiteException(
-                "Failed generating RSA KeyPair",
-                e,
-                CBLError.Domain.CBLITE,
-                CBLError.Code.CRYPTO);
-        }
+        final long validSecs
+            = TimeUnit.MILLISECONDS.toSeconds(getExpirationMs(expiration) - System.currentTimeMillis());
 
-        // Generate C4KeyPair:
+        final KeyPair keyPair = generateKeyPair();
         final C4KeyPair c4KeyPair = C4KeyPair.createKeyPair(
             keyStore,
             alias,
@@ -252,14 +233,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             KeySize.BIT_2048,
             keyPair);
 
-        // Generate Self-Signed Cert:
-        final CertUsage usage = isServer ? CertUsage.TLS_SERVER : CertUsage.TLS_CLIENT;
-        final Certificate cert = c4KeyPair.generateSelfSignedCertificate(
-            KeyAlgorithm.RSA,
-            KeySize.BIT_2048,
-            attributes,
-            usage,
-            expiration);
+        final Certificate cert = generateCertificate(c4KeyPair, isServer, attributes, validSecs);
 
         // JDK-8236671:
         if (keyPassword == null) { keyPassword = new char[0]; }
@@ -290,5 +264,50 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     public int deleteEntries(@Nullable KeyStore store, Fn.Predicate<String> filter) throws CouchbaseLiteException {
         final KeyStore keyStore = Preconditions.assertNotNull(store, "keystore");
         return deleteStoreEntries(keyStore, filter);
+    }
+
+    @NonNull
+    private KeyPair generateKeyPair() throws CouchbaseLiteException {
+        try {
+            final KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+            gen.initialize(KeySize.BIT_2048.getBitLength());
+            return gen.generateKeyPair();
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new CouchbaseLiteException(
+                "Failed generating RSA KeyPair",
+                e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
+        }
+    }
+
+    // Generate Self-Signed Cert
+    @NonNull
+    private Certificate generateCertificate(
+        C4KeyPair c4KeyPair,
+        boolean isServer,
+        @NonNull Map<String, String> attributes,
+        long expiration)
+        throws CouchbaseLiteException {
+        final byte[] certData = c4KeyPair.generateSelfSignedCertificate(
+            KeyAlgorithm.RSA,
+            KeySize.BIT_2048,
+            attributes,
+            isServer ? CertUsage.TLS_SERVER : CertUsage.TLS_CLIENT,
+            expiration);
+
+        if (certData.length <= 0) {
+            throw new CouchbaseLiteException("Empty certificate data", CBLError.Domain.CBLITE, CBLError.Code.CRYPTO);
+        }
+
+        try { return CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(certData)); }
+        catch (CertificateException e) {
+            throw new CouchbaseLiteException(
+                "Failed to create certificate",
+                e,
+                CBLError.Domain.CBLITE,
+                CBLError.Code.CRYPTO);
+        }
     }
 }

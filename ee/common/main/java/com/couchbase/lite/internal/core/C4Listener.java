@@ -44,7 +44,6 @@ import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
-import com.couchbase.lite.internal.utils.SecurityUtils;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
@@ -229,17 +228,6 @@ public class C4Listener extends C4NativePeer implements Closeable {
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
-        byte[] rootClientCerts = null;
-        final List<Certificate> rootClientCertList = ((InternalCertAuthenticator) authenticator).getRootCerts();
-        if (rootClientCertList != null) {
-            try {
-                rootClientCerts = SecurityUtils.encodeCertificateChain(rootClientCertList);
-            }
-            catch (CertificateEncodingException e) {
-                throw new CouchbaseLiteException("Failed to encode certificates in PEM format", e);
-            }
-        }
-
         final long peer;
         try {
             peer = nativeImpl.nStartTls(
@@ -256,7 +244,9 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 keyPair.getPeer(),
                 serverCert.getEncoded(),
                 true,
-                rootClientCerts);
+                (authenticator == null)
+                    ? null
+                    : ((InternalCertAuthenticator) authenticator).getRootCerts());
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -362,7 +352,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
     @Override
     protected void finalize() throws Throwable {
         try {
-            final long peer = getPeerAndClear();
+            final long peer = getPeerUnchecked();
             close(peer);
             if (peer == 0) { return; }
             Log.d(LogDomain.LISTENER, "C4Listener finalized without closing: " + peer);
@@ -415,16 +405,16 @@ public class C4Listener extends C4NativePeer implements Closeable {
 
 
     boolean authenticateCert(@Nullable byte[] clientCert) {
-        InternalCertAuthenticator auth = null;
-        if (authenticator instanceof InternalCertAuthenticator) {
-            auth = (InternalCertAuthenticator) authenticator;
-        }
+        final InternalCertAuthenticator auth = (!(authenticator instanceof InternalCertAuthenticator))
+            ? null
+            : (InternalCertAuthenticator) authenticator;
         if (auth == null) { return true; }
 
-        // ??? Handle null content
-        if (clientCert == null) { throw new IllegalArgumentException("cert is null"); }
+        if ((clientCert == null) || (clientCert.length <= 0)) {
+            Log.w(LogDomain.LISTENER, "null/empty cert in authentication");
+            return false;
+        }
 
-        // ??? construct cert list
         final List<Certificate> certs = new ArrayList<>();
         try (InputStream in = new ByteArrayInputStream(clientCert)) {
             certs.add(CertificateFactory.getInstance("X.509").generateCertificate(in));
@@ -441,10 +431,11 @@ public class C4Listener extends C4NativePeer implements Closeable {
     // Private methods
     //-------------------------------------------------------------------------
 
-    // !!! the impl may already have been GCed.
     private void close(long peer) {
         LISTENER_CONTEXT.unbind(token);
         if (peer == 0) { return; }
+
+        // !!! when called from the finalizer, the impl may already have been GCed.
         impl.nFree(peer);
     }
 }

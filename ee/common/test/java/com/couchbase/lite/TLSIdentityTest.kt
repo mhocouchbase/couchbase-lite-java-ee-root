@@ -14,145 +14,110 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.PlatformSecurityTest
-import com.couchbase.lite.internal.SecurityBaseTest
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Ignore
 import org.junit.Test
 import java.security.cert.X509Certificate
 import java.util.Calendar
-import java.util.Date
+import java.util.GregorianCalendar
 import kotlin.math.abs
 
 
 class TLSIdentityTest : PlatformSecurityTest() {
+    // 2 x KeyStoreManager.CLOCK_DRIFT_MS
+    private val clockSlop = 2 * 60 * 1000
+
+    @Test
+    fun testGetIdentity() {
+        val alias = newKeyAlias()
+        loadTestKey(alias)
+
+        val identity = getIdentity(alias)
+        assertNotNull(identity)
+        validateCertificate(identity!!)
+    }
 
     @Test
     fun testCreateIdentity() {
-        val alias = newKeyAlias()
+        val identity = createIdentity(true, X509_ATTRIBUTES, null, newKeyAlias())
+        assertNotNull(identity)
+        validateCertificate(identity)
+    }
 
+    @Test
+    fun testCreateIdentityWithMinimalAttributes() {
+        val identity = createIdentity(
+            true,
+            mapOf(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test"),
+            null,
+            newKeyAlias()
+        )
+        assertNotNull(identity)
+        validateCertificate(identity)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testCreateIdentityWithEmptyAttributes() {
+        assertNotNull(
+            createIdentity(
+                true,
+                mapOf(),
+                null,
+                newKeyAlias()
+            )
+        )
+    }
+
+    @Test
+    fun testCreateIdentityWithReasonableExpiration() {
         val expiration = Calendar.getInstance()
         expiration.add(Calendar.YEAR, 3)
 
-        assertNotNull(createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, expiration.time, alias))
+        assertNotNull(createIdentity(true, X509_ATTRIBUTES, expiration.time, newKeyAlias()))
     }
 
-    @Ignore("FAILING TEST (android)")
-    @Test
-    fun testCreateAndGetServerIdentity() {
-        val alias = newKeyAlias()
-
-        // Get:
-        var identity = getIdentity(alias)
-        assertNull(identity)
-
-        // Create:
-        identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
-        assertNotNull(identity)
-        validateCertificate(identity, true)
-
-        // Get:
-        identity = getIdentity(alias)
-        assertNotNull(identity)
-        validateCertificate(identity!!, true)
-
-        // Delete:
-        deleteIdentity(alias)
-
-        // Get:
-        identity = getIdentity(alias)
-        assertNull(identity)
+    @Test(expected = IllegalArgumentException::class)
+    fun testCreateIdentityWithOldExpiration() {
+        assertNotNull(createIdentity(true, X509_ATTRIBUTES, GregorianCalendar(1900, 1, 1).time, newKeyAlias()))
     }
 
-    @Ignore("FAILING TEST (android)")
-    @Test
-    fun testCreateAndGetClientIdentity() {
-        val alias = newKeyAlias()
-
-        // Get:
-        var identity = getIdentity(alias)
-        assertNull(identity)
-
-        // Create:
-        identity = createIdentity(false, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
-        assertNotNull(identity)
-        validateCertificate(identity, false)
-
-        // Get:
-        identity = getIdentity(alias)
-        assertNotNull(identity)
-        validateCertificate(identity!!, false)
-
-        // Delete:
-        deleteIdentity(alias)
-
-        // Get:
-        identity = getIdentity(alias)
-        assertNull(identity)
-    }
-
-    @Ignore("!!! FAILING TEST (android)")
     @Test(expected = CouchbaseLiteException::class)
     fun testCreateDuplicateIdentity() {
         val alias = newKeyAlias()
 
-        var identity: TLSIdentity?
-
-        // Create:
-            identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
+        val identity: TLSIdentity? = createIdentity(true, X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
-        validateCertificate(identity, true)
-
-        // Get:
-        identity = getIdentity(alias)
-        assertNotNull(identity)
-        validateCertificate(identity!!, true)
+        validateCertificate(identity!!)
 
         // Create again with the same alias:
-        createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, null, alias)
+        createIdentity(true, X509_ATTRIBUTES, null, alias)
     }
 
-    @Test(expected = CouchbaseLiteException::class)
+    @Test(expected = IllegalArgumentException::class)
     fun testCreateIdentityWithNoAttributes() {
         createIdentity(true, emptyMap(), null, newKeyAlias())
     }
 
-    @Ignore("FAILING TEST (android)")
     @Test
     fun testCertificateExpiration() {
-        val alias = newKeyAlias()
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.YEAR, 1)
+        val expiration = calendar.time
 
-        // Get:
-        var identity = getIdentity(alias)
-        assertNull(identity)
-
-        val expiration = Date(System.currentTimeMillis() + 60000)
-
-        identity = createIdentity(true, SecurityBaseTest.X509_ATTRIBUTES, expiration, alias)
+        val identity = createIdentity(true, X509_ATTRIBUTES, expiration, newKeyAlias())
         assertNotNull(identity)
         assertEquals(1, identity.certs.count())
-        validateCertificate(identity, true)
+        validateCertificate(identity)
 
-        // The actual expiration will be slightly less than the set expiration time due to expiration date
-        // to time conversion and time spent in key generation.
-        assert(abs(expiration.time - identity.expiration.time) < 2000)
+        println("$expiration == ${identity.expiration}")
+
+        assert(abs(expiration.time - identity.expiration.time) < clockSlop)
     }
 
-    private fun validateCertificate(identity: TLSIdentity, isServer: Boolean) {
-        // Check validity:
-        assert(identity.certs.size > 0)
+    private fun validateCertificate(identity: TLSIdentity) {
+        Assert.assertTrue(identity.certs.size > 0)
         val cert = identity.certs[0] as X509Certificate
         cert.checkValidity()
-
-        // Check if the certificate is used as digital signature (client cert):
-        val keyUsage = cert.keyUsage
-        assert(keyUsage.isNotEmpty())
-        if (isServer) {
-            assert(!keyUsage[0])
-        } else {
-            assert(keyUsage[0])
-        }
     }
 }

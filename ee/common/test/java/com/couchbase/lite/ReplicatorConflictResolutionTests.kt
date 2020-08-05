@@ -994,32 +994,34 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. Try to do a database operation from inside the conflict resolver.
      *    Make sure the document operation is successfull before the custom conflict is resolved.
      */
-    @Ignore("!!! FAILING TEST")
+    @Ignore("CBL-1190")
     @Test
     fun testConflictResolverDoesntBlockTransactions() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         var count = 0
         var doc: Document? = null
-        val pullConfig = pullConfigWitResolver(TestConflictResolver { conflict ->
-            count++
-            val newDoc = MutableDocument(DOC4)
-            newDoc.setValue(KEY4, VAL4)
-            baseTestDb.save(newDoc)
-            doc = baseTestDb.getDocument(DOC4)
-            conflict.remoteDocument
-        })
-
+        val pullConfig = pullConfigWitResolver(
+            TestConflictResolver { conflict ->
+                count++
+                val newDoc = MutableDocument(DOC4)
+                newDoc.setValue(KEY4, VAL4)
+                baseTestDb.save(newDoc)
+                doc = baseTestDb.getDocument(DOC4)
+                conflict.remoteDocument
+            })
         run(pullConfig)
 
         assertNotNull(doc)
         assertEquals(1, doc?.count())
         assertEquals(VAL4, doc?.getString(KEY4))
 
-        val savedDoc = baseTestDb.getDocument(DOC4)
-        assertNotNull(savedDoc)
-        assertEquals(1, savedDoc?.count())
-        assertEquals(VAL4, savedDoc?.getString(KEY4))
+        assertEquals(2, baseTestDb.count)
+
+        val newDoc = baseTestDb.getDocument(DOC4)
+        assertNotNull(newDoc)
+        assertEquals(1, newDoc?.count())
+        assertEquals(VAL4, newDoc?.getString(KEY4))
 
         val resolvedDoc = baseTestDb.getDocument(DOC1)
         assertNotNull(resolvedDoc)
