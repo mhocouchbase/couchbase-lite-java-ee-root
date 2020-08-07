@@ -38,8 +38,8 @@ public class SocketFactory {
     private final Fn.Consumer<List<Certificate>> serverCertsListener;
 
     public SocketFactory(
-            @NonNull ReplicatorConfiguration config,
-            @NonNull Fn.Consumer<List<Certificate>> serverCertsListener) {
+        @NonNull ReplicatorConfiguration config,
+        @NonNull Fn.Consumer<List<Certificate>> serverCertsListener) {
         this.endpoint = config.getTarget();
         this.serverCertsListener = serverCertsListener;
     }
@@ -52,6 +52,6 @@ public class SocketFactory {
         }
 
         return AbstractCBLWebSocket.createCBLWebSocket(
-                handle, scheme, hostname, port, path, options, serverCertsListener);
+            handle, scheme, hostname, port, path, options, serverCertsListener);
     }
 }

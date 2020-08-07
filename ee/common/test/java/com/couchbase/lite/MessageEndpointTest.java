@@ -665,6 +665,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");

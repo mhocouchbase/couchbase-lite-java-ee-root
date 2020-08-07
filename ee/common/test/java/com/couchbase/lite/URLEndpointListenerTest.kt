@@ -137,7 +137,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         try {
             val listener = listenTls(
                 serverIdentity,
-                ListenerCertificateAuthenticator({ false })
+                ListenerCertificateAuthenticator { false }
             )
             run(
                 TLS_HANDSHAKE_FAILED,
@@ -435,7 +435,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     ): URLEndpointListener {
         // Listener:
         val config = URLEndpointListenerConfiguration(otherDB)
-        config.setPort(portFactory.getAndIncrement())
+        config.port = portFactory.getAndIncrement()
         config.setAuthenticator(auth)
         identity?.let { config.tlsIdentity = it }
 

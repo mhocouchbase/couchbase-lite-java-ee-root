@@ -28,7 +28,6 @@ import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Socket;
-import com.couchbase.lite.internal.core.C4WebSocketCloseCode;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
@@ -71,6 +70,10 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         this.protocolType = protocolType;
         this.sendResponseStatus = true;
     }
+
+    @Override
+    @NonNull
+    public String toString() { return "MessageSocket{" + protocolType + ", " + connection + "}"; }
 
     // ---------------------------------------------------------------------------------------------
     // Implementation of ReplicatorConnection
@@ -135,12 +138,12 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     @Override // socket_requestClose
     protected void requestClose(final int status, String message) {
-        final Exception error = (status == C4WebSocketCloseCode.kWebSocketCloseNormal)
+        final Exception error = (status == C4Socket.WS_STATUS_CLOSE_NORMAL)
             ? null
             : CBLStatus.convertException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
         final MessagingError messagingError = (error == null)
             ? null
-            : new MessagingError(error, status == C4WebSocketCloseCode.kWebSocketCloseUserTransient);
+            : new MessagingError(error, status == C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT);
 
         connection.close(error, () -> connectionClosed(messagingError));
     }
@@ -171,9 +174,9 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
             closed = true;
 
-            final int domain = error == null ? 0 : C4Constants.ErrorDomain.WEB_SOCKET;
-            final int code = error != null ? getStatusCode(error) : 0;
-            final String message = error != null ? error.getError().getMessage() : "";
+            final int domain = (error == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET;
+            final int code = (error != null) ? getStatusCode(error) : 0;
+            final String message = (error != null) ? error.getError().getMessage() : "";
 
             finalizer.execute(() -> closed(domain, code, message));
         }
@@ -197,9 +200,9 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     }
 
     private int getStatusCode(MessagingError error) {
-        if (error == null) { return C4WebSocketCloseCode.kWebSocketCloseNormal; }
+        if (error == null) { return C4Socket.WS_STATUS_CLOSE_NORMAL; }
         return error.isRecoverable()
-            ? C4WebSocketCloseCode.kWebSocketCloseUserTransient
-            : C4WebSocketCloseCode.kWebSocketCloseUserPermanent;
+            ? C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT
+            : C4Socket.WS_STATUS_CLOSE_USER_PERMANENT;
     }
 }
