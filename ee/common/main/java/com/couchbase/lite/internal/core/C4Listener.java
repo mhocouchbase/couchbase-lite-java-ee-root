@@ -390,7 +390,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
         String[] creds = null;
         if ((headers.length > 1) && (!StringUtils.isEmpty(headers[1]))) {
             final byte[] material = PlatformUtils.getDecoder().decodeString(headers[1]);
-            if (material == null) {
+            if ((material == null) || (material.length <= 0)) {
                 Log.i(LogDomain.LISTENER, "Unrecognized authentication material");
                 return false;
             }

@@ -51,8 +51,8 @@ public abstract class AbstractTLSIdentity {
     public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
 
     @Nullable
-    public static String getKeyAlias(@Nullable AbstractTLSIdentity identity) {
-        return (identity == null) ? null : identity.getKeyAlias();
+    public static String getAlias(@Nullable AbstractTLSIdentity identity) {
+        return (identity == null) ? null : identity.getAlias();
     }
 
     @Nullable
@@ -62,21 +62,13 @@ public abstract class AbstractTLSIdentity {
 
     protected static KeyStoreManager getManager() { return KeyStoreManager.getInstance(); }
 
+
     @NonNull
     private final String keyAlias;
     @NonNull
     private final List<Certificate> certificates;
     @NonNull
     private final C4KeyPair keyPair;
-
-    @VisibleForTesting
-    @SuppressWarnings("ConstantConditions")
-    @SuppressFBWarnings("NP_STORE_INTO_NONNULL_FIELD")
-    protected AbstractTLSIdentity() {
-        keyAlias = "test";
-        certificates = new ArrayList<>();
-        keyPair = null;
-    }
 
     protected AbstractTLSIdentity(
         @NonNull String keyAlias,
@@ -88,17 +80,17 @@ public abstract class AbstractTLSIdentity {
     }
 
     @NonNull
-    public List<Certificate> getCerts() { return certificates; }
+    String getAlias() { return keyAlias; }
 
     @NonNull
     public C4KeyPair getKeyPair() { return keyPair; }
 
     @NonNull
-    public Date getExpiration() { return ((X509Certificate) getCert()).getNotAfter(); }
-
-    @NonNull
     Certificate getCert() { return certificates.get(0); }
 
     @NonNull
-    String getKeyAlias() { return keyAlias; }
+    public List<Certificate> getCerts() { return certificates; }
+
+    @NonNull
+    public Date getExpiration() { return ((X509Certificate) getCert()).getNotAfter(); }
 }

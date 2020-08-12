@@ -12,13 +12,11 @@ class PlatformTLSIdentityTest : PlatformSecurityTest() {
         val alias = newKeyAlias()
         Assert.assertNull(keyStore.getEntry(alias, null))
 
-        val pwd = EXTERNAL_KEY_PASSWORD.toCharArray()
-
         PlatformUtils.getAsset(EXTERNAL_KEY_STORE)?.use {
             TLSIdentity.importIdentity(
                 EXTERNAL_KEY_STORE_TYPE,
                 it,
-                pwd,
+                EXTERNAL_KEY_PASSWORD.toCharArray(),
                 EXTERNAL_KEY_ALIAS,
                 null,
                 alias

@@ -174,9 +174,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     }
 
 
-    @VisibleForTesting
-    TLSIdentity() { }
-
     private TLSIdentity(@NonNull String alias, @NonNull C4KeyPair keyPair, @NonNull List<Certificate> certificates) {
         super(alias, keyPair, certificates);
     }

@@ -12,8 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-package com.couchbase.lite
+package com.couchbase.lite.internal
 
+import com.couchbase.lite.CouchbaseLiteException
+import com.couchbase.lite.PlatformSecurityTest
+import com.couchbase.lite.TLSIdentity
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -25,9 +28,6 @@ import kotlin.math.abs
 
 
 class TLSIdentityTest : PlatformSecurityTest() {
-    // 2 x KeyStoreManager.CLOCK_DRIFT_MS
-    private val clockSlop = 2 * 60 * 1000
-
     @Test
     fun testGetIdentity() {
         val alias = newKeyAlias()
@@ -39,33 +39,53 @@ class TLSIdentityTest : PlatformSecurityTest() {
     }
 
     @Test
-    fun testCreateIdentity() {
-        val identity = createIdentity(true, X509_ATTRIBUTES, null, newKeyAlias())
+    fun testCreateClientIdentity() {
+        val alias = newKeyAlias()
+
+        val identity = createIdentity(false, X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
         validateCertificate(identity)
+
+        val abstractId = identity as AbstractTLSIdentity
+
+        assertEquals(abstractId.alias, abstractId.alias)
+    }
+
+    @Test
+    fun testCreateServerIdentity() {
+        val alias = newKeyAlias()
+
+        val identity = createIdentity(true, X509_ATTRIBUTES, null, alias)
+        assertNotNull(identity)
+        validateCertificate(identity)
+
+        val abstractId = identity as AbstractTLSIdentity
+
+        assertEquals(abstractId.alias, abstractId.alias)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testCreateIdentityWithNoAttributes() {
+        createIdentity(true, emptyMap(), null, newKeyAlias())
     }
 
     @Test
     fun testCreateIdentityWithMinimalAttributes() {
-        val identity = createIdentity(
-            true,
-            mapOf(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test"),
-            null,
-            newKeyAlias()
-        )
+        val alias = newKeyAlias()
+
+        val attrs = mapOf(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME to "CBL Test")
+
+        val identity = createIdentity(true, attrs, null, alias)
         assertNotNull(identity)
         validateCertificate(identity)
-    }
 
-    @Test(expected = IllegalArgumentException::class)
-    fun testCreateIdentityWithEmptyAttributes() {
-        assertNotNull(
-            createIdentity(
-                true,
-                mapOf(),
-                null,
-                newKeyAlias()
-            )
+        val abstractId = identity as AbstractTLSIdentity
+        assertEquals(abstractId.alias, abstractId.alias)
+
+        val cert = abstractId.cert as X509Certificate
+        assertEquals(
+            "${TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME}=${attrs[TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME]}",
+            cert.issuerDN.name
         )
     }
 
@@ -79,24 +99,31 @@ class TLSIdentityTest : PlatformSecurityTest() {
 
     @Test(expected = IllegalArgumentException::class)
     fun testCreateIdentityWithOldExpiration() {
-        assertNotNull(createIdentity(true, X509_ATTRIBUTES, GregorianCalendar(1900, 1, 1).time, newKeyAlias()))
+        createIdentity(true, X509_ATTRIBUTES, GregorianCalendar(1900, 1, 1).time, newKeyAlias())
     }
 
     @Test(expected = CouchbaseLiteException::class)
-    fun testCreateDuplicateIdentity() {
+    fun testCreateDuplicateClientIdentity() {
+        val alias = newKeyAlias()
+
+        val identity: TLSIdentity? = createIdentity(false, X509_ATTRIBUTES, null, alias)
+        assertNotNull(identity)
+        validateCertificate(identity!!)
+
+        // Create again with the same alias: should fail
+        createIdentity(true, X509_ATTRIBUTES, null, alias)
+    }
+
+    @Test(expected = CouchbaseLiteException::class)
+    fun testCreateDuplicateServerIdentity() {
         val alias = newKeyAlias()
 
         val identity: TLSIdentity? = createIdentity(true, X509_ATTRIBUTES, null, alias)
         assertNotNull(identity)
         validateCertificate(identity!!)
 
-        // Create again with the same alias:
+        // Create again with the same alias: should fail
         createIdentity(true, X509_ATTRIBUTES, null, alias)
-    }
-
-    @Test(expected = IllegalArgumentException::class)
-    fun testCreateIdentityWithNoAttributes() {
-        createIdentity(true, emptyMap(), null, newKeyAlias())
     }
 
     @Test
@@ -105,14 +132,19 @@ class TLSIdentityTest : PlatformSecurityTest() {
         calendar.add(Calendar.YEAR, 1)
         val expiration = calendar.time
 
-        val identity = createIdentity(true, X509_ATTRIBUTES, expiration, newKeyAlias())
+        val identity = createIdentity(
+            true,
+            X509_ATTRIBUTES,
+            expiration,
+            newKeyAlias()
+        )
         assertNotNull(identity)
         assertEquals(1, identity.certs.count())
         validateCertificate(identity)
 
         println("$expiration == ${identity.expiration}")
 
-        assert(abs(expiration.time - identity.expiration.time) < clockSlop)
+        assert(abs(expiration.time - identity.expiration.time) < (2 * KeyStoreManager.CLOCK_DRIFT_MS))
     }
 
     private fun validateCertificate(identity: TLSIdentity) {

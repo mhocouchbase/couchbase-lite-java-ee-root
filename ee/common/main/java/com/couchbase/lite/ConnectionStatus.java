@@ -28,15 +28,7 @@ public class ConnectionStatus {
         this.activeConnections = activeConnectionCount;
     }
 
-    public int getActiveConnections() { return connections; }
-
-    public ConnectionStatus withConnectionCount(int connectionCount) {
-        return new ConnectionStatus(connectionCount, this.activeConnections);
-    }
+    public int getConnectionCount() { return connections; }
 
     public int getActiveConnectionCount() { return activeConnections; }
-
-    public ConnectionStatus withActiveConnectionCount(int activeConnectionCount) {
-        return new ConnectionStatus(this.connections, activeConnectionCount);
-    }
 }

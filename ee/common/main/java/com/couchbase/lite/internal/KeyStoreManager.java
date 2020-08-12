@@ -57,7 +57,8 @@ public abstract class KeyStoreManager {
 
     protected static final String ERROR_LOADING_KEYSTORE = "Failed loading keystore";
 
-    private static final long CLOCK_DRIFT_MS = 60 * 1000; // accommodate one minute of clock drift.
+    @VisibleForTesting
+    static final long CLOCK_DRIFT_MS = 60 * 1000; // accommodate one minute of clock drift.
 
     public enum KeyAlgorithm {RSA}
 

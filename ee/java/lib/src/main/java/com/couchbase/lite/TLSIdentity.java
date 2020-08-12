@@ -182,8 +182,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         return DEFAULT_KEY_STORE.get();
     }
 
-    @VisibleForTesting
-    TLSIdentity() { }
 
     private TLSIdentity(
         @NonNull KeyStore keyStore,

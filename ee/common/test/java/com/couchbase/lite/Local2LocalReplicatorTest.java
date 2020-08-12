@@ -36,7 +36,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.FileUtils;
 import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
@@ -1319,7 +1318,6 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         finally {
             baseTestReplicator.removeChangeListener(token);
         }
-
     }
 
     private ReplicatorConfiguration makeConfig(

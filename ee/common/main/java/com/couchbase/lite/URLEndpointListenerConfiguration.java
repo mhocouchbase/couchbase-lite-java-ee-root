@@ -50,7 +50,7 @@ public class URLEndpointListenerConfiguration {
     private boolean enableDeltaSync;
     private boolean readOnly;
 
-    private final boolean mutable;
+    private final boolean immutable;
 
     //-------------------------------------------------------------------------
     // Constructors
@@ -58,10 +58,10 @@ public class URLEndpointListenerConfiguration {
 
     public URLEndpointListenerConfiguration(@NonNull Database database) {
         this.database = database;
-        this.mutable = false;
+        this.immutable = false;
     }
 
-    URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config, boolean mutable) {
+    URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config, boolean immutable) {
         this.database = config.database;
         this.networkInterface = config.networkInterface;
         this.port = config.port;
@@ -70,7 +70,7 @@ public class URLEndpointListenerConfiguration {
         this.authenticator = config.authenticator;
         this.readOnly = config.readOnly;
         this.enableDeltaSync = config.enableDeltaSync;
-        this.mutable = mutable;
+        this.immutable = immutable;
     }
 
     //-------------------------------------------------------------------------
@@ -80,7 +80,7 @@ public class URLEndpointListenerConfiguration {
     /**
      * Get the configured database.
      *
-     * @return the TLS identity for the associated listener.
+     * @return the configured database.
      */
     @NonNull
     public Database getDatabase() { return database; }
@@ -197,6 +197,6 @@ public class URLEndpointListenerConfiguration {
     }
 
     private void checkReadOnly() {
-        if (mutable) { throw new IllegalStateException("Attempt to modify read-only config"); }
+        if (immutable) { throw new IllegalStateException("Attempt to modify read-only config"); }
     }
 }
