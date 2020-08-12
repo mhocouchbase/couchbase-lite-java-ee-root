@@ -39,8 +39,8 @@ public class URLEndpointListener {
     private final URLEndpointListenerConfiguration config;
 
     @Nullable
+    @GuardedBy("lock")
     private TLSIdentity identity;
-
 
     @Nullable
     @GuardedBy("lock")
@@ -125,21 +125,23 @@ public class URLEndpointListener {
      */
     @Nullable
     public TLSIdentity getTlsIdentity() {
-        return identity;
+        synchronized (lock) { return identity; }
     }
 
     /**
      * Start the listener
      */
     public void start() throws CouchbaseLiteException {
+        final Database db = getConfig().getDatabase();
         final C4Listener listener;
+
         synchronized (lock) {
             if (c4Listener != null) { return; }
             listener = startLocked();
             c4Listener = listener;
+            db.registerListener(this);
         }
 
-        final Database db = getConfig().getDatabase();
         listener.shareDb(db.getName(), db.getC4Database());
     }
 
@@ -147,8 +149,11 @@ public class URLEndpointListener {
      * Stop the listener
      */
     public void stop() {
+        final Database db = getConfig().getDatabase();
         final C4Listener listener;
+
         synchronized (lock) {
+            db.unregisterListener(this);
             listener = c4Listener;
             c4Listener = null;
         }
@@ -158,8 +163,12 @@ public class URLEndpointListener {
         listener.close();
     }
 
+    boolean isRunning() {
+        synchronized (lock) { return c4Listener != null; }
+    }
+
     //-------------------------------------------------------------------------
-    // Protected methods
+    // Private methods
     //-------------------------------------------------------------------------
 
     @NonNull
@@ -179,12 +188,16 @@ public class URLEndpointListener {
             );
         }
 
-        if (identity == null) {
-            final String uuid = getDbUuid();
-            identity = TLSIdentity.getAnonymousIdentity(uuid + "@" + config.getPort());
+        final TLSIdentity id;
+        synchronized (lock) {
+            if (identity == null) {
+                final String uuid = getDbUuid();
+                identity = TLSIdentity.getAnonymousIdentity(uuid + "@" + config.getPort());
+            }
+            id = identity;
         }
 
-        final Certificate serverCert = AbstractTLSIdentity.getCert(identity);
+        final Certificate serverCert = AbstractTLSIdentity.getCert(id);
         if (serverCert == null) { throw new IllegalStateException("Server cert is null"); }
 
         if ((auth == null) || (auth instanceof ListenerPasswordAuthenticator)) {
@@ -197,7 +210,7 @@ public class URLEndpointListener {
                 !config.isReadOnly(),
                 config.isDeltaSyncEnabled(),
                 serverCert,
-                identity.getKeyPair()
+                id.getKeyPair()
             );
         }
 
@@ -210,7 +223,7 @@ public class URLEndpointListener {
             !config.isReadOnly(),
             config.isDeltaSyncEnabled(),
             serverCert,
-            identity.getKeyPair()
+            id.getKeyPair()
         );
     }
 

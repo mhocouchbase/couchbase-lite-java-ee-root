@@ -151,4 +151,17 @@ public final class Database extends AbstractDatabase {
                 replicatorContext);
         }
     }
+
+    void registerListener(URLEndpointListener listener) {
+        mustBeOpen();
+        registerProcess(new ActiveProcess<URLEndpointListener>(listener) {
+            @Override
+            public void stop() { listener.stop(); }
+
+            @Override
+            public boolean isActive() { return listener.isRunning(); }
+        });
+    }
+
+    void unregisterListener(URLEndpointListener listener) { unregisterProcess(listener); }
 }
