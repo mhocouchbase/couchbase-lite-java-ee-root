@@ -1148,8 +1148,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         // and not the remote version
         doc = baseTestDb.getDocument(DOC1)
         assertEquals(1, doc.count())
-        assertEquals(VAL1, doc.getString(KEY1))
-        assertNull(doc.getString(KEY2))
+        assertEquals(VAL2, doc.getString(KEY2))
+        assertNull(doc.getString(KEY1))
 
         // Each of the resolvers is called once
         assertEquals(1, resolver1.calls)

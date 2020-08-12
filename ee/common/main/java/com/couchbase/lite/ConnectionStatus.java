@@ -16,6 +16,9 @@
 package com.couchbase.lite;
 
 
+import android.support.annotation.NonNull;
+
+
 /**
  * Connection Status
  */
@@ -31,4 +34,8 @@ public class ConnectionStatus {
     public int getConnectionCount() { return connections; }
 
     public int getActiveConnectionCount() { return activeConnections; }
+
+    @NonNull
+    @Override
+    public String toString() { return "ConnectionStatus{" + connections + ", " + activeConnections + "}"; }
 }
