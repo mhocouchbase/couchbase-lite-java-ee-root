@@ -104,6 +104,9 @@ android {
     // if you change this, be sure to update /etc/jenkins/build.sh
     ndkVersion '21.3.6528147'
 
+    // Kotlin JVM Target Version
+    kotlinOptions.jvmTarget = '1.8'
+
     defaultConfig {
         minSdkVersion ANDROID_MIN_SDK
         //noinspection OldTargetApi
@@ -273,7 +276,6 @@ task javadoc(type: Javadoc) {
         addStringOption('Xdoclint:none', '-quiet')
     }
 }
-
 
 // ----------------------------------------------------------------
 // Static analysis
