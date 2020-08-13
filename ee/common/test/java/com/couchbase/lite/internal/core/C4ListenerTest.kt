@@ -48,7 +48,8 @@ class C4ListenerTest : PlatformSecurityTest() {
             allowDeleteDb: Boolean,
             push: Boolean,
             pull: Boolean,
-            deltaSync: Boolean
+            deltaSync: Boolean,
+            requirePasswordAuth: Boolean
         ): Long = 0xdadL
 
         @Throws(LiteCoreException::class)
@@ -66,7 +67,8 @@ class C4ListenerTest : PlatformSecurityTest() {
             keyPair: Long,
             serverCert: ByteArray,
             requireClientCerts: Boolean,
-            rootClientCerts: ByteArray?
+            rootClientCerts: ByteArray?,
+            requirePasswordAuth: Boolean
         ): Long = 0xdadL
 
         override fun nFree(handle: Long) = Unit

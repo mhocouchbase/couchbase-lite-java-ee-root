@@ -42,9 +42,21 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         boolean allowDeleteDBs,
         boolean push,
         boolean pull,
-        boolean deltaSync)
+        boolean deltaSync,
+        boolean requirePasswordAuth)
         throws LiteCoreException {
-        return startHttp(port, iFace, apis, context, dbPath, allowCreateDBs, allowDeleteDBs, push, pull, deltaSync);
+        return startHttp(
+            port,
+            iFace,
+            apis,
+            context,
+            dbPath,
+            allowCreateDBs,
+            allowDeleteDBs,
+            push,
+            pull,
+            deltaSync,
+            requirePasswordAuth);
     }
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -63,7 +75,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         long keyPair,
         @NonNull byte[] serverCert,
         boolean requireClientCerts,
-        @Nullable byte[] rootClientCerts)
+        @Nullable byte[] rootClientCerts,
+        boolean requirePasswordAuth)
         throws LiteCoreException {
         return startTls(
             port,
@@ -79,7 +92,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
             allowDeleteDBs,
             push,
             pull,
-            deltaSync);
+            deltaSync,
+            requirePasswordAuth);
     }
 
     @Override
@@ -124,7 +138,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         boolean allowDeleteDBs,
         boolean allowPush,
         boolean allowPull,
-        boolean enableDeltaSync)
+        boolean enableDeltaSync,
+        boolean requirePasswordAuth)
         throws LiteCoreException;
 
     @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -142,7 +157,8 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
         boolean allowDeleteDBs,
         boolean allowPush,
         boolean allowPull,
-        boolean enableDeltaSync)
+        boolean enableDeltaSync,
+        boolean requirePasswordAuth)
         throws LiteCoreException;
 
     private static native void free(long handle);

@@ -67,7 +67,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
             boolean allowDeleteDBs,
             boolean push,
             boolean pull,
-            boolean deltaSync)
+            boolean deltaSync,
+            boolean requirePasswordAuth)
             throws LiteCoreException;
 
         @SuppressWarnings("PMD.ExcessiveParameterList")
@@ -85,7 +86,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
             long keyPair,
             @NonNull byte[] serverCert,
             boolean requireClientCerts,
-            @Nullable byte[] rootClientCerts)
+            @Nullable byte[] rootClientCerts,
+            boolean requirePasswordAuth)
             throws LiteCoreException;
 
         void nFree(long handle);
@@ -145,7 +147,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 false,               // REST API not supported
                 push,
                 pull,
-                deltaSync);
+                deltaSync,
+                (authenticator != null));
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -191,7 +194,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 keyPair.getPeer(),
                 serverCert.getEncoded(),
                 false,
-                null);
+                null,
+                (authenticator != null));
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -246,7 +250,8 @@ public class C4Listener extends C4NativePeer implements Closeable {
                 true,
                 (authenticator == null)
                     ? null
-                    : ((InternalCertAuthenticator) authenticator).getRootCerts());
+                    : ((InternalCertAuthenticator) authenticator).getRootCerts(),
+                false);
         }
         catch (LiteCoreException e) {
             throw CBLStatus.convertException(e);
@@ -365,16 +370,12 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     boolean authenticateBasic(@Nullable String authHeader) {
-        // !!! The password is now in a base64 encoded String
-        InternalPwdAuthenticator auth = null;
-        if (authenticator instanceof InternalPwdAuthenticator) {
-            auth = (InternalPwdAuthenticator) authenticator;
-        }
-
-        if (auth == null) { return true; }
+        Preconditions.assertThat(authenticator, "authenticator must be a password authenticator",
+            auth -> auth instanceof InternalPwdAuthenticator); // Not expect to happen
 
         if (authHeader == null) { return false; }
 
+        // !!! The password is now in a base64 encoded String
         final String[] headers = authHeader.split("\\s+");
         if (!headers[0].equals(AUTH_MODE_BASIC)) {
             Log.i(LogDomain.LISTENER, "Unrecognized authentication mode: %s", headers[0]);
@@ -398,17 +399,14 @@ public class C4Listener extends C4NativePeer implements Closeable {
             // !!! The password is now in plaintext String
         }
 
-        return auth.authenticate(
+        return ((InternalPwdAuthenticator) authenticator).authenticate(
             StringUtils.getArrayString(creds, 0),
             StringUtils.getArrayString(creds, 1).toCharArray());
     }
 
-
     boolean authenticateCert(@Nullable byte[] clientCert) {
-        final InternalCertAuthenticator auth = (!(authenticator instanceof InternalCertAuthenticator))
-            ? null
-            : (InternalCertAuthenticator) authenticator;
-        if (auth == null) { return true; }
+        Preconditions.assertThat(authenticator, "authenticator must be a certificate authenticator",
+            auth -> auth instanceof InternalCertAuthenticator); // Not expect to happen
 
         if ((clientCert == null) || (clientCert.length <= 0)) {
             Log.w(LogDomain.LISTENER, "null/empty cert in authentication");
@@ -424,7 +422,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
             return false;
         }
 
-        return auth.authenticate(certs);
+        return ((InternalCertAuthenticator) authenticator).authenticate(certs);
     }
 
     //-------------------------------------------------------------------------
