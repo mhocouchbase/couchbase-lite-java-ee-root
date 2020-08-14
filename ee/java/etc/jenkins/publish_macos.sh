@@ -38,7 +38,7 @@ echo "======== PUBLISH Couchbase Lite Java, Enterprise Edition v`cat ../../versi
 ./gradlew ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL} || exit 1
 
 echo "======== Copy artifacts to staging directory"
-cp "lib/build/distributions/${PRODUCT}-${VERSION}-${BUILD_NUMBER}.zip" "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-macos.zip" || exit 1
+cp "lib/build/distributions/${PRODUCT}-${VERSION}-${BUILD_NUMBER}.zip" "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-macos.zip"
 
 find "${ARTIFACTS}"
 echo "======== PUBLICATION COMPLETE"
