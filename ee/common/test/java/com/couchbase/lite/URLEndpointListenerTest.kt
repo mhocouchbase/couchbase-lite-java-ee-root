@@ -483,7 +483,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     @Ignore("https://issues.couchbase.com/browse/CBL-1140")
     @Test
-    fun testEmptyNetworkInterface() = Unit
+    fun testEmptyNetworkInterface() {
+        TODO("Not yet implemented")
+    }
 
     @Test
     fun testMultipleReplicatorsToListener() {
@@ -570,7 +572,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     @Ignore(" https://issues.couchbase.com/browse/CBL-954")
     @Test
-    fun testReadOnlyListener() = Unit
+    fun testReadOnlyListener() {
+        TODO("Not yet implemented")
+    }
 
     @Test
     fun testReplicatorServerCert() {
