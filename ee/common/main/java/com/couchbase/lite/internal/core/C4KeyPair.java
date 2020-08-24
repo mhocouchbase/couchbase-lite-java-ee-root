@@ -67,7 +67,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
-
     static {
         final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
         m.put(KeyStoreManager.KeyAlgorithm.RSA, (byte) 0x00);
@@ -75,7 +74,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
-
     static {
         final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();
         m.put(0, Signature.SignatureDigestAlgorithm.NONE);
@@ -345,8 +343,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
         try {
             final long peer = getPeerAndClear();
             close(peer);
-            if (peer == 0) { return; }
-            Log.d(LogDomain.LISTENER, "C4KeyPair finalized without closing: " + peer);
+            if (peer != 0) { Log.d(LogDomain.LISTENER, "C4KeyPair finalized without closing: " + peer); }
         }
         finally { super.finalize(); }
     }
@@ -357,8 +354,8 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
 
     // !!! the impl may already have been GCed.
     private void close(long peer) {
-        KEY_PAIR_CONTEXT.unbind(token);
         if (peer == 0) { return; }
+        KEY_PAIR_CONTEXT.unbind(token);
         impl.nFree(peer);
     }
 }

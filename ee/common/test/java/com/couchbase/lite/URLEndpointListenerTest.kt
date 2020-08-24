@@ -134,30 +134,24 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Test
     fun testPasswordAuthenticatorSucceeds() {
         val listener = listenHttp(
-            false,
-            ListenerPasswordAuthenticator { username, password ->
-                (username == "daniel") && (String(password) == "123")
-            }
+            ListenerPasswordAuthenticator { user, pwd -> (user == "daniel") && (String(pwd) == "123") }
         )
-        listeners.add(listener)
 
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"))
     }
 
     @Test
     fun testPasswordAuthenticatorNullServerAuthenticator() {
-        val listener = listenHttp(false, null)
-        listeners.add(listener)
+        val listener = listenHttp(null)
 
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("Bandersnatch", "twas brillig"))
     }
 
     @Test
     fun testPasswordAuthenticatorBadUser() {
-        val listener = listenHttp(false, ListenerPasswordAuthenticator { username, password ->
-            "daniel" == username && ("123" == String(password))
-        })
-        listeners.add(listener)
+        val listener = listenHttp(
+            ListenerPasswordAuthenticator { user, pwd -> "daniel" == user && ("123" == String(pwd)) }
+        )
 
         try {
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daneil", "123"))
@@ -169,12 +163,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Test
     fun testPasswordAuthenticatorBadPassword() {
         val listener = listenHttp(
-            false,
-            ListenerPasswordAuthenticator { username, password ->
-                "daniel" == username && ("123" == String(password))
-            }
+            ListenerPasswordAuthenticator { user, pwd -> "daniel" == user && ("123" == String(pwd)) }
         )
-        listeners.add(listener)
 
         try {
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "456"))
@@ -187,15 +177,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun testPasswordAuthenticatorWithTls() {
         val identity = createIdentity()
         val listener = listenTls(identity, ListenerPasswordAuthenticator { _, _ -> true })
-        listeners.add(listener)
 
         run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "123"), identity.certs[0])
     }
 
     @Test
     fun testReplicatorServerCertWithTLSDisabled() {
-        val listener = listenHttp(false, null)
-        listeners.add(listener)
+        val listener = listenHttp(null)
 
         val config = makeConfig(true, true, false, listener.endpoint(), null, false)
         val repl = run(config, 0, null, false, false) { r: Replicator -> assertNull(r.serverCertificates) }
@@ -212,7 +200,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, baseTestDb.count)
 
         val listener = listenTls(null, null)
-        listeners.add(listener)
 
         assertNotNull(listener.tlsIdentity)
 
@@ -234,7 +221,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, baseTestDb.count)
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         val certs = identity.certs
         assertEquals(1, certs.size)
@@ -252,7 +238,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val clientIdentity = createIdentity(false)
 
         val listener = listenTls(serverIdentity, ListenerCertificateAuthenticator(clientIdentity.certs))
-        listeners.add(listener)
 
         run(
             listener.endpointUri(),
@@ -270,7 +255,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val clientIdentity = createIdentity(false)
 
         val listener = listenTls(serverIdentity, ListenerCertificateAuthenticator { true })
-        listeners.add(listener)
 
         run(
             listener.endpointUri(),
@@ -288,7 +272,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val clientIdentity = createIdentity(false)
 
         val listener = listenTls(serverIdentity, ListenerCertificateAuthenticator { false })
-        listeners.add(listener)
 
         run(
             TLS_HANDSHAKE_FAILED,
@@ -309,7 +292,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val wrongClientIdentity = createIdentity(false)
 
         val listener = listenTls(serverIdentity, ListenerCertificateAuthenticator(clientIdentity.certs))
-        listeners.add(listener)
 
         run(
             TLS_HANDSHAKE_FAILED,
@@ -397,7 +379,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val serverIdentity = createIdentity()
         val listener = listenTls(serverIdentity, null)
-        listeners.add(listener)
 
         val db1 = createDb("db1")
         val docId1 = makeDoc("db1", db1)
@@ -473,7 +454,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Test
     fun testCloseWithActiveListener() {
         val listener = listenTls(createIdentity(), null)
-        listeners.add(listener)
 
         otherDB.close()
 
@@ -514,7 +494,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val serverIdentity = createIdentity()
         val listener = listenTls(serverIdentity, null)
-        listeners.add(listener)
 
         val db1 = createDb("db1")
         val docId1 = makeDoc("db1", db1)
@@ -583,7 +562,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val cert = identity.certs[0]
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         val config = makeConfig(true, true, false, listener.endpoint(), cert, false)
         val repl = run(config, 0, null, false, false) { r: Replicator ->
@@ -604,7 +582,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val cert = identity.certs[0]
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         val config = makeConfig(true, true, false, listener.endpoint(), null, false)
         val repl = run(
@@ -623,8 +600,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val idleLatch = CountDownLatch(1)
         val stopLatch = CountDownLatch(1)
 
-        val listener = listenHttp(false, null)
-        listeners.add(listener)
+        val listener = listenHttp(null)
 
         val repl = Replicator(makeConfig(true, true, true, baseTestDb, listener.endpoint(), null))
         val token = repl.addChangeListener { change ->
@@ -655,7 +631,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val identity = createIdentity()
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         // Error as acceptOnlySelfSignedServerCert = false and no pinned server certificate:
         val config1 = makeConfig(true, true, false, listener.endpoint(), null, false)
@@ -682,7 +657,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val wrongCert = wrongIdentity.certs[0]
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         // Error as wrong pinned server certificate even though acceptOnlySelfSignedServerCertificate = true:
         var config = makeConfig(true, true, false, listener.endpoint(), wrongCert, true)
@@ -709,7 +683,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val wrongCert = wrongIdentity.certs[0]
 
         val listener = listenTls(identity, null)
-        listeners.add(listener)
 
         // Error as no pinned server certificate:
         run(
@@ -735,10 +708,58 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         run(makeConfig(true, true, false, listener.endpoint(), cert, false), 0, null, false, false, null)
     }
 
-    private fun listenHttp(tls: Boolean, auth: ListenerPasswordAuthenticator?): URLEndpointListener {
+    // https://issues.couchbase.com/browse/CBL-1116
+    @Test
+    fun testDeleteEvent() {
+        createDocsInDb(200, 10, baseTestDb)
+        createDocsInDb(300, 10, otherDB)
+
+        assertEquals(10, baseTestDb.count)
+        assertEquals(10, otherDB.count)
+
+        val listener = listenHttp(null)
+
+        val repl = Replicator(makeConfig(true, true, false, listener.endpoint()))
+        val latch1 = CountDownLatch(1)
+        val token1 = repl.addChangeListener { change ->
+            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) latch1.countDown()
+        }
+        repl.start(false)
+        assertTrue(latch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        repl.stop()
+        repl.removeChangeListener(token1)
+
+        assertEquals(20, baseTestDb.count)
+        assertEquals(20, otherDB.count)
+
+        var deleted = 0;
+        repl.addDocumentReplicationListener { replication ->
+            for (doc in replication.documents) {
+                if (doc.flags().contains(DocumentFlag.DocumentFlagsDeleted)) deleted++
+            }
+        }
+
+        otherDB.delete(otherDB.getDocument("doc-303"))
+        otherDB.delete(otherDB.getDocument("doc-307"))
+
+        val latch2 = CountDownLatch(1)
+        val token2 = repl.addChangeListener { change ->
+            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) latch2.countDown()
+        }
+        repl.start(false)
+        assertTrue(latch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        repl.removeChangeListener(token2)
+
+        assertEquals(18, baseTestDb.count)
+        assertEquals(18, otherDB.count)
+
+        assertEquals(2, deleted)
+    }
+
+    private fun listenHttp(auth: ListenerPasswordAuthenticator?): URLEndpointListener {
         val config = URLEndpointListenerConfiguration(otherDB)
         config.port = getPort()
-        config.setDisableTls(!tls)
+        config.setDisableTls(true)
         config.setAuthenticator(auth)
 
         val listener = URLEndpointListener(config)
