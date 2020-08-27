@@ -950,6 +950,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 1. Using blob object from a different database is currently not allowed.
      *    Test whether the error has been captured and thrown or not
      */
+    @FlakyTest
     @Test
     fun testConflictResolverReturnsBlobFromWrongDB() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())

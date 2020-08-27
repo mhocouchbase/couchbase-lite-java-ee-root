@@ -26,7 +26,6 @@ import android.support.annotation.RequiresApi;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -194,33 +193,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         }
         catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
             throw new CouchbaseLiteException("Failed to create entry: " + alias, e);
-        }
-    }
-
-    @Override
-    public void importEntry(
-        @NonNull String type,
-        @NonNull InputStream storeStream,
-        @Nullable char[] storePassword,
-        @NonNull String alias,
-        @Nullable char[] keyPassword,
-        @NonNull String newAlias)
-        throws CouchbaseLiteException {
-        final KeyStore androidStore = loadKeyStore();
-        if (androidStore == null) { throw new IllegalStateException(ERROR_LOADING_KEYSTORE); }
-
-        final KeyStore.ProtectionParameter protectionParameter = (keyPassword == null)
-            ? null
-            : new KeyStore.PasswordProtection(keyPassword);
-
-        try {
-            final KeyStore externalStore = KeyStore.getInstance(type);
-            externalStore.load(storeStream, storePassword);
-            androidStore.setEntry(newAlias, externalStore.getEntry(alias, protectionParameter), null);
-        }
-        catch (IOException | CertificateException | NoSuchAlgorithmException
-            | UnrecoverableEntryException | KeyStoreException e) {
-            throw new CouchbaseLiteException("Failed importing identity: " + alias + "(" + type + ")", e);
         }
     }
 

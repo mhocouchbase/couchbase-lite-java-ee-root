@@ -19,7 +19,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
-import java.io.InputStream;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.interfaces.RSAKey;
@@ -107,46 +106,6 @@ public final class TLSIdentity extends AbstractTLSIdentity {
         if (identity == null) {
             throw new CouchbaseLiteException(
                 "Could not find new identity in the KeyStore",
-                CBLError.Domain.CBLITE,
-                CBLError.Code.CRYPTO);
-        }
-
-        return identity;
-    }
-
-    /**
-     * Import a key pair into secure storage and create an TLSIdentity from the import.
-     *
-     * @param extType      KeyStore type, eg: "PKCS12"
-     * @param extStore     An InputStream from the keystore
-     * @param extStorePass The keystore password
-     * @param extAlias     The alias, in the external keystore, of the entry to be used.
-     * @param extKeyPass   The key password
-     * @param alias        The alias for the imported key
-     * @return a TLSIdentity
-     * @throws CouchbaseLiteException on error
-     */
-    @NonNull
-    public static TLSIdentity importIdentity(
-        @NonNull String extType,
-        @NonNull InputStream extStore,
-        @Nullable char[] extStorePass,
-        @NonNull String extAlias,
-        @Nullable char[] extKeyPass,
-        @NonNull String alias)
-        throws CouchbaseLiteException {
-        Preconditions.assertNotNull(extType, "extType");
-        Preconditions.assertNotNull(extStore, "extStore");
-        Preconditions.assertNotNull(extAlias, "extAlias");
-        Preconditions.assertNotNull(alias, "alias");
-        KeyStoreManager.checkAlias(alias);
-
-        getManager().importEntry(extType, extStore, extStorePass, extAlias, extKeyPass, alias);
-
-        final TLSIdentity identity = getIdentity(alias);
-        if (identity == null) {
-            throw new CouchbaseLiteException(
-                "Could not find imported identity in the KeyStore",
                 CBLError.Domain.CBLITE,
                 CBLError.Code.CRYPTO);
         }

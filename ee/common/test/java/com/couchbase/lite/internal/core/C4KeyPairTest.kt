@@ -25,7 +25,6 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
-import java.io.InputStream
 import java.security.KeyStore
 import java.security.cert.Certificate
 import java.security.interfaces.RSAPrivateKey
@@ -121,15 +120,6 @@ class C4KeyPairTest : PlatformSecurityTest() {
         override fun findAlias(keyStore: KeyStore?, keyAlias: String) = true
 
         override fun deleteEntries(keyStore: KeyStore?, filter: Fn.Predicate<String>?) = 0
-
-        override fun importEntry(
-            type: String,
-            stream: InputStream,
-            storePassword: CharArray?,
-            alias: String,
-            keyPassword: CharArray?,
-            targetAlias: String
-        ) = Unit
 
         fun reset() = calls.clear()
     }

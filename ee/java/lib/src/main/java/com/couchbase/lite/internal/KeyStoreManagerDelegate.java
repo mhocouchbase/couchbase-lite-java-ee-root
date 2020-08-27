@@ -20,7 +20,6 @@ import android.support.annotation.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
@@ -247,17 +246,6 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
                 CBLError.Domain.CBLITE,
                 CBLError.Code.CRYPTO);
         }
-    }
-
-    @Override
-    public void importEntry(
-        @NonNull String type,
-        @NonNull InputStream stream,
-        @Nullable char[] storePassword,
-        @NonNull String alias,
-        @Nullable char[] keyPassword,
-        @NonNull String targetAlias) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -19,7 +19,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
-import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -194,15 +193,6 @@ public abstract class KeyStoreManager {
         boolean isServer,
         @NonNull Map<String, String> attributes,
         @Nullable Date expiration)
-        throws CouchbaseLiteException;
-
-    public abstract void importEntry(
-        @NonNull String type,
-        @NonNull InputStream stream,
-        @Nullable char[] storePassword,
-        @NonNull String alias,
-        @Nullable char[] keyPassword,
-        @NonNull String targetAlias)
         throws CouchbaseLiteException;
 
     public abstract int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter)
