@@ -438,11 +438,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun testMultipleListenersOnSameDatabase() {
         val config = URLEndpointListenerConfiguration(otherDB)
 
-        config.tlsIdentity = createIdentity();
+        config.tlsIdentity = createIdentity()
         val listener1 = URLEndpointListener(config)
         listeners.add(listener1)
 
-        config.tlsIdentity = createIdentity();
+        config.tlsIdentity = createIdentity()
         val listener2 = URLEndpointListener(config)
         listeners.add(listener2)
 
@@ -734,7 +734,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(20, baseTestDb.count)
         assertEquals(20, otherDB.count)
 
-        var deleted = 0;
+        var deleted = 0
         repl.addDocumentReplicationListener { replication ->
             for (doc in replication.documents) {
                 if (doc.flags().contains(DocumentFlag.DocumentFlagsDeleted)) deleted++

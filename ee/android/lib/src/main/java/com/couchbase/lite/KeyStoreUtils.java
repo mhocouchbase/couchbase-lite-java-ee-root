@@ -39,15 +39,16 @@ public final class KeyStoreUtils {
     public static final String ANDROID_KEY_STORE = "AndroidKeyStore";
 
     /**
-     * This utility copies an entry (public and private keys and any certificates)
-     * from the passed keystore stream into Android's canonical keystore,
-     * where it can be used as a TlsIdentity.
+     * Imports the key entry including public key, private key, and certificates from the given
+     * KeyStore input stream into the Android KeyStore. The imported key entry can be used as a
+     * TLSIdentity by calling TLSIdentity.get(String alias) method.
      * <p>
-     * NOTE!
-     * This method copies the private key into main memory.  This is insecure.
-     * Documentation here:
+     * NOTE:
+     * The key data including the private key data will be temporarily in memory during the import operation.
+     * * Android 9 (API 28) or higher has an alternative method to import keys more securely.
+     * Check the documentation here:
      * <a href="https://developer.android.com/training/articles/keystore#ImportingEncryptedKeys" />
-     * describes how to import a key safely.
+     * for more info.
      *
      * @param storeType     KeyStore type, eg: "PKCS12"
      * @param storeStream   An InputStream from the keystore
@@ -82,6 +83,11 @@ public final class KeyStoreUtils {
         externalStore.load(storeStream, storePassword);
 
         // this line of code will log an exception.
-        androidStore.setEntry(newAlias, externalStore.getEntry(extAlias, protectionParameter), null);
+        final KeyStore.Entry newEntry = externalStore.getEntry(extAlias, protectionParameter);
+        if (newEntry == null) {
+            throw new KeyStoreException("There is no entry in this keystore for alias: " + newAlias);
+        }
+
+        androidStore.setEntry(newAlias, newEntry, null);
     }
 }

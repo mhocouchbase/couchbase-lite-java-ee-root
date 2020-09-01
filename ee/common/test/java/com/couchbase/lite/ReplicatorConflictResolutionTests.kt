@@ -1189,7 +1189,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     }
 
     /**
-     * @borrrden's merge test, for good measure.
+     * @borden's merge test, for good measure.
      */
     @Test
     fun testConflictResolverMergeDoc() {
