@@ -81,7 +81,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertNotNull(config.conflictResolver)
         assertEquals(config.conflictResolver, resolver)
 
-        val repl = Replicator(config)
+        val repl = newReplicator(config)
         assertNotNull(repl.config.conflictResolver)
         assertEquals(repl.config.conflictResolver, resolver)
 
@@ -440,7 +440,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             latch3.countDown()
             conflict.localDocument
         }
-        val repl1 = Replicator(pullConfig1)
+        val repl1 = newReplicator(pullConfig1)
 
         val pullConfig2 = pullConfig()
         pullConfig2.conflictResolver = TestConflictResolver { conflict ->
@@ -451,7 +451,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             latch3.countDown()
             conflict.localDocument
         }
-        val repl2 = Replicator(pullConfig2)
+        val repl2 = newReplicator(pullConfig2)
 
         repl1.start(false)
         repl2.start(false)
@@ -1065,7 +1065,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
                 return if (!latch2.stdWait()) null else conflict?.localDocument
             }
         }
-        val repl1 = Replicator(pullConfigWitResolver(resolver1))
+        val repl1 = newReplicator(pullConfigWitResolver(resolver1))
         // this is just here so that we can tell when this resolver is done.
         val token1c = repl1.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
@@ -1095,7 +1095,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             }
         }
         val pullConfig2 = pullConfigWitResolver(resolver2)
-        val repl2 = Replicator(pullConfig2)
+        val repl2 = newReplicator(pullConfig2)
         // Again, only here so that we know when this replicator is done
         val token2c = repl2.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {

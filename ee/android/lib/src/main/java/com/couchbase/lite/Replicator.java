@@ -16,6 +16,7 @@ package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Replicator;
@@ -34,15 +35,19 @@ public final class Replicator extends AbstractReplicator {
      *
      * @param config the configuration
      */
-    public Replicator(ReplicatorConfiguration config) {
+    public Replicator(@NonNull ReplicatorConfiguration config) {
+        this(CouchbaseLiteInternal.getNetworkConnectivityManager(), config);
+    }
+
+    @VisibleForTesting
+    Replicator(@Nullable NetworkConnectivityManager mgr, @NonNull ReplicatorConfiguration config) {
         super(config);
 
         // The replicator holds the only hard reference to the observer. The connectivity manager holds
         // only a soft ref to it.
         // Passing the ref to the getter method allows the connectivity observer to get the c4Replicator
         // even though the getter is not visible to it.
-        // Note that the c4Replicator for this Replicator hasn't been created yet so we can pass it directly
-        final NetworkConnectivityManager mgr = CouchbaseLiteInternal.getNetworkConnectivityManager();
+        // Note that the c4Replicator for this Replicator hasn't been created yet so we can't pass it directly
         connectivityObserver = (!config.isContinuous() || (mgr == null))
             ? null
             : new AndroidConnectivityObserver(mgr, Replicator.this::getC4Replicator);
@@ -74,8 +79,8 @@ public final class Replicator extends AbstractReplicator {
         Log.v(
             LogDomain.NETWORK,
             "Offline state change for %s: %s -> %b",
-            connectivityObserver.toString(),
-            prevState.toString(),
+            connectivityObserver,
+            prevState,
             nowOnline);
 
         connectivityObserver.handleOffline(prevState, nowOnline);

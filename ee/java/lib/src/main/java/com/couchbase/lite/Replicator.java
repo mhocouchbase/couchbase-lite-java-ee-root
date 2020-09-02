@@ -15,9 +15,12 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4Socket;
+import com.couchbase.lite.internal.replicator.NetworkConnectivityManager;
 
 
 public final class Replicator extends AbstractReplicator {
@@ -28,6 +31,9 @@ public final class Replicator extends AbstractReplicator {
      * @param config replicator configuration
      */
     public Replicator(@NonNull ReplicatorConfiguration config) { super(config); }
+
+    @VisibleForTesting
+    Replicator(@Nullable NetworkConnectivityManager ignore, @NonNull ReplicatorConfiguration config) { super(config); }
 
     @Override
     protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {

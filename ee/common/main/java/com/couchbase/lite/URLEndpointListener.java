@@ -133,13 +133,13 @@ public class URLEndpointListener {
      */
     public void start() throws CouchbaseLiteException {
         final Database db = getConfig().getDatabase();
-        final C4Listener listener;
+        db.registerUrlListener(this);
 
+        final C4Listener listener;
         synchronized (lock) {
             if (c4Listener != null) { return; }
             listener = startLocked();
             c4Listener = listener;
-            db.registerListener(this);
         }
 
         listener.shareDb(db.getName(), db.getC4Database());
@@ -149,16 +149,16 @@ public class URLEndpointListener {
      * Stop the listener
      */
     public void stop() {
-        final Database db = getConfig().getDatabase();
         final C4Listener listener;
-
         synchronized (lock) {
-            db.unregisterListener(this);
             listener = c4Listener;
             c4Listener = null;
         }
 
         if (listener == null) { return; }
+
+        final Database db = getConfig().getDatabase();
+        db.unregisterUrlListener(this);
 
         listener.close();
     }

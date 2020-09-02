@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
@@ -57,10 +58,12 @@ public class MessageEndpointListener {
 
         @Override
         public void documentEnded(
-            @NonNull C4Replicator repl,
-            boolean pushing,
-            @Nullable C4DocumentEnded[] documents,
-            @Nullable Object context) { /* Not used */ }
+            @NonNull C4Replicator ign1,
+            boolean ign2,
+            @Nullable C4DocumentEnded[] ign3,
+            @Nullable Object ign4) {
+            /* Not used */
+        }
     }
 
     //---------------------------------------------
@@ -71,13 +74,14 @@ public class MessageEndpointListener {
 
     private final Executor dispatcher = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
-    @GuardedBy("lock")
-    private final Map<C4Replicator, MessageEndpointConnection> replicators = new HashMap<>();
-
-    @GuardedBy("lock")
     private final ChangeNotifier<MessageEndpointListenerChange> changeNotifier = new ChangeNotifier<>();
 
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
+
     private final MessageEndpointListenerConfiguration config;
+
+    @GuardedBy("lock")
+    private final Map<C4Replicator, MessageEndpointConnection> replicators = new HashMap<>();
 
     //---------------------------------------------
     // Constructor
@@ -98,21 +102,24 @@ public class MessageEndpointListener {
      * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
+        Log.d(LogDomain.LISTENER, "Accepting connection: " + connection);
         Preconditions.assertNotNull(connection, "connection");
+
+        if (stopped.get()) { return; }
 
         final byte[] options;
         try { options = getOptions(); }
         catch (LiteCoreException e) {
-            Log.e(DOMAIN, "Failed encoding options", e);
-            // ??? shouldn't this be an exception or something?
+            // ??? shouldn't this just throw?
+            Log.e(DOMAIN, "Failed getting encoding options", e);
             return;
         }
 
         final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
-        C4Replicator replicator = null;
-        C4ReplicatorStatus status;
-
         final Database db = config.getDatabase();
+        final C4Replicator replicator;
+
+        C4ReplicatorStatus status;
         synchronized (db.getLock()) {
             try {
                 replicator = db.createTargetReplicator(
@@ -122,16 +129,16 @@ public class MessageEndpointListener {
                     options,
                     new ReplicatorListener(),
                     this);
+
+                if (addConnection(replicator, connection)) { db.registerMessageListener(this); }
+
                 replicator.start(false);
+
                 status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.CONNECTING);
             }
             catch (LiteCoreException e) {
                 status = new C4ReplicatorStatus(C4ReplicatorStatus.ActivityLevel.STOPPED, e.domain, e.code);
             }
-        }
-
-        if (replicator != null) {
-            synchronized (lock) { replicators.put(replicator, connection); }
         }
 
         changeNotifier.postChange(new MessageEndpointListenerChange(connection, status));
@@ -143,25 +150,29 @@ public class MessageEndpointListener {
      * @param connection the connection to be closed
      */
     public void close(@NonNull MessageEndpointConnection connection) {
+        Log.d(LogDomain.LISTENER, "Closing connection: " + connection);
         Preconditions.assertNotNull(connection, "connection");
 
+        C4Replicator replicator = null;
         synchronized (lock) {
             for (Map.Entry<C4Replicator, MessageEndpointConnection> entry: replicators.entrySet()) {
                 if (connection.equals(entry.getValue())) {
-                    entry.getKey().stop();
+                    replicator = entry.getKey();
                     break;
                 }
             }
         }
+
+        if (replicator != null) { replicator.stop(); }
     }
 
     /**
-     * Close all active connections.
+     * Close all connections active at the time of the call.
      */
     public void closeAll() {
-        synchronized (lock) {
-            for (C4Replicator replicator: replicators.keySet()) { replicator.stop(); }
-        }
+        final List<C4Replicator> repls;
+        synchronized (lock) { repls = new ArrayList<>(replicators.keySet()); }
+        for (C4Replicator replicator: repls) { replicator.stop(); }
     }
 
     /**
@@ -202,24 +213,55 @@ public class MessageEndpointListener {
     // Package visibility
     //---------------------------------------------
 
-    /**
-     * The active connections from peers.
-     *
-     * @return a list of active connections
-     */
-    List<MessageEndpointConnection> getConnections() {
-        synchronized (lock) { return new ArrayList<>(replicators.values()); }
-    }
-
     void statusChanged(C4Replicator replicator, C4ReplicatorStatus status) {
-        final boolean stopped;
-        final MessageEndpointConnection connection;
-        synchronized (lock) {
-            stopped = status.getActivityLevel() == C4ReplicatorStatus.ActivityLevel.STOPPED;
-            connection = (stopped) ? replicators.remove(replicator) : replicators.get(replicator);
-        }
+        final MessageEndpointConnection connection
+            = (status.getActivityLevel() != C4ReplicatorStatus.ActivityLevel.STOPPED)
+            ? getConnection(replicator)
+            : removeConnection(replicator);
 
         if (connection != null) { changeNotifier.postChange(new MessageEndpointListenerChange(connection, status)); }
+    }
+
+    boolean isStopped() {
+        synchronized (lock) { return replicators.isEmpty(); }
+    }
+
+    void stop() {
+        stopped.set(true);
+        closeAll();
+    }
+
+    @VisibleForTesting
+    MessageEndpointListenerConfiguration getConfig() { return config; }
+
+    //---------------------------------------------
+    // Private
+    //---------------------------------------------
+
+    private MessageEndpointConnection getConnection(@NonNull C4Replicator replicator) {
+        synchronized (lock) { return replicators.get(replicator); }
+    }
+
+    private boolean addConnection(
+        @NonNull C4Replicator replicator,
+        @NonNull MessageEndpointConnection connection) {
+        synchronized (lock) {
+            replicators.put(replicator, connection);
+            return replicators.size() == 1;
+        }
+    }
+
+    private MessageEndpointConnection removeConnection(@NonNull C4Replicator replicator) {
+        final boolean mustUnregister;
+        final MessageEndpointConnection connection;
+        synchronized (lock) {
+            mustUnregister = replicators.size() == 1;
+            connection = replicators.remove(replicator);
+        }
+
+        if (mustUnregister) { config.getDatabase().unregisterMessageListener(this); }
+
+        return connection;
     }
 
     private byte[] getOptions() throws LiteCoreException {
@@ -233,8 +275,5 @@ public class MessageEndpointListener {
         }
         finally { encoder.free(); }
     }
-
-    @VisibleForTesting
-    MessageEndpointListenerConfiguration getConfig() { return config; }
 }
 

@@ -329,7 +329,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val maxConnectionCount = AtomicInteger(0)
         val maxActiveCount = AtomicInteger(0)
 
-        val repl = Replicator(rConfig)
+        val repl = newReplicator(rConfig)
         val token = repl.addChangeListener { change ->
             val status = listener.status
             if (status != null) {
@@ -388,7 +388,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         // Replicator#1 (DB#1 <-> Listener(otherDB))
         val config1 = makeConfig(true, true, false, db1, listener.endpoint(), serverIdentity.certs[0])
         config1.pullFilter = filter
-        val repl1 = Replicator(config1)
+        val repl1 = newReplicator(config1)
         val token1 = repl1.addChangeListener(changeListener)
 
         val db2 = createDb("db2")
@@ -397,7 +397,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         // Replicator#2 (otherDB <-> DB#2)
         val config2 = makeConfig(true, true, false, otherDB, DatabaseEndpoint(db2))
         config2.pushFilter = filter
-        val repl2 = Replicator(config2)
+        val repl2 = newReplicator(config2)
         val token2 = repl1.addChangeListener(changeListener)
 
         assertEquals(1, db1.count)
@@ -503,7 +503,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         // Replicator#1 (DB#1 <-> Listener(otherDB))
         val config1 = makeConfig(true, true, false, db1, listener.endpoint(), serverIdentity.certs[0])
         config1.pullFilter = filter
-        val repl1 = Replicator(config1)
+        val repl1 = newReplicator(config1)
         val token1 = repl1.addChangeListener(changeListener)
 
         val db2 = createDb("db2")
@@ -512,7 +512,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         // Replicator#2 (DB#2 <-> Listener(otherDB))
         val config2 = makeConfig(true, true, false, db2, listener.endpoint(), serverIdentity.certs[0])
         config2.pullFilter = filter
-        val repl2 = Replicator(config2)
+        val repl2 = newReplicator(config2)
         val token2 = repl2.addChangeListener(changeListener)
 
         assertEquals(1, db1.count)
@@ -604,7 +604,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val listener = listenHttp(null)
 
-        val repl = Replicator(makeConfig(true, true, true, baseTestDb, listener.endpoint(), null))
+        val repl = newReplicator(makeConfig(true, true, true, baseTestDb, listener.endpoint(), null))
         val token = repl.addChangeListener { change ->
             when (change.status.activityLevel) {
                 AbstractReplicator.ActivityLevel.IDLE -> idleLatch.countDown()
@@ -721,7 +721,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val listener = listenHttp(null)
 
-        val repl = Replicator(makeConfig(true, true, false, listener.endpoint()))
+        val repl = newReplicator(makeConfig(true, true, false, listener.endpoint()))
         val latch1 = CountDownLatch(1)
         val token1 = repl.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) latch1.countDown()

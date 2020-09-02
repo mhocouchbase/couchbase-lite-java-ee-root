@@ -70,18 +70,14 @@ public class MessageEndpoint implements Endpoint {
      * @return the unique identifier of the endpoint
      */
     @NonNull
-    public String getUid() {
-        return uid;
-    }
+    public String getUid() { return uid; }
 
     /**
      * Gets the target object which is an arbitrary object that represents the endpoint.
      *
      * @return the target object.
      */
-    public Object getTarget() {
-        return target;
-    }
+    public Object getTarget() { return target; }
 
     /**
      * Gets the data transportation protocol of the endpoint.
@@ -89,9 +85,7 @@ public class MessageEndpoint implements Endpoint {
      * @return the data transportation protocol
      */
     @NonNull
-    public ProtocolType getProtocolType() {
-        return protocolType;
-    }
+    public ProtocolType getProtocolType() { return protocolType; }
 
     /**
      * Gets the delegate object used for creating MessageEndpointConnection objects.
@@ -99,9 +93,7 @@ public class MessageEndpoint implements Endpoint {
      * @return the delegate object.
      */
     @NonNull
-    public MessageEndpointDelegate getDelegate() {
-        return delegate;
-    }
+    public MessageEndpointDelegate getDelegate() { return delegate; }
 
     @NonNull
     @Override

@@ -140,7 +140,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     protected void requestClose(final int status, String message) {
         final Exception error = (status == C4Socket.WS_STATUS_CLOSE_NORMAL)
             ? null
-            : CBLStatus.convertException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
+            : CBLStatus.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
         final MessagingError messagingError = (error == null)
             ? null
             : new MessagingError(error, status == C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT);
