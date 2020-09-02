@@ -54,9 +54,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
      * Return whether the replicator will accept any and only self-signed server certificates.
      */
     @NonNull
-    public boolean isAcceptOnlySelfSignedServerCertificate() {
-        return acceptOnlySelfSignedServerCertificate;
-    }
+    public boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
 
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }

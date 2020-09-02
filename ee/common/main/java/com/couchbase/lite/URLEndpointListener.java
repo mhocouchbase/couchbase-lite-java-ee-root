@@ -52,6 +52,11 @@ public class URLEndpointListener {
     // Constructors
     //-------------------------------------------------------------------------
 
+    /**
+     * Create a URLEndpointListener with the passed configuration.
+     *
+     * @param config the listener configuration.
+     */
     public URLEndpointListener(@NonNull URLEndpointListenerConfiguration config) {
         if (config.getDatabase().getUuid() == null) {
             throw new IllegalArgumentException("Configured database is not open");
@@ -67,24 +72,29 @@ public class URLEndpointListener {
     /**
      * Get the listener's configuration.
      *
-     * @return the listener's configuration.
+     * @return the listener's configuration (read only).
      */
     @NonNull
     public URLEndpointListenerConfiguration getConfig() { return config; }
 
     /**
      * Get the listener's port.
+     * This method will return a value of -1 except between the time
+     * the listener is started and the time it is stopped.
      *
-     * @return the listener's port.
+     * When a listener is configured with the port number 0, the return value from this function will
+     * give the port at which the listener is actually listening.
+     *
+     * @return the listener's port, or -1.
      */
     public int getPort() {
         synchronized (lock) { return (c4Listener == null) ? -1 : getCachedPort(c4Listener); }
     }
 
     /**
-     * Get the list of URIs for the listener
+     * Get the list of URIs for the listener.
      *
-     * @return a list of listener urls.
+     * @return a list of listener URIs.
      */
     @NonNull
     public List<URI> getUrls() {
@@ -100,16 +110,14 @@ public class URLEndpointListener {
 
         for (String uri: uriStrs) {
             try { uris.add(new URI(uri)); }
-            catch (URISyntaxException e) {
-                Log.w(LogDomain.LISTENER, "Failed creating URI for: " + uri);
-            }
+            catch (URISyntaxException e) { Log.w(LogDomain.LISTENER, "Failed creating URI for: " + uri); }
         }
 
         return uris;
     }
 
     /**
-     * Get the listener status
+     * Get the listener status.
      *
      * @return listener status.
      */
@@ -119,7 +127,7 @@ public class URLEndpointListener {
     }
 
     /**
-     * Get the TLS identity used by the listener
+     * Get the TLS identity used by the listener.
      *
      * @return TLS identity.
      */
@@ -129,7 +137,7 @@ public class URLEndpointListener {
     }
 
     /**
-     * Start the listener
+     * Start the listener.
      */
     public void start() throws CouchbaseLiteException {
         final Database db = getConfig().getDatabase();
@@ -146,7 +154,7 @@ public class URLEndpointListener {
     }
 
     /**
-     * Stop the listener
+     * Stop the listener.
      */
     public void stop() {
         final C4Listener listener;

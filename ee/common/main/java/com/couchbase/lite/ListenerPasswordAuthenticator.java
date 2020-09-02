@@ -28,5 +28,11 @@ public final class ListenerPasswordAuthenticator extends InternalPwdAuthenticato
     // Constructor
     //-------------------------------------------------------------------------
 
+    /**
+     * Create an Authenticator using the passed delegate.
+     * See {@link ListenerPasswordAuthenticatorDelegate}
+     *
+     * @param delegate where the action is.
+     */
     public ListenerPasswordAuthenticator(@NonNull ListenerPasswordAuthenticatorDelegate delegate) { super(delegate); }
 }

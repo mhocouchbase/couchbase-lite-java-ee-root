@@ -30,10 +30,10 @@ import com.couchbase.lite.internal.replicator.CBLKeyManager;
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * An authenticator for client certificate authentication which happens during
- * the TLS handshake when connecting to the server.
+ * the TLS handshake when connecting to a server.
  * <p>
- * The client certificate authenticator is currently used for authenticating with
- * the URLEndpointListener only.The URLEndpointListener must have TLS enabled and
+ * The client certificate authenticator is currently used only for authenticating to
+ * a URLEndpointListener.  The URLEndpointListener must have TLS enabled and
  * must be configured with a ListenerCertificateAuthenticator to verify client
  * certificates.
  */

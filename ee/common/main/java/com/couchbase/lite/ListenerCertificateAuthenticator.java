@@ -24,7 +24,8 @@ import com.couchbase.lite.internal.core.InternalCertAuthenticator;
 
 
 /**
- * A Listener Certificate Authenticator Delegate
+ * A Listener Certificate Authenticator
+ * Certificate base authentication and authorization.
  */
 public class ListenerCertificateAuthenticator extends InternalCertAuthenticator {
 
@@ -32,10 +33,20 @@ public class ListenerCertificateAuthenticator extends InternalCertAuthenticator 
     // Constructor
     //-------------------------------------------------------------------------
 
-    public ListenerCertificateAuthenticator(@NonNull List<Certificate> rootCerts) {
-        super(rootCerts, null);
-    }
+    /**
+     * Create an authenticator that allows clients whose certificate chains can be verified using (only)
+     * on of the certs in the passed list.  OS-bundled certs are ignored.
+     *
+     * @param rootCerts root certificates used to verify client certificate chains.
+     */
+    public ListenerCertificateAuthenticator(@NonNull List<Certificate> rootCerts) { super(rootCerts, null); }
 
+    /**
+     * Create an authenticator that delegates all responsibility for authentication and authorization
+     * to the passed delegate.  See {@link ListenerCertificateAuthenticatorDelegate}.
+     *
+     * @param delegate an authenticator
+     */
     public ListenerCertificateAuthenticator(@NonNull ListenerCertificateAuthenticatorDelegate delegate) {
         super(null, delegate);
     }

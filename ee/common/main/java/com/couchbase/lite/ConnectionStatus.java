@@ -31,8 +31,20 @@ public class ConnectionStatus {
         this.activeConnections = activeConnectionCount;
     }
 
+    /**
+     * Get the count of connections that the listener has accepted.
+     *
+     * @return number connections that the listener has accepted.
+     */
     public int getConnectionCount() { return connections; }
 
+    /**
+     * Get the count of connections that are currently active.
+     * Note: this number is highly volatile.  The actual number of active connections
+     * may have changed by the time the call returns.
+     *
+     * @return number of connections that are currently active.
+     */
     public int getActiveConnectionCount() { return activeConnections; }
 
     @NonNull

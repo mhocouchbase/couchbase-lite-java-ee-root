@@ -22,9 +22,19 @@ import java.util.List;
 
 
 /**
- * A Listener Certificate Authenticator Delegate
+ * Functional Interface for an Authenticator that uses an authentication strategy based on client supplied certificates.
+ * Pass implementations of this interface to the {@link ListenerCertificateAuthenticator} to realize
+ * specific authentication strategies.
  */
 @FunctionalInterface
 public interface ListenerCertificateAuthenticatorDelegate {
+    /**
+     * Authenticate a client based on the passed certificates.
+     * Note that the passed certificates have not been validated.  All validation and authorization
+     * are the responsiblity of the implementation.
+     *
+     * @param certs client supplied certificates.
+     * @return true to validate the client.
+     */
     boolean authenticate(@NonNull List<Certificate> certs);
 }

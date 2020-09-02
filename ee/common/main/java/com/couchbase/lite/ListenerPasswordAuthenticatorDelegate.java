@@ -19,7 +19,19 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 
 
+/**
+ * Functional Interface for an Authenticator that uses an authentication strategy based on a user name and password.
+ * Pass implementations of this interface to the {@link ListenerPasswordAuthenticator} to realize
+ * specific authentication strategies.
+ */
 @FunctionalInterface
 public interface ListenerPasswordAuthenticatorDelegate {
+    /**
+     * Authenticate a client based on the passed credentials.
+     *
+     * @param username client supplied username
+     * @param password client supplied password
+     * @return true when the client is authorized.
+     */
     boolean authenticate(@NonNull String username, @NonNull char[] password);
 }

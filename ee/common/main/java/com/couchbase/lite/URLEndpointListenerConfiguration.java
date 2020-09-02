@@ -56,11 +56,22 @@ public class URLEndpointListenerConfiguration {
     // Constructors
     //-------------------------------------------------------------------------
 
+    /**
+     * Create a listener configuration, for the specified database, with default values.
+     *
+     * @param database the database to which the listener is attached
+     */
     public URLEndpointListenerConfiguration(@NonNull Database database) {
         this.database = database;
         this.immutable = false;
     }
 
+    /**
+     * Clone the passed listener configuration.
+     *
+     * @param config    the configuration to duplicate
+     * @param immutable if true, the copy will throw an exception on attemtps to mutate.
+     */
     URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config, boolean immutable) {
         this.database = config.database;
         this.networkInterface = config.networkInterface;
@@ -95,6 +106,8 @@ public class URLEndpointListenerConfiguration {
 
     /**
      * Set the configured network interface.
+     *
+     * @param networkInterface the name of the interface on which to configure the listener (e.g. "en0")
      */
     public void setNetworkInterface(@Nullable String networkInterface) {
         checkReadOnly();
@@ -110,6 +123,9 @@ public class URLEndpointListenerConfiguration {
 
     /**
      * Set the configured port.
+     * A port number of 0 (the default) tells the OS to choose some available port.
+     *
+     * @param port the port number on which to configure the listener (between 0 and 65535, inclusive)
      */
     public void setPort(int port) {
         checkReadOnly();
@@ -130,7 +146,10 @@ public class URLEndpointListenerConfiguration {
     public boolean isTlsDisabled() { return disableTls; }
 
     /**
-     * Set the configured connection type.
+     * Set the configured security protocol.
+     * TLS is enabled by default. disabling it is not recommended for production.
+     *
+     * @param disableTls true to disable TLS security.
      */
     public void setDisableTls(boolean disableTls) {
         checkReadOnly();
@@ -146,7 +165,9 @@ public class URLEndpointListenerConfiguration {
     public TLSIdentity getTlsIdentity() { return identity; }
 
     /**
-     * Set the TLS identity for the associated listener.
+     * Set the certificates and keys for the associated listener.
+     *
+     * @param identity a TLSIdentity that the listener will supply to authenticate itself.
      */
     public void setTlsIdentity(@Nullable TLSIdentity identity) {
         checkReadOnly();
@@ -163,6 +184,16 @@ public class URLEndpointListenerConfiguration {
 
     /**
      * Set the authenticator.
+     * When TLS is enabled, a null authenticator (the default) will allow clients whose
+     * certificate chains can be verified by one of the OS-bundled root certificates.
+     * There are two types of TLS authenticators.  See {@link ListenerCertificateAuthenticator}
+     * <p>
+     * When TLS is disabled, a null authenticator (the default) will allow all clients.
+     * A non-null authenticator will be passed the client's credentials
+     * and is completely responsible for authenticating them.
+     * See {@link ListenerPasswordAuthenticator}
+     *
+     * @param authenticator the client authenticator
      */
     public void setAuthenticator(@Nullable ListenerAuthenticator authenticator) {
         checkReadOnly();
@@ -178,6 +209,8 @@ public class URLEndpointListenerConfiguration {
 
     /**
      * Set the connection read-only.
+     *
+     * @param readOnly set true to make the configured listener read-only
      */
     public void setReadOnly(boolean readOnly) { this.readOnly = readOnly; }
 
@@ -190,6 +223,8 @@ public class URLEndpointListenerConfiguration {
 
     /**
      * Set delta sync enabled.
+     *
+     * @param enableDeltaSync set true to enable delta sync
      */
     public void setEnableDeltaSync(boolean enableDeltaSync) {
         checkReadOnly();

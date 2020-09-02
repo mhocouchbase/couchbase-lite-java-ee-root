@@ -38,16 +38,16 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * TLSIdentity provides the identity information obtained from the given KeyStore,
- * including a private key and X.509 certificate chain. Please note that the private key
- * data will be not extracted out of the KeyStore. The TLSIdentity is used by
- * URLEndpointListener to setup the TLS communication or by the Replicator to setup
- * the client certificate authentication.
+ * including a private key and X.509 certificate chain.  TLSIdentities are backed
+ * by the canonical AndroidKeyStore and do not extract private key materials.
+ * The TLSIdentity is used by URLEndpointListeners and by Replicator, to set up
+ * certificate authenticated TLS communication.
  */
 public final class TLSIdentity extends AbstractTLSIdentity {
     /**
-     * Get the TLSIdentity of the given label from the secure storage.
+     * Get a TLSIdentity backed by the information for the passed alias.
      *
-     * @param alias the keystore alias for the identities key.
+     * @param alias the keystore alias for the identities entry.
      * @return the identity
      * @throws CouchbaseLiteException on failure to get identity
      */
@@ -79,13 +79,15 @@ public final class TLSIdentity extends AbstractTLSIdentity {
     }
 
     /**
-     * Create and store a client self-signed identity in a secure storage.
-     * The identity will be stored in the secure storage using the given label.
+     * Create self-signed certificate and private key, store them in the canonical keystore,
+     * and return a identity backed by the new entry.
+     * The identity will be stored in the secure storage using the specified alias
+     * and can be recovered using that alias, after this method returns.
      *
      * @param isServer   true if this is a server certificate
-     * @param attributes Certificate attributes
-     * @param expiration Expiration date
-     * @param alias      Alias to
+     * @param attributes certificate attributes
+     * @param expiration expiration date
+     * @param alias      alias used to identify the key/certificate entry, in the keystore
      * @return the new identity
      * @throws CouchbaseLiteException on failure to get identity
      */
