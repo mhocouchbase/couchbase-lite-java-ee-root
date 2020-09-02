@@ -890,9 +890,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         replicator.removeChangeListener(token);
     }
 
-    @Ignore("Core bug?")
     @Test
-    public void testCloseDb() throws InterruptedException, CouchbaseLiteException {
+    public void testCloseDbWithActiveMessageListener() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch startLatch = new CountDownLatch(2);
         final CountDownLatch listenerStopLatch = new CountDownLatch(1);
         final CountDownLatch replStopLatch = new CountDownLatch(1);
@@ -942,9 +941,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         otherDB.close();
         assertTrue(listenerStopLatch.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        assertTrue(listener.isStopped());
 
         baseTestDb.close();
         assertTrue(replStopLatch.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        final AbstractReplicator.Status status = repl.getStatus();
+        assertEquals(AbstractReplicator.ActivityLevel.STOPPED, status.getActivityLevel());
+        final CouchbaseLiteException err = status.getError();
+        assertNotNull(err);
+        assertEquals(CBLError.Code.WEB_SOCKET_GOING_AWAY, err.getCode());
     }
 
     @Test
