@@ -165,8 +165,7 @@ public class URLEndpointListener {
 
         if (listener == null) { return; }
 
-        final Database db = getConfig().getDatabase();
-        db.unregisterUrlListener(this);
+        getConfig().getDatabase().unregisterUrlListener(this);
 
         listener.close();
     }

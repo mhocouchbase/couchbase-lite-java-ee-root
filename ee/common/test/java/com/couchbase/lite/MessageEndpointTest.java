@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.ClassUtils;
@@ -182,8 +181,8 @@ abstract class MockConnection implements MessageEndpointConnection {
 
     @Override
     protected void finalize() throws Throwable {
-        super.finalize();
-        queue.shutdown();
+        try { queue.shutdown(); }
+        finally { super.finalize(); }
     }
 
     private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {
@@ -495,9 +494,13 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
 
     @Override
     protected void finalize() throws Throwable {
-        if (token != null) { listener.removeChangeListener(token); }
-        executorService.shutdown();
-        super.finalize();
+        try {
+            if (token != null) { listener.removeChangeListener(token); }
+            executorService.shutdown();
+        }
+        finally {
+            super.finalize();
+        }
     }
 }
 
@@ -843,11 +846,13 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
+    @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
     }
 
+    @SlowTest
     @Test
     public void testP2PPassiveClose() throws InterruptedException {
         MessageEndpointListener listener = new MessageEndpointListener(
