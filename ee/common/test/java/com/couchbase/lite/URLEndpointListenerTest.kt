@@ -26,6 +26,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -155,6 +156,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         try {
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daneil", "123"))
+            fail("Expecting exception: CouchbaseLite.code = 10401")
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
@@ -168,6 +170,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         try {
             run(listener.endpointUri(), true, true, false, BasicAuthenticator("daniel", "456"))
+            fail("Expecting exception: CouchbaseLite.code = 10401")
         } catch (e: CouchbaseLiteException) {
             assertEquals(10401, e.code)
         }
