@@ -162,6 +162,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
     }
 
+    @FlakyTest
     @Test
     fun testPasswordAuthenticatorBadPassword() {
         val listener = listenHttp(

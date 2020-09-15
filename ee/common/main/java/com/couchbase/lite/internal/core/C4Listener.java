@@ -370,8 +370,10 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     boolean authenticateBasic(@Nullable String authHeader) {
-        Preconditions.assertThat(authenticator, "authenticator must be a password authenticator",
-            auth -> auth instanceof InternalPwdAuthenticator); // Not expect to happen
+        Preconditions.assertThat(
+            authenticator,
+            "authenticator must be a password authenticator",
+            auth -> auth instanceof InternalPwdAuthenticator);
 
         if (authHeader == null) { return false; }
 

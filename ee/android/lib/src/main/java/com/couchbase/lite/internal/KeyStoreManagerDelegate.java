@@ -62,7 +62,6 @@ import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 
 
-@SuppressWarnings({"PMD.GodClass"})
 public class KeyStoreManagerDelegate extends KeyStoreManager {
     @VisibleForTesting
     static final String ANDROID_KEY_STORE = "AndroidKeyStore";
