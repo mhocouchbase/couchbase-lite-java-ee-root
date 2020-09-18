@@ -32,14 +32,14 @@ public class ConnectionStatus {
     }
 
     /**
-     * Get the count of connections that the listener has accepted.
+     * Get the count of clients currently connected to this listener.
      *
-     * @return number connections that the listener has accepted.
+     * @return number of clients currently connected to this listener.
      */
     public int getConnectionCount() { return connections; }
 
     /**
-     * Get the count of connections that are currently active.
+     * Get the count of clients that are currently actively transferring data.
      * Note: this number is highly volatile.  The actual number of active connections
      * may have changed by the time the call returns.
      *
