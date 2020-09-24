@@ -39,8 +39,10 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
 
         const val EXTERNAL_KEY_STORE = "teststore.p12"
         const val EXTERNAL_KEY_STORE_TYPE = "PKCS12"
-        const val EXTERNAL_KEY_ALIAS = "couchbase"
-        const val EXTERNAL_KEY_PASSWORD = "password"
+        const val EXTERNAL_KEY_PASSWORD = "couchbase"
+        const val EXTERNAL_KEY_ALIAS_TEST = "test"
+        const val EXTERNAL_KEY_ALIAS_TEST_CHAIN = "test-chain"
+        const val EXTERNAL_KEY_ALIAS_TEST_CA = "test-ca"
 
         val ALGORITHMS = mapOf(
             Signature.SignatureDigestAlgorithm.NONE to AlgorithmInfo("NONEwithRSA", ""),
@@ -83,6 +85,14 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
                 alias.startsWith(BASE_KEY_ALIAS)
             })
         }
+
+        fun loadTestKeyStore(): KeyStore {
+            val externalStore = KeyStore.getInstance(EXTERNAL_KEY_STORE_TYPE)
+            PlatformUtils.getAsset(EXTERNAL_KEY_STORE).use { ks ->
+                externalStore.load(ks, EXTERNAL_KEY_PASSWORD.toCharArray())
+            }
+            return externalStore
+        }
     }
 
     // There are some functions that have to be static
@@ -93,14 +103,6 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
     abstract fun createSelfSignedCertEntry(alias: String, isServer: Boolean)
     abstract fun createC4KeyPair(alias: String): C4KeyPair
     abstract fun getIdentity(alias: String): TLSIdentity?
-
-    fun loadTestKeyStore(): KeyStore {
-        val externalStore = KeyStore.getInstance(EXTERNAL_KEY_STORE_TYPE)
-        PlatformUtils.getAsset(EXTERNAL_KEY_STORE).use { `in` ->
-            externalStore.load(`in`, EXTERNAL_KEY_PASSWORD.toCharArray())
-        }
-        return externalStore
-    }
 
     fun dumpKeystore() {
         val keystore = loadPlatformKeyStore()

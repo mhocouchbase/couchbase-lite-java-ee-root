@@ -862,7 +862,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, endpoint).setContinuous(true);
-        Replicator replicator = newReplicator(config);
+        Replicator replicator = testReplicator(config);
 
         final CountDownLatch latch = new CountDownLatch(3);
         final AtomicBoolean didCloseListener = new AtomicBoolean(false);
@@ -975,7 +975,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)));
         config1.setContinuous(true);
-        final Replicator replicator1 = newReplicator(config1);
+        final Replicator replicator1 = testReplicator(config1);
 
         final MockServerConnection serverConnection2 = new MockServerConnection(listener);
         final ReplicatorConfiguration config2 = new ReplicatorConfiguration(
@@ -986,7 +986,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)));
         config2.setContinuous(true);
-        final Replicator replicator2 = newReplicator(config2);
+        final Replicator replicator2 = testReplicator(config2);
 
         final CountDownLatch closeWait1 = new CountDownLatch(1);
         final CountDownLatch closeWait2 = new CountDownLatch(1);
@@ -1105,6 +1105,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals(0, statuses.size());
     }
 
+    @FlakyTest
     @Test
     public void testPushWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -1284,7 +1285,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     private void run(ReplicatorConfiguration config, final int code, final String domain, final boolean reset) {
-        baseTestReplicator = newReplicator(config);
+        baseTestReplicator = testReplicator(config);
         final CountDownLatch latch = new CountDownLatch(1);
 
         final Throwable[] fail = new Throwable[1];

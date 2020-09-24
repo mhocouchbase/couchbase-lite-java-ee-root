@@ -81,7 +81,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertNotNull(config.conflictResolver)
         assertEquals(config.conflictResolver, resolver)
 
-        val repl = newReplicator(config)
+        val repl = testReplicator(config)
         assertNotNull(repl.config.conflictResolver)
         assertEquals(repl.config.conflictResolver, resolver)
 
@@ -122,6 +122,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc doesn't need to be push back to the remote database
      *    so the remote doc stays deleted.
      */
+    @FlakyTest
     @Test
     fun testConflictResolverDeletedRemoteWins() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), null)
@@ -179,6 +180,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 3. Make sure that document is deleted from the database.
      * 4. Make sure that the resolved doc can be push to the remote database.
      */
+    @FlakyTest
     @Test
     fun testConflictResolverDeletedLocalWins() {
         makeConflict(DOC1, null, hashMapOf(KEY1 to VAL1))
@@ -315,6 +317,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc can be push to the remote database.
      * Case: Local is deleted
      */
+    @FlakyTest
     @Test
     fun testConflictResolverNullLocalDeleted() {
         makeConflict(DOC1, null, hashMapOf(KEY2 to VAL2))
@@ -440,7 +443,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             latch3.countDown()
             conflict.localDocument
         }
-        val repl1 = newReplicator(pullConfig1)
+        val repl1 = testReplicator(pullConfig1)
 
         val pullConfig2 = pullConfig()
         pullConfig2.conflictResolver = TestConflictResolver { conflict ->
@@ -451,7 +454,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             latch3.countDown()
             conflict.localDocument
         }
-        val repl2 = newReplicator(pullConfig2)
+        val repl2 = testReplicator(pullConfig2)
 
         repl1.start(false)
         repl2.start(false)
@@ -609,6 +612,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * #13
      * 1. Test that the DocumentReplicationEvent will not be notified until the conflicted document is resolved.
      */
+    @FlakyTest
     @Test
     fun testDocumentReplicationEventForConflictedDocs() {
         var ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver {
@@ -670,6 +674,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: return newer doc
      */
+    @FlakyTest
     @Test
     fun testConflictResolutionDefaul3() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -710,6 +715,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: delete and generation
      */
+    @FlakyTest
     @Test
     fun testConflictResolutionDefault5() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -852,6 +858,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Neither has blob new doc with blob wins
      */
+    @FlakyTest
     @Test
     fun testConflictResolverNewWithBlob() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -1065,7 +1072,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
                 return if (!latch2.stdWait()) null else conflict?.localDocument
             }
         }
-        val repl1 = newReplicator(pullConfigWitResolver(resolver1))
+        val repl1 = testReplicator(pullConfigWitResolver(resolver1))
         // this is just here so that we can tell when this resolver is done.
         val token1c = repl1.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
@@ -1095,7 +1102,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
             }
         }
         val pullConfig2 = pullConfigWitResolver(resolver2)
-        val repl2 = newReplicator(pullConfig2)
+        val repl2 = testReplicator(pullConfig2)
         // Again, only here so that we know when this replicator is done
         val token2c = repl2.addChangeListener { change ->
             if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
@@ -1261,6 +1268,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * two conflicted deleted documents shouldn't be treat as conflict. The replicator
      * should be able to resolve this scenario without calling the conflict resolver.
      */
+    @FlakyTest
     @Test
     fun testConflictResolverShouldNotGetBothDeletedLocalAndDeletedRemote() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), null)
@@ -1284,6 +1292,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     /**
      * CBL-623: Revision flags get cleared while saving resolved document
      */
+    @FlakyTest
     @Test
     fun testConflictResolverPreservesFlags() {
         var doc = MutableDocument(DOC1)

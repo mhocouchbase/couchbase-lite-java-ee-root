@@ -51,6 +51,16 @@ open class PlatformSecurityTest : SecurityBaseTest() {
             )
         }
 
+        fun importTestEntry(srcAlias: String, dstAlias: String) {
+            val externalStore = loadTestKeyStore()
+            val internalStore = loadDefaultKeyStore()
+            val protection = KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())
+            internalStore.setEntry(dstAlias, externalStore.getEntry(srcAlias, protection), protection)
+        }
+
+        fun getIdentity(alias: String) =
+            TLSIdentity.getIdentity(loadDefaultKeyStore(), alias, EXTERNAL_KEY_PASSWORD.toCharArray())
+
         fun deleteIdentity(alias: String) = TLSIdentity.deleteIdentity(loadDefaultKeyStore(), alias)
 
         fun deleteEntries(filter: Fn.Predicate<String>) =
@@ -74,7 +84,7 @@ open class PlatformSecurityTest : SecurityBaseTest() {
         val protection = KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())
         dstKeyStore.setEntry(
             dstAlias,
-            extKeyStore.getEntry(EXTERNAL_KEY_ALIAS, protection),
+            extKeyStore.getEntry(EXTERNAL_KEY_ALIAS_TEST, protection),
             protection
         )
     }
@@ -113,7 +123,6 @@ open class PlatformSecurityTest : SecurityBaseTest() {
         )
     }
 
-    override fun getIdentity(alias: String) =
-        TLSIdentity.getIdentity(loadPlatformKeyStore(), alias, EXTERNAL_KEY_PASSWORD.toCharArray())
+    override fun getIdentity(alias: String) = PlatformSecurityTest.getIdentity(alias)
 }
 

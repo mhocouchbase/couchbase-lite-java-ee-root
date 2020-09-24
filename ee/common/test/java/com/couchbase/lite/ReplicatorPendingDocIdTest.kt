@@ -36,7 +36,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //       in cross platform error messages
     @Test
     fun testPendingDocIdsPullOnlyException() {
-        val replicator = newReplicator(pullConfig())
+        val replicator = testReplicator(pullConfig())
         val latch = CountDownLatch(1)
 
         var expected: CouchbaseLiteException? = null
@@ -75,7 +75,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //       in cross platform error messages
     @Test
     fun testIsDocumentPendingPullOnlyException() {
-        val replicator = newReplicator(pullConfig())
+        val replicator = testReplicator(pullConfig())
         val latch = CountDownLatch(1)
 
         var expected: CouchbaseLiteException? = null
@@ -113,7 +113,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    3. Expect platform exception (eg. ArgumentNullException in .Net)
     @Test
     fun testIsDocumentPendingNullIdException() {
-        val replicator = newReplicator(pullConfig())
+        val replicator = testReplicator(pullConfig())
         val latch = CountDownLatch(1)
 
         var expected: IllegalArgumentException? = null
@@ -317,7 +317,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     }
 
     private fun validatePendingDocumentIds(changed: Set<String>, config: ReplicatorConfiguration? = null) {
-        val replicator = newReplicator(config ?: pushConfig())
+        val replicator = testReplicator(config ?: pushConfig())
         val latch = CountDownLatch(1)
 
         var err: Exception? = null
@@ -371,7 +371,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         expectedNotPending: Set<String>? = null,
         config: ReplicatorConfiguration? = null
     ) {
-        val replicator = newReplicator(config ?: pushConfig())
+        val replicator = testReplicator(config ?: pushConfig())
         val latch = CountDownLatch(1)
 
         var err: Exception? = null
@@ -433,6 +433,6 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             ?.fold(true) { acc: Boolean, isPending: Boolean -> acc && (isPending == expected) }
             ?: true
 
-    private fun pushPull() = run(newReplicator(makeConfigTargetingOtherDb(true, true)))
+    private fun pushPull() = run(testReplicator(makeConfigTargetingOtherDb(true, true)))
 }
 

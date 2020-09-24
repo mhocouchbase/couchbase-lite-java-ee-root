@@ -36,7 +36,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
     @SlowTest
     @Test
     fun testGetKeyData() {
-        val key = loadTestKeyStore().getCertificate(EXTERNAL_KEY_ALIAS).publicKey.encoded
+        val key = loadTestKeyStore().getCertificate(EXTERNAL_KEY_ALIAS_TEST).publicKey.encoded
 
         val alias = newKeyAlias()
 
@@ -52,7 +52,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
     @Test
     fun testSign() {
         val testStore = loadTestKeyStore()
-        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey
+        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS_TEST).publicKey
 
         val alias = newKeyAlias()
 
@@ -78,7 +78,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
     @Test
     fun testDecrypt() {
         val testStore = loadTestKeyStore()
-        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS).publicKey
+        val key = testStore.getCertificate(EXTERNAL_KEY_ALIAS_TEST).publicKey
 
         val alias = newKeyAlias()
 
@@ -107,12 +107,12 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         val keyStore = loadPlatformKeyStore()
 
         Assert.assertFalse(mgr.findAlias(keyStore, alias))
-        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
+        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS_TEST))
 
         loadTestKey(alias)
 
         Assert.assertTrue(mgr.findAlias(keyStore, alias))
-        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS))
+        Assert.assertFalse(mgr.findAlias(keyStore, EXTERNAL_KEY_ALIAS_TEST))
     }
 
     @Test
@@ -123,14 +123,14 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val keyStore = loadPlatformKeyStore()
 
-        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS, null))
+        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS_TEST, null))
         Assert.assertNull(mgr.getKey(keyStore, alias, null))
 
         loadTestKey(alias)
 
         // ??? there really must be more that we can test...
         Assert.assertNotNull(mgr.getKey(keyStore, alias, EXTERNAL_KEY_PASSWORD.toCharArray()))
-        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS, EXTERNAL_KEY_PASSWORD.toCharArray()))
+        Assert.assertNull(mgr.getKey(keyStore, EXTERNAL_KEY_ALIAS_TEST, EXTERNAL_KEY_PASSWORD.toCharArray()))
     }
 
     @Test
@@ -141,14 +141,14 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
 
         val keyStore = loadPlatformKeyStore()
 
-        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS))
+        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS_TEST))
         Assert.assertNull(mgr.getCertificates(keyStore, alias))
 
         loadTestKey(alias)
 
         // ??? there really must be more that we can test...
         Assert.assertNotNull(mgr.getCertificates(keyStore, alias))
-        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS))
+        Assert.assertNull(mgr.getCertificates(keyStore, EXTERNAL_KEY_ALIAS_TEST))
     }
 
     @Test

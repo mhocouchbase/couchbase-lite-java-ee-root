@@ -33,7 +33,7 @@ class KeyStoreUtilsTest : PlatformSecurityTest() {
                 EXTERNAL_KEY_STORE_TYPE,
                 it,
                 EXTERNAL_KEY_PASSWORD.toCharArray(),
-                EXTERNAL_KEY_ALIAS,
+                EXTERNAL_KEY_ALIAS_TEST,
                 null,
                 alias
             )
