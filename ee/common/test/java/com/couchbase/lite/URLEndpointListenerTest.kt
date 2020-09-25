@@ -126,15 +126,17 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     @Test
     fun testLegalNetworkInterface() {
-        val config = URLEndpointListenerConfiguration(otherDB)
-
-        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence().filter {
-            Report.log(LogLevel.DEBUG, "Candidate interface ${it} :: ${it.isLoopback}")
-            it.isLoopback
+        // this test fails on Windows because Java can't find accurate interface names
+        if (handlePlatformSpecially("windows")) {
+            Report.log(LogLevel.WARNING, "TEST IGNORED: Unable to get network interface names on Windows")
+            return
         }
 
+        val config = URLEndpointListenerConfiguration(otherDB)
+
+        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence().filter { it.isLoopback }
+
         val iface = ifaces.firstOrNull()?.name
-        Report.log(LogLevel.DEBUG, "Selected interface: ${iface}")
         if (iface == null) {
             Report.log(LogLevel.INFO, "Cannot find a loopback interface for testLegalNetworkInterface")
             return
