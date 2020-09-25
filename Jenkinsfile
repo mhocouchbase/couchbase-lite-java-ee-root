@@ -72,9 +72,33 @@ pipeline {
              }
         }
 
+//        stage('Download Core') {
+//            steps {
+//                sh """
+//                    echo "======== Download Core"
+//                    common/tools/fetch_litecore.sh -e EE -n "http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
+//                """
+//            }
+//        }
+//
+//        This fails on the current verification server: There is no CMake.
+//        Not clear, though, that the correct response is to install CMake.
+//        Why, in the name of heaven, should we be doing a CMake build,
+//        simply to *verify* Java code??
+//        stage('Build MbedTLS') {
+//            steps {
+//                sh """
+//                    echo "======== Build mbedtls"
+//                    common/tools/build_litecore.sh -e EE -l mbedcrypto
+//                """
+//            }
+//        }
+
+//      For now, "verification" means verify the Android build.  Sigh.
         stage('Verify') {
             steps {
                 sh """
+                    cd ee/android
                     set +x
                     echo "======== VERIFY Couchbase Lite Java Family v`cat version.txt` (${env.CHANGE_BRANCH}) ${env.CHANGE_URL}"
                     ./gradlew ciCheck -PtargetAbis=arm64-v8a || exit 1
