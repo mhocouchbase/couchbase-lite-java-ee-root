@@ -128,10 +128,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun testLegalNetworkInterface() {
         val config = URLEndpointListenerConfiguration(otherDB)
 
-        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence().filter { it.isLoopback }
-        Report.log(LogLevel.DEBUG, "Candidate interfaces: ${ifaces}")
+        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence().filter {
+            Report.log(LogLevel.DEBUG, "Candidate interface ${it} :: ${it.isLoopback}")
+            it.isLoopback
+        }
+
         val iface = ifaces.firstOrNull()?.name
-        Report.log(LogLevel.DEBUG, "Loopback interface: ${iface}")
+        Report.log(LogLevel.DEBUG, "Selected interface: ${iface}")
         if (iface == null) {
             Report.log(LogLevel.INFO, "Cannot find a loopback interface for testLegalNetworkInterface")
             return
