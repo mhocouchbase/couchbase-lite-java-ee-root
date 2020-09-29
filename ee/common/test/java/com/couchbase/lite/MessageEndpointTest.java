@@ -12,13 +12,14 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.ClassUtils;
@@ -36,20 +37,9 @@ import static org.junit.Assert.fail;
 /////////////////////////////////////  MOCK CONNECTION  /////////////////////////////////////
 
 abstract class MockConnection implements MessageEndpointConnection {
-    private final ThreadFactory factory = new ThreadFactory() {
-        final AtomicInteger id = new AtomicInteger(1);
-
-        @Override
-        public Thread newThread(@NonNull Runnable runnable) {
-            final Thread thread = new Thread(runnable, "MockConnection #" + id.getAndIncrement());
-            thread.setUncaughtExceptionHandler((t, e) ->
-                Report.log(LogLevel.WARNING, "Uncaught exception on " + thread.getName(), e));
-            return thread;
-        }
-    };
-    private final ScheduledExecutorService queue = Executors.newSingleThreadScheduledExecutor(factory);
-
     private final Deque<Message> messageQueue = new LinkedList<>();
+
+    private final ExecutorService wire;
 
     private final String logName;
 
@@ -57,7 +47,22 @@ abstract class MockConnection implements MessageEndpointConnection {
     protected MessagingCloseCompletion onClose;
     protected boolean closing;
 
-    MockConnection(@NonNull String logName) { this.logName = logName; }
+    MockConnection(@NonNull String logName) {
+        this.logName = logName;
+        wire = new ThreadPoolExecutor(
+            1,
+            1,
+            30, TimeUnit.SECONDS,
+            new LinkedBlockingDeque<>(),
+            runnable -> {
+                final Thread thread = new Thread(runnable, logName);
+                thread.setUncaughtExceptionHandler((t, e) ->
+                    Report.log(LogLevel.WARNING, "Uncaught exception on " + t.getName(), e));
+                return thread;
+            },
+            (r, e) -> { } // Ignore REEs. They happen when the connection is closed prematurely
+        );
+    }
 
     abstract void openAsync(
         @NonNull final ReplicatorConnection connection,
@@ -89,7 +94,7 @@ abstract class MockConnection implements MessageEndpointConnection {
             messageQueue.clear();
         }
 
-        queue.submit(() -> {
+        wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
                 logName + ".open(%s, %s)",
@@ -108,7 +113,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         final byte[] data = new byte[msg.length];
         System.arraycopy(msg, 0, data, 0, data.length);
 
-        queue.submit(() -> {
+        wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
                 logName + ".send(%s, %s)",
@@ -127,7 +132,7 @@ abstract class MockConnection implements MessageEndpointConnection {
             closeCompletion = onClose;
         }
 
-        queue.submit(() -> {
+        wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
                 logName + ".close(%s, %s, %s)",
@@ -166,7 +171,7 @@ abstract class MockConnection implements MessageEndpointConnection {
             repl = replicatorConnection;
         }
 
-        queue.submit(() -> {
+        wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
                 logName + ".disconnect(%s, %s, %s)",
@@ -179,14 +184,16 @@ abstract class MockConnection implements MessageEndpointConnection {
         });
     }
 
+    public void stop() { disconnect( null, wire::shutdown); }
+
     @Override
     protected void finalize() throws Throwable {
-        try { queue.shutdown(); }
+        try { wire.shutdown(); }
         finally { super.finalize(); }
     }
 
     private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {
-        queue.submit(() -> {
+        wire.submit(() -> {
             Report.log(LogLevel.DEBUG, logName + ".deliver(%d, %s)", message.toData().length, ClassUtils.objId(repl));
             deliverAsync(message, repl);
         });
@@ -203,12 +210,8 @@ class MockServerConnection extends MockConnection {
     @Nullable
     private MockClientConnection client;
 
-    public MockServerConnection(Database database, ProtocolType protocolType) {
-        this(new MessageEndpointListener(new MessageEndpointListenerConfiguration(database, protocolType)));
-    }
-
-    public MockServerConnection(@NonNull MessageEndpointListener listener) {
-        super("MockServerConnection");
+    public MockServerConnection(@NonNull String testName, @NonNull MessageEndpointListener listener) {
+        super(testName + ":Server");
 
         this.listener = listener;
 
@@ -399,7 +402,9 @@ class MockConnectionFactory implements MessageEndpointDelegate {
     public MessageEndpointConnection createConnection(@NonNull MessageEndpoint endpoint) {
         final int connects = connections.incrementAndGet();
         if (connects > maxConnections) { throw new IllegalStateException("Too many connections: " + connects); }
-        return new MockClientConnection(endpoint, errorLogic);
+        final MockClientConnection client = new MockClientConnection(endpoint, errorLogic);
+        MessageEndpointTest.CONNECTIONS.add(client);
+        return client;
     }
 }
 
@@ -510,6 +515,16 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
 public class MessageEndpointTest extends BaseReplicatorTest {
     public static final long LONG_DELAY_SEC = 10;  // Core takes 5s to retry after a
 
+    static final List<MockConnection> CONNECTIONS = new ArrayList<>();
+
+    @After
+    public void tearDownMessageEndpointTest() {
+        for (MockConnection connection: CONNECTIONS) {
+            try { connection.stop(); }
+            catch (Exception e) { Report.log(LogLevel.WARNING, "failed closing connection", e); }
+        }
+    }
+
     @Test
     public void testPushDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -522,7 +537,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PushWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -547,7 +563,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -571,7 +588,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PushContinuousWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -596,7 +614,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushContinuousWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -620,7 +639,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PullWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -645,7 +665,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PullWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -669,7 +690,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PushContinuousWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -694,7 +716,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PullContinuousWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         final ReplicatorConfiguration config
@@ -718,7 +741,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PushPullWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -745,7 +769,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushPullWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -772,7 +797,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.MESSAGE_STREAM);
+        MockServerConnection server = getServerConnection("PushPullContinuousWithMsg", ProtocolType.MESSAGE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -800,7 +826,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushPullContinuousWithStream", ProtocolType.BYTE_STREAM);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -818,38 +845,38 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringOpen() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
+        testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
     @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
+        testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
     @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, true);
+        testP2PError("P2PRecoverableFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, true);
     }
 
     @Test
     public void testP2PPermanentFailureDuringOpen() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, false);
+        testP2PError("P2PPermanentFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, false);
     }
 
     @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringSend() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
+        testP2PError("P2PPermanentFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
     @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
-        testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
+        testP2PError("P2PPermanentFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
     }
 
     @SlowTest
@@ -858,7 +885,9 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
-        MockServerConnection server = new MockServerConnection(listener);
+        MockServerConnection server = getServerConnection("P2PPassiveClose", listener);
+        CONNECTIONS.add(server);
+
         MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config = new ReplicatorConfiguration(baseTestDb, endpoint).setContinuous(true);
@@ -917,16 +946,12 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             }
         });
 
-        final MockServerConnection serverConnection = new MockServerConnection(listener);
+        MockServerConnection server = getServerConnection("CloseDbWithListener", listener);
 
         final ReplicatorConfiguration config = new ReplicatorConfiguration(
             baseTestDb,
-            new MessageEndpoint(
-                "p2ptest2",
-                serverConnection,
-                ProtocolType.MESSAGE_STREAM,
-                new MockConnectionFactory(1)));
-        config.setContinuous(true);
+            new MessageEndpoint("p2ptest2", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(1)))
+            .setContinuous(true);
         final Replicator repl = new Replicator(null, config);
         repl.addChangeListener(ch -> {
             switch (ch.getStatus().getActivityLevel()) {
@@ -966,7 +991,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         final MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
-        final MockServerConnection serverConnection1 = new MockServerConnection(listener);
+        final MockServerConnection serverConnection1 = getServerConnection("P2PPassiveCloseAll1", listener);
         final ReplicatorConfiguration config1 = new ReplicatorConfiguration(
             baseTestDb,
             new MessageEndpoint(
@@ -977,7 +1002,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         config1.setContinuous(true);
         final Replicator replicator1 = testReplicator(config1);
 
-        final MockServerConnection serverConnection2 = new MockServerConnection(listener);
+        final MockServerConnection serverConnection2 = getServerConnection("P2PPassiveCloseAll2", listener);
         final ReplicatorConfiguration config2 = new ReplicatorConfiguration(
             baseTestDb,
             new MessageEndpoint(
@@ -1059,7 +1084,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
-        MockServerConnection serverConnection = new MockServerConnection(listener);
+        MockServerConnection serverConnection = getServerConnection("P2PChangeListener", listener);
         MessageEndpoint endpoint = new MessageEndpoint(
             "p2ptest5",
             serverConnection,
@@ -1085,7 +1110,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
-        MockServerConnection serverConnection = new MockServerConnection(listener);
+        MockServerConnection serverConnection = getServerConnection("RemoveChangeListener", listener);
         MessageEndpoint endpoint = new MessageEndpoint(
             "p2ptest6",
             serverConnection,
@@ -1120,7 +1145,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         doc3.setValue("name", "doc3");
         saveDocInBaseTestDb(doc3);
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -1149,7 +1174,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         doc3.setValue("name", "doc3");
         otherDB.save(doc3);
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PullWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -1183,7 +1208,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         doc4.setValue("name", "doc4");
         otherDB.save(doc4);
 
-        MockServerConnection server = new MockServerConnection(otherDB, ProtocolType.BYTE_STREAM);
+        MockServerConnection server = getServerConnection("PushPullWithFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
@@ -1305,7 +1330,10 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(success);
     }
 
-    private void testP2PError(MockClientConnection.ErrorLogic.LifecycleLocation location, boolean recoverable)
+    private void testP2PError(
+        String testName,
+        MockClientConnection.ErrorLogic.LifecycleLocation location,
+        boolean recoverable)
         throws CouchbaseLiteException {
         MutableDocument mdoc = new MutableDocument("livesindb");
         mdoc.setString("name", "db");
@@ -1315,17 +1343,35 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         int expectedCode = recoverable ? 0 : CBLError.Code.WEB_SOCKET_CLOSE_USER_PERMANENT;
 
         Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
-        run(createFailureP2PConfig(ProtocolType.BYTE_STREAM, location, recoverable), expectedCode, expectedDomain);
+        run(
+            createFailureP2PConfig(testName, ProtocolType.BYTE_STREAM, location, recoverable),
+            expectedCode,
+            expectedDomain);
 
         Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");
         run(
-            createFailureP2PConfig(ProtocolType.MESSAGE_STREAM, location, recoverable),
+            createFailureP2PConfig(testName, ProtocolType.MESSAGE_STREAM, location, recoverable),
             expectedCode,
             expectedDomain,
             true);
     }
 
+    @NotNull
+    private MockServerConnection getServerConnection(String testName, ProtocolType stream) {
+        return getServerConnection(
+            testName,
+            new MessageEndpointListener(new MessageEndpointListenerConfiguration(otherDB, stream)));
+    }
+
+    @NotNull
+    private MockServerConnection getServerConnection(String testName, MessageEndpointListener listener) {
+        MockServerConnection server = new MockServerConnection(testName, listener);
+        CONNECTIONS.add(server);
+        return server;
+    }
+
     private ReplicatorConfiguration createFailureP2PConfig(
+        String testName,
         ProtocolType protocolType,
         MockClientConnection.ErrorLogic.LifecycleLocation location,
         boolean recoverable) {
@@ -1334,7 +1380,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         if (recoverable) { errorLocation.withRecoverableException(); }
         else { errorLocation.withPermanentException(); }
 
-        MockServerConnection server = new MockServerConnection(otherDB, protocolType);
+        MockServerConnection server = getServerConnection(testName, protocolType);
         ReplicatorConfiguration config = new ReplicatorConfiguration(
             baseTestDb,
             new MessageEndpoint("p2ptest0", server, protocolType, new MockConnectionFactory(errorLocation)));
