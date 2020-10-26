@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.utils.FlakyTest
 import com.couchbase.lite.internal.utils.Report
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -203,6 +204,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //       is equal to the total count of saved documents - 1.
     //    5. Start replication and wait for activity status to stop.
     //    6. Call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
+    @FlakyTest
     @Test
     fun testPendingDocIdsWithPurge() {
         val ids = createDocs(5)

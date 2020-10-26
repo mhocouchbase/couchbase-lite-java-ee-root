@@ -818,6 +818,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         assertNull(otherDB.getDocument("doc1"));
     }
 
+    @FlakyTest
     @Test
     public void testDocumentReplicationEvent() throws CouchbaseLiteException, InterruptedException {
         final MutableDocument doc1 = new MutableDocument("doc1");

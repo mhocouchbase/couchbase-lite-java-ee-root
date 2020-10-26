@@ -638,6 +638,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: deleted local
      */
+    @FlakyTest
     @Test
     fun testConflictResolutionDefault1() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
