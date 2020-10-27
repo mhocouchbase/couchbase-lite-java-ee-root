@@ -162,7 +162,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         mDoc = encryptionTestDb.getDocument(mDoc.getId()).toMutable();
 
         // Compact:
-        encryptionTestDb.compact();
+        encryptionTestDb.performMaintenance(MaintenanceType.COMPACT);
 
         // Update the document again:
         mDoc.setValue("answer", 85);

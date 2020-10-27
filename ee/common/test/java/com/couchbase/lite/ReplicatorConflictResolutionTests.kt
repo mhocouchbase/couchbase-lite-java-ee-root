@@ -215,6 +215,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc can be push to the remote database.
      * Case: Mutated local doc
      */
+    @FlakyTest
     @Test
     fun testConflictResolverMergeLocal() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -818,6 +819,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Remote has blob; remote wins
      */
+    @FlakyTest
     @Test
     fun testConflictResolverRemoteWithRemoteBlob() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -885,6 +887,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      *    Test whether the error has been captured and thrown or not
      * Case: Blob from Local DB
      */
+    @FlakyTest
     @Test
     fun testConflictResolverReturnsBlobFromLocalDB() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -1199,6 +1202,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     /**
      * @borden's merge test, for good measure.
      */
+    @FlakyTest
     @Test
     fun testConflictResolverMergeDoc() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY1 to VAL1, KEY2 to VAL2))

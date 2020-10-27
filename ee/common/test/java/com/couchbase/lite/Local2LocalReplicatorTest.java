@@ -385,6 +385,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     /*
      * https://github.com/couchbase/couchbase-lite-core/issues/156
      */
+    @FlakyTest
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
         Database anotherDB = createDb("pull-cont-db");

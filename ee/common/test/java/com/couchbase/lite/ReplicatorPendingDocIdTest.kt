@@ -246,6 +246,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
 
+    @FlakyTest
     @Test
     fun testIsDocumentPendingDelete() {
         val ids = createDocs(2)
