@@ -27,6 +27,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.core.C4Key;
+import com.couchbase.lite.internal.utils.FileUtils;
 import com.couchbase.lite.internal.utils.IOUtils;
 import com.couchbase.lite.internal.utils.TestUtils;
 
@@ -271,6 +272,44 @@ public class DatabaseEncryptionTest extends BaseTest {
     // https://github.com/couchbase/couchbase-lite-android/issues/1720
     @Test
     public void testRemoveKey() throws CouchbaseLiteException, IOException { rekeyAndVerifyDb(TEST_PWD, null); }
+
+    // Verify that the 2.8.0 bug fix works on an encrypted DB
+    // There are four more test for this in DatabaseTest
+
+    @Test
+    public void testReOpenExistingEncrypted2Dot8DotOhDb() throws CouchbaseLiteException {
+        final String dbName = getUniqueName("test-db");
+        final String twoDot8DotOhDirPath = AbstractDatabaseConfiguration.getDbDirectory(null) + "/.couchbase";
+
+        Database db = null;
+        try {
+            // Create a database in the misguided 2.8.0 directory
+            final DatabaseConfiguration config = new DatabaseConfiguration();
+            config.setDirectory(twoDot8DotOhDirPath);
+            config.setEncryptionKey(new EncryptionKey("rub-a-dub-dub"));
+
+            db = new Database(dbName, config);
+            final MutableDocument mDoc = new MutableDocument();
+            mDoc.setString("foo", "bar");
+            db.save(mDoc);
+            db.close();
+            db = null;
+
+            // This should open the database created above
+            config.setRootDirectory(null);
+            db = new Database(dbName, config);
+            assertEquals(1L, db.getCount());
+            final Document doc = db.getDocument(mDoc.getId());
+            assertEquals("bar", doc.getString("foo"));
+        }
+        finally {
+            try {
+                FileUtils.eraseFileOrDir(twoDot8DotOhDirPath);
+                if (db != null) { db.delete(); }
+            }
+            catch (Exception ignore) { }
+        }
+    }
 
     // This is purely a time optimization.
     // Creating keys is pretty expensive and caching them makes the tests run much faster.
