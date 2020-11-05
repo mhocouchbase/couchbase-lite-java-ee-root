@@ -24,14 +24,14 @@ fi
 STATUS=0
 
 echo "======== TEST Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
-./gradlew ciTest --info --console=plain || STATUS=1
+./gradlew ciTest --info --console=plain || STATUS=5
 
 echo "======== Publish reports"
-pushd lib/build/reports
-zip -r "${REPORTS}/test-reports-macos-ee" tests
-popd
+pushd lib/build > /dev/null
+zip -r "${REPORTS}/test-reports-macos-ee" reports
+popd > /dev/null
 
-find "${REPORTS}"
 echo "======== TEST COMPLETE ${STATUS}"
+find "${REPORTS}"
 exit $STATUS
 
