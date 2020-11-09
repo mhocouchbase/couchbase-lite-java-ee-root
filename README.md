@@ -13,7 +13,7 @@ There are several products that share code written in the Java language
 (Android, Java-Appserver, and Java-Swing, among them.  Each has a CE and EE version).
 The top level in this workspace contains:
 
-legal: licenses for the Couchbase Lite products.
+* legal: licenses for the Couchbase Lite products.
 * core: Code for Couchbase Lite Core.
 * couchbase-lite-core-EE: Code for Couchbase Lite Core Enterprise edition
 * common/common: code common to all products
@@ -27,8 +27,4 @@ legal: licenses for the Couchbase Lite products.
 * ee/java: the enterprise edition of the Couchbase Lite Java product
 
 Each of the four products has its own README
-
-## Setup
-
-
 

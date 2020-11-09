@@ -2,10 +2,9 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ROOT_DIR="${SCRIPT_DIR}/.."
-CUR_DIR=`pwd`
 
 echo "=== Update core"
-cd "${ROOT_DIR}/core"
+pushd "${ROOT_DIR}/core" > /dev/null
 CUR_BRANCH="$( git symbolic-ref HEAD )"
 if [ "${CUR_BRANCH}" != "refs/heads/master" ]; then
     echo "not on master branch in `pwd`"
@@ -14,9 +13,10 @@ fi
 git pull
 git submodule update --recursive
 git remote prune origin
+popd > /dev/null
 
 echo "=== Update EE core"
-cd "${ROOT_DIR}/couchbase-lite-core-EE"
+pushd  "${ROOT_DIR}/couchbase-lite-core-EE" > /dev/null
 CUR_BRANCH="$( git symbolic-ref HEAD )"
 if [ "${CUR_BRANCH}" != "refs/heads/master" ]; then
     echo "not on master branch in `pwd`"
@@ -25,11 +25,11 @@ fi
 git pull
 git submodule update --recursive
 git remote prune origin
+popd > /dev/null
 
 echo "=== Rebuild core lib"
-cd "${ROOT_DIR}"
+pushd "${ROOT_DIR}" > /dev/null
 rm -rf common/lite-core
 common/tools/build_litecore.sh -e EE
-
-cd "${CUR_DIR}"
+popd > /dev/null
 
