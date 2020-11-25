@@ -350,9 +350,7 @@ public class DatabaseEncryptionTest extends BaseTest {
             for (int i = 0; i < 100; i++) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("seq", i);
-                MutableDocument doc = new MutableDocument(null, map);
-                try { encryptionTestDb.save(doc); }
-                catch (CouchbaseLiteException e) { throw new IllegalStateException("Unexpected exception", e); }
+                encryptionTestDb.save(new MutableDocument(null, map));
             }
         });
 
