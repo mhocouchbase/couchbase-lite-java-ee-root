@@ -42,11 +42,15 @@ public final class Prediction {
 
         C4PredictiveModelImpl(PredictiveModel model) { this.model = model; }
 
+        // This method is called by reflection.  Don't change its signature.
         @Override
         public long predict(long input, long c4db) {
-            return encode(model.predict((Dictionary) new MRoot(
-                new DbContext(new Database(c4db)),
-                new FLValue(input), false).asNative()))
+            return encode(model.predict(
+                (Dictionary) new MRoot(
+                    new DbContext(new Database(c4db)),
+                    new FLValue(input),
+                    false)
+                    .asNative()))
                 .getHandle();
         }
 
@@ -57,12 +61,8 @@ public final class Prediction {
                     prediction.encodeTo(encoder);
                     return encoder.managedFinish2(); // Will be freed by the native code.
                 }
-                catch (LiteCoreException e) {
-                    Log.e(LogDomain.QUERY, "Error when encoding a predictive result", e);
-                }
-                finally {
-                    encoder.free();
-                }
+                catch (LiteCoreException e) { Log.w(LogDomain.QUERY, "Failed encoding a predictive result", e); }
+                finally { encoder.free(); }
             }
             return new FLSliceResult(true); // Will be freed by the native code.
         }
