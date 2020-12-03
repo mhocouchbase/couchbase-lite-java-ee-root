@@ -265,15 +265,13 @@ public class MessageEndpointListener {
     }
 
     private byte[] getOptions() throws LiteCoreException {
-        final FLEncoder encoder = new FLEncoder();
-        try {
+        try (FLEncoder encoder = new FLEncoder()) {
             encoder.beginDict(1);
             encoder.writeKey(C4Replicator.REPLICATOR_OPTION_NO_INCOMING_CONFLICTS);
             encoder.writeValue(true);
             encoder.endDict();
             return encoder.finish();
         }
-        finally { encoder.free(); }
     }
 }
 
