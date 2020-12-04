@@ -19,7 +19,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
-import java.io.Closeable;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.util.Arrays;
@@ -41,7 +40,7 @@ import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-public class C4KeyPair extends C4NativePeer implements Closeable {
+public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     public interface NativeImpl {
         @NonNull
         byte[] nGenerateSelfSignedCertificate(
@@ -172,7 +171,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     @Nullable
     static byte[] getKeyDataCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
@@ -181,7 +179,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     @Nullable
     static byte[] signCallback(long token, int digestAlgorithm, @NonNull byte[] data) {
         final C4KeyPair keyPair = getKeyPair(token);
@@ -193,7 +190,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     @Nullable
     static byte[] decryptCallback(long token, @NonNull byte[] data) {
         final C4KeyPair keyPair = getKeyPair(token);
@@ -202,7 +198,6 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     static void freeCallback(long token) {
         final C4KeyPair keyPair = getKeyPair(token);
         if (keyPair == null) { return; }
@@ -327,11 +322,13 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     }
 
     @Override
-    public void close() { close(getPeerAndClear()); }
+    public void close() { free(); }
 
     @NonNull
     @Override
-    public String toString() { return "C4KeyPair{" + ClassUtils.objId(this) + "/" + getPeer() + ": " + token + "}"; }
+    public String toString() {
+        return "C4KeyPair{" + ClassUtils.objId(this) + "/" + getPeerUnchecked() + ": " + token + "}";
+    }
 
     //-------------------------------------------------------------------------
     // protected methods
@@ -341,9 +338,7 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     @Override
     protected void finalize() throws Throwable {
         try {
-            final long peer = getPeerAndClear();
-            close(peer);
-            if (peer != 0) { Log.d(LogDomain.LISTENER, "C4KeyPair finalized without closing: " + peer); }
+            if (free()) { Log.w(LogDomain.LISTENER, "C4KeyPair was not closed: " + this); }
         }
         finally { super.finalize(); }
     }
@@ -352,10 +347,13 @@ public class C4KeyPair extends C4NativePeer implements Closeable {
     // protected methods
     //-------------------------------------------------------------------------
 
-    // !!! the impl may already have been GCed.
-    private void close(long peer) {
-        if (peer == 0) { return; }
+    private boolean free() {
         KEY_PAIR_CONTEXT.unbind(token);
-        impl.nFree(peer);
+
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return false; }
+
+        impl.nFree(handle);
+        return true;
     }
 }

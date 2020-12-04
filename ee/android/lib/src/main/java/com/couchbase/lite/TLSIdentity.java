@@ -57,13 +57,13 @@ public final class TLSIdentity extends AbstractTLSIdentity {
 
         final List<Certificate> certs = getManager().getCertificateChain(null, alias);
         if (certs == null) {
-            Log.v(LogDomain.LISTENER, "No cert chain for: " + alias);
+            Log.i(LogDomain.LISTENER, "No cert chain for: " + alias);
             return null;
         }
 
         final PrivateKey key = getManager().getKey(null, alias, null);
         if (key == null) {
-            Log.v(LogDomain.LISTENER, "No private key for: " + alias);
+            Log.i(LogDomain.LISTENER, "No private key for: " + alias);
             return null;
         }
 

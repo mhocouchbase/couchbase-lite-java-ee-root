@@ -20,7 +20,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -42,12 +41,13 @@ import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
-public class C4Listener extends C4NativePeer implements Closeable {
+public class C4Listener extends C4NativePeer implements AutoCloseable {
     public static final String AUTH_MODE_BASIC = "Basic";
 
     /**
@@ -274,22 +274,20 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     static boolean httpAuthCallback(long token, @Nullable String authHeader) {
         final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
         if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
+            Log.w(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
         }
         return listener.authenticateBasic(authHeader);
     }
 
     // This method is called by reflection.  Don't change its signature.
-    @SuppressWarnings("unused")
     static boolean certAuthCallback(long token, @Nullable byte[] clientCertData) {
         final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
         if (listener == null) {
-            Log.i(LogDomain.LISTENER, "No listener for token: " + token);
+            Log.w(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
         }
         return listener.authenticateCert(clientCertData);
@@ -322,7 +320,13 @@ public class C4Listener extends C4NativePeer implements Closeable {
     //-------------------------------------------------------------------------
 
     @Override
-    public void close() { close(getPeerAndClear()); }
+    public void close() { free(); }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "C4Listener{" + ClassUtils.objId(this) + "/" + getPeerUnchecked() + ": " + token + "}";
+    }
 
     public void shareDb(@NonNull String name, @NonNull C4Database db) throws CouchbaseLiteException {
         try { impl.nShareDb(getPeer(), name, db.getHandle()); }
@@ -357,10 +361,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
     @Override
     protected void finalize() throws Throwable {
         try {
-            final long peer = getPeerUnchecked();
-            close(peer);
-            if (peer == 0) { return; }
-            Log.d(LogDomain.LISTENER, "C4Listener finalized without closing: " + peer);
+            if (free()) { Log.i(LogDomain.LISTENER, "C4Listener was not closed: " + this); }
         }
         finally { super.finalize(); }
     }
@@ -411,7 +412,7 @@ public class C4Listener extends C4NativePeer implements Closeable {
             auth -> auth instanceof InternalCertAuthenticator); // Not expect to happen
 
         if ((clientCert == null) || (clientCert.length <= 0)) {
-            Log.w(LogDomain.LISTENER, "null/empty cert in authentication");
+            Log.w(LogDomain.LISTENER, "Null/empty cert in authentication");
             return false;
         }
 
@@ -431,11 +432,13 @@ public class C4Listener extends C4NativePeer implements Closeable {
     // Private methods
     //-------------------------------------------------------------------------
 
-    private void close(long peer) {
+    private boolean free() {
         LISTENER_CONTEXT.unbind(token);
-        if (peer == 0) { return; }
 
-        // !!! when called from the finalizer, the impl may already have been GCed.
-        impl.nFree(peer);
+        final long handle = getPeerAndClear();
+        if (handle == 0) { return false; }
+
+        impl.nFree(handle);
+        return true;
     }
 }

@@ -181,7 +181,7 @@ public class URLEndpointListener {
     @NonNull
     private C4Listener startLocked() throws CouchbaseLiteException {
         final ListenerAuthenticator auth = config.getAuthenticator();
-        Log.d(LogDomain.LISTENER, "start with auth: " + auth);
+        Log.i(LogDomain.LISTENER, "Starting with auth: " + auth);
 
         if (config.isTlsDisabled()) {
             return C4Listener.createHttpListener(

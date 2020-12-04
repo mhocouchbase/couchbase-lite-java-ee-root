@@ -56,13 +56,13 @@ public final class Prediction {
 
         private FLSliceResult encode(Dictionary prediction) {
             if (prediction != null) {
-                try (FLEncoder encoder = new FLEncoder()) {
+                try (FLEncoder encoder = FLEncoder.getManagedEncoder()) {
                     prediction.encodeTo(encoder);
-                    return encoder.managedFinish2(); // Will be freed by the native code.
+                    return encoder.finish2Unmanaged(); // Will be freed by the native code.
                 }
                 catch (LiteCoreException e) { Log.w(LogDomain.QUERY, "Failed encoding a predictive result", e); }
             }
-            return new FLSliceResult(true); // Will be freed by the native code.
+            return FLSliceResult.getUnmanagedSliceResult(); // Will be freed by the native code.
         }
     }
 

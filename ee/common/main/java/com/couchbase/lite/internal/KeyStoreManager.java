@@ -246,7 +246,7 @@ public abstract class KeyStoreManager {
     protected final List<Certificate> getCertificates(KeyStore keyStore, @NonNull String alias) {
         Certificate[] certs = null;
         try { certs = keyStore.getCertificateChain(alias); }
-        catch (KeyStoreException e) { Log.d(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e); }
+        catch (KeyStoreException e) { Log.i(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e); }
         return ((certs == null) || (certs.length <= 0)) ? null : new ArrayList<>(Arrays.asList(certs));
     }
 
@@ -260,9 +260,9 @@ public abstract class KeyStoreManager {
         // the list to avoid ConcurrentModificationException when deleting items
         // while iterating:
         int deleted = 0;
-        final List<String> aliaslist = Collections.list(aliases);
-        for (int i = aliaslist.size() - 1; i >= 0; i--) {
-            final String alias = aliaslist.get(i);
+        final List<String> aliasList = Collections.list(aliases);
+        for (int i = aliasList.size() - 1; i >= 0; i--) {
+            final String alias = aliasList.get(i);
             if (!filter.test(alias)) { continue; }
 
             try {

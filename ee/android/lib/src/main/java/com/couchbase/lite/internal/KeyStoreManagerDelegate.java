@@ -266,7 +266,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
             return store;
         }
         catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.e(LogDomain.LISTENER, "Failed to load key store", e);
+            Log.w(LogDomain.LISTENER, "Failed to load key store", e);
         }
         return null;
     }

@@ -41,6 +41,7 @@ import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
 
 class URLEndpointListenerTest : BaseReplicatorTest() {
     companion object {
@@ -687,15 +688,17 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.status?.connectionCount)
         assertEquals(0, listener.status?.activeConnectionCount)
 
-        val maxConnectionCount = AtomicInteger(0)
-        val maxActiveCount = AtomicInteger(0)
+        val maxVals = mutableListOf(0, 0)
+
         var token: ListenerToken? = null
         val repl = run(makeReplConfig(listener.endpoint(), otherDB)) { repl: Replicator ->
             token = repl.addChangeListener {
-                val status = listener.status
-                if (status != null) {
-                    maxActiveCount.accumulateAndGet(status.activeConnectionCount) { x, y -> Math.max(x, y) }
-                    maxConnectionCount.accumulateAndGet(status.connectionCount) { x, y -> Math.max(x, y) }
+                listener.status?.run {
+                    // on Android < 24, we cannot use AtomicInteger.getAndAccumulate
+                    synchronized(maxVals) {
+                        maxVals[0] = max(maxVals[0], activeConnectionCount)
+                        maxVals[1] = max(maxVals[1], connectionCount)
+                    }
                 }
             }
         }
@@ -706,8 +709,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(1, otherDB.count)
 
         // ??? The count of active connections is, apparently, so incredibly fleeting as to be pretty much useless.
-        // assertEquals(1, maxActiveCount.get())
-        assertEquals(1, maxConnectionCount.get())
+        // assertEquals(1, maxVals[0])
+        assertEquals(1, maxVals[1])
 
         assertNull(listener.status?.connectionCount)
         assertNull(listener.status?.activeConnectionCount)

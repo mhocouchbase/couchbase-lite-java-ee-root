@@ -76,7 +76,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
         final KeyStore keyStore = keyPair.getKeyStore();
         if (keyStore == null) {
-            Log.e(LogDomain.LISTENER, "Keystore is null");
+            Log.w(LogDomain.LISTENER, "Keystore is null");
             return null;
         }
 
@@ -99,7 +99,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         else {
             final KeyStore keyStore = keyPair.getKeyStore();
             if (keyStore == null) {
-                Log.e(LogDomain.LISTENER, "Sign: keystore is null");
+                Log.w(LogDomain.LISTENER, "Sign: keystore is null");
                 return null;
             }
 
@@ -137,7 +137,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         else {
             final KeyStore keyStore = keyPair.getKeyStore();
             if (keyStore == null) {
-                Log.e(LogDomain.LISTENER, "Decrypt: keystore is null");
+                Log.w(LogDomain.LISTENER, "Decrypt: keystore is null");
                 return null;
             }
 

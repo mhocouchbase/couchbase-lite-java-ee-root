@@ -102,7 +102,7 @@ public class MessageEndpointListener {
      * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
-        Log.d(LogDomain.LISTENER, "Accepting connection: " + connection);
+        Log.v(LogDomain.LISTENER, "Accepting connection: " + connection);
         Preconditions.assertNotNull(connection, "connection");
 
         if (stopped.get()) { return; }
@@ -111,7 +111,7 @@ public class MessageEndpointListener {
         try { options = getOptions(); }
         catch (LiteCoreException e) {
             // ??? shouldn't this just throw?
-            Log.e(DOMAIN, "Failed getting encoding options", e);
+            Log.w(DOMAIN, "Failed getting encoding options", e);
             return;
         }
 
@@ -150,7 +150,7 @@ public class MessageEndpointListener {
      * @param connection the connection to be closed
      */
     public void close(@NonNull MessageEndpointConnection connection) {
-        Log.d(LogDomain.LISTENER, "Closing connection: " + connection);
+        Log.v(LogDomain.LISTENER, "Closing connection: " + connection);
         Preconditions.assertNotNull(connection, "connection");
 
         C4Replicator replicator = null;
@@ -265,7 +265,7 @@ public class MessageEndpointListener {
     }
 
     private byte[] getOptions() throws LiteCoreException {
-        try (FLEncoder encoder = new FLEncoder()) {
+        try (FLEncoder encoder = FLEncoder.getManagedEncoder()) {
             encoder.beginDict(1);
             encoder.writeKey(C4Replicator.REPLICATOR_OPTION_NO_INCOMING_CONFLICTS);
             encoder.writeValue(true);
