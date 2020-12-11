@@ -638,6 +638,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         runRepl(listener.endpoint())
     }
 
+    @FlakyTest
     @Test
     fun testNetworkInterfaces() {
         val urlKey = "URL"
