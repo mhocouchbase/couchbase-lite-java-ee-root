@@ -95,7 +95,7 @@ include the location of the bits you want to test.  For example:
 ```
 repositories {
     mavenLocal()
-    maven { url "http://mobile.maven.couchbase.com/maven2/cimaven/" }
+    maven { url "http://proget.build.couchbase.com/maven2/cimaven/" }
     google()
     jcenter()
 }
