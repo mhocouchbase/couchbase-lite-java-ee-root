@@ -39,6 +39,10 @@ public class SocketFactory {
     @NonNull
     private final Fn.Consumer<List<Certificate>> serverCertsListener;
 
+    @NonNull
+    @Override
+    public String toString() { return "SocketFactory{" + "endpoint=" + endpoint + '}'; }
+
     public SocketFactory(
         @NonNull ReplicatorConfiguration config,
         @NonNull CBLCookieStore cookieStore,

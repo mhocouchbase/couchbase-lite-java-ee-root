@@ -93,7 +93,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         // Try to reopen with password (fails):
         TestUtils.assertThrowsCBL(
             CBLError.Domain.CBLITE,
-            CBLError.Code.NOT_A_DATABSE_FILE,
+            CBLError.Code.NOT_A_DATABASE_FILE,
             () -> reopenTestDbWithPassword("foo"));
 
         // Reopen with no password:
@@ -112,13 +112,13 @@ public class DatabaseEncryptionTest extends BaseTest {
         // Reopen without password (fails):
         TestUtils.assertThrowsCBL(
             CBLError.Domain.CBLITE,
-            CBLError.Code.NOT_A_DATABSE_FILE,
+            CBLError.Code.NOT_A_DATABASE_FILE,
             () -> reopenTestDbWithPassword(null));
 
         // Reopen with wrong password (fails):
         TestUtils.assertThrowsCBL(
             CBLError.Domain.CBLITE,
-            CBLError.Code.NOT_A_DATABSE_FILE,
+            CBLError.Code.NOT_A_DATABASE_FILE,
             () -> reopenTestDbWithPassword("wrong"));
 
         // Reopen with correct password:
@@ -146,7 +146,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         // Make sure old password doesn't work:
         TestUtils.assertThrowsCBL(
             CBLError.Domain.CBLITE,
-            CBLError.Code.NOT_A_DATABSE_FILE,
+            CBLError.Code.NOT_A_DATABASE_FILE,
             () -> reopenTestDbWithPassword(TEST_PWD));
     }
 

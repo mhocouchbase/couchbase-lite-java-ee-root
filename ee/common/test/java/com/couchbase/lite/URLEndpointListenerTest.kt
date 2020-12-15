@@ -593,9 +593,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val docId = makeOneDoc("auth", otherDB)
 
-        val listener = listenTls(null, ListenerCertificateAuthenticator { certs ->
-            certs[0] == clientIdentity.certs[0]
-        })
+        val listener = listenTls(
+            null,
+            ListenerCertificateAuthenticator { certs -> certs[0] == clientIdentity.certs[0] })
 
         assertEquals(0, baseTestDb.count)
         runRepl(listener.endpoint(), ClientCertificateAuthenticator(clientIdentity))

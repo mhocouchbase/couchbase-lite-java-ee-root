@@ -595,6 +595,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Database anotherDB = createDb("push-blob-db");
         try {
             try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
+                assertNotNull(is);
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
@@ -624,6 +625,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         Database anotherDB = createDb("pull-blob-db");
         try {
             try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
+                assertNotNull(is);
                 Blob blob = new Blob("image/jpg", is);
                 MutableDocument doc1 = new MutableDocument("doc1");
                 doc1.setValue("name", "Tiger");
@@ -1099,7 +1101,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
         Replicator repl = testReplicator(makeConfig(true, true, true));
 
-        AbstractQuery query = (AbstractQuery) QueryBuilder
+        AbstractQuery query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(baseTestDb));
 

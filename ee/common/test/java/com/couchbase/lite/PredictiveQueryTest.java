@@ -73,7 +73,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     private static final class EchoModel extends TestPredictiveModel {
-        public static String NAME = "EchoModel";
+        public static final String NAME = "EchoModel";
 
         @Override
         public String getName() { return NAME; }
@@ -83,7 +83,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     private static final class AggregateModel extends TestPredictiveModel {
-        public static String NAME = "AggregateModel";
+        public static final String NAME = "AggregateModel";
 
         @Override
         public String getName() { return NAME; }
@@ -120,7 +120,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     private static final class TextModel extends TestPredictiveModel {
-        public static String NAME = "TextModel";
+        public static final String NAME = "TextModel";
 
         @Override
         public String getName() { return NAME; }
@@ -664,9 +664,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        int rows = verifyQuery(q, (n, result) -> {
-            assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8));
-        });
+        int rows = verifyQuery(q, (n, result) -> assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8)));
         assertEquals(2, rows);
     }
 
@@ -815,9 +813,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         assertTrue(explain.indexOf("USING INDEX SumIndex") > 0);
         assertTrue(explain.indexOf("USING INDEX AvgIndex") > 0);
 
-        int rows = verifyQuery(q, (n, result) -> {
-            assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8));
-        });
+        int rows = verifyQuery(q, (n, result) -> assertTrue((result.getInt(0) == 15 || result.getInt(1) == 8)));
         assertEquals(2, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
 
@@ -1178,9 +1174,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     private MutableDocument createDocument(int[] numbers) throws CouchbaseLiteException {
         MutableDocument doc = new MutableDocument();
         List<Object> list = new ArrayList<>();
-        for (int n: numbers) {
-            list.add(n);
-        }
+        for (int n: numbers) { list.add(n); }
         doc.setArray("numbers", new MutableArray(list));
         baseTestDb.save(doc);
         return doc;

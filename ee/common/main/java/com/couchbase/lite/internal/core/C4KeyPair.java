@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
@@ -40,7 +42,7 @@ import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-public class C4KeyPair extends C4NativePeer implements AutoCloseable {
+public class C4KeyPair extends C4NativePeer {
     public interface NativeImpl {
         @NonNull
         byte[] nGenerateSelfSignedCertificate(
@@ -57,6 +59,7 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
         void nFree(long token);
     }
 
+    // Not final for testing
     @NonNull
     @VisibleForTesting
     static NativeImpl nativeImpl = new NativeC4KeyPair();
@@ -66,6 +69,7 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
+
     static {
         final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
         m.put(KeyStoreManager.KeyAlgorithm.RSA, (byte) 0x00);
@@ -73,6 +77,7 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     }
 
     private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
+
     static {
         final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();
         m.put(0, Signature.SignatureDigestAlgorithm.NONE);
@@ -199,7 +204,7 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
 
     // This method is called by reflection.  Don't change its signature.
     static void freeCallback(long token) {
-        final C4KeyPair keyPair = getKeyPair(token);
+        final C4KeyPair keyPair = getKeyPairUnsafe(token);
         if (keyPair == null) { return; }
         KeyStoreManager.getInstance().free(keyPair);
     }
@@ -209,13 +214,18 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     //-------------------------------------------------------------------------
 
     private static C4KeyPair getKeyPair(long token) {
-        Log.d(LogDomain.LISTENER, "get key pair @" + token);
-
-        final C4KeyPair keyPair = KEY_PAIR_CONTEXT.getObjFromContext(token);
+        final C4KeyPair keyPair = getKeyPairUnsafe(token);
         if (keyPair != null) { return keyPair; }
 
         Log.w(LogDomain.LISTENER, "Could not find the key pair @" + token);
         return null;
+    }
+
+    @Nullable
+    private static C4KeyPair getKeyPairUnsafe(long token) {
+        Log.d(LogDomain.LISTENER, "get key pair @" + token);
+
+        return KEY_PAIR_CONTEXT.getObjFromContext(token);
     }
 
     private static byte getC4KeyAlgorithm(KeyStoreManager.KeyAlgorithm algorithm) {
@@ -321,13 +331,18 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
         }
     }
 
+    @CallSuper
     @Override
-    public void close() { free(); }
+    public void close() {
+        KEY_PAIR_CONTEXT.unbind(token);
+        closePeer(null);
+    }
 
+    @NotNull
     @NonNull
     @Override
     public String toString() {
-        return "C4KeyPair{" + ClassUtils.objId(this) + "/" + getPeerUnchecked() + ": " + token + "}";
+        return "C4KeyPair{" + ClassUtils.objId(this) + "/" + super.toString() + ": " + token + "}";
     }
 
     //-------------------------------------------------------------------------
@@ -337,9 +352,7 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        try {
-            if (free()) { Log.w(LogDomain.LISTENER, "C4KeyPair was not closed: " + this); }
-        }
+        try { closePeer(LogDomain.LISTENER); }
         finally { super.finalize(); }
     }
 
@@ -347,13 +360,10 @@ public class C4KeyPair extends C4NativePeer implements AutoCloseable {
     // protected methods
     //-------------------------------------------------------------------------
 
-    private boolean free() {
-        KEY_PAIR_CONTEXT.unbind(token);
+    private void closePeer(@Nullable LogDomain domain) {
+        final long peer = getPeerAndClear();
+        if (verifyPeerClosed(peer, domain)) { return; }
 
-        final long handle = getPeerAndClear();
-        if (handle == 0) { return false; }
-
-        impl.nFree(handle);
-        return true;
+        impl.nFree(peer);
     }
 }

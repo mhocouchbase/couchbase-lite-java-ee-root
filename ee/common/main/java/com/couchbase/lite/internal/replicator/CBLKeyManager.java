@@ -38,7 +38,7 @@ public class CBLKeyManager implements X509KeyManager {
     @NonNull
     private final TLSIdentity identity;
 
-    public CBLKeyManager(TLSIdentity identity) {
+    public CBLKeyManager(@NonNull TLSIdentity identity) {
         this.identity = identity;
     }
 

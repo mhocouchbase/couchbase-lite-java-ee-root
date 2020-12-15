@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal.core;
 
+import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.VisibleForTesting;
@@ -29,6 +30,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.ConnectionStatus;
@@ -47,7 +50,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 import com.couchbase.lite.internal.utils.StringUtils;
 
 
-public class C4Listener extends C4NativePeer implements AutoCloseable {
+public class C4Listener extends C4NativePeer {
     public static final String AUTH_MODE_BASIC = "Basic";
 
     /**
@@ -90,24 +93,25 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
             boolean requirePasswordAuth)
             throws LiteCoreException;
 
-        void nFree(long handle);
+        void nFree(long peer);
 
-        void nShareDb(long handle, @NonNull String name, long c4Db) throws LiteCoreException;
+        void nShareDb(long peer, @NonNull String name, long c4Db) throws LiteCoreException;
 
-        void nUnshareDb(long handle, long c4Db) throws LiteCoreException;
-
-        @NonNull
-        List<String> nGetUrls(long handle, long c4Db) throws LiteCoreException;
-
-        int nGetPort(long handle);
+        void nUnshareDb(long peer, long c4Db) throws LiteCoreException;
 
         @NonNull
-        ConnectionStatus nGetConnectionStatus(long handle);
+        List<String> nGetUrls(long peer, long c4Db) throws LiteCoreException;
+
+        int nGetPort(long peer);
+
+        @NonNull
+        ConnectionStatus nGetConnectionStatus(long peer);
 
         @NonNull
         String nGetUriFromPath(String path);
     }
 
+    // Not final for testing.
     @NonNull
     @VisibleForTesting
     static NativeImpl nativeImpl = new NativeC4Listener();
@@ -132,6 +136,12 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
         boolean deltaSync)
         throws CouchbaseLiteException {
         final int token = LISTENER_CONTEXT.reserveKey();
+
+        // There is a race here.  It is possible that the native call will
+        // generate a call back, before this method completes.  Fortunately,
+        // none of the callback methods need to find the native peer.
+        // We can bind the listener, so that the callback works and
+        // set the peer later.  Messy code, but safe.
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
@@ -176,8 +186,15 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
         Preconditions.assertNotNull(serverCert, "server cert");
         final C4KeyPair keyPair = Preconditions.assertNotNull(keys, "key pair");
         final int token = LISTENER_CONTEXT.reserveKey();
+
+        // There is a race here.  It is possible that the native call will
+        // generate a call back, before this method completes.  Fortunately,
+        // none of the callback methods need to find the native peer.
+        // We can bind the listener, so that the callback works and
+        // set the peer later.  Messy code, but safe.
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
+
         final long peer;
         try {
             peer = nativeImpl.nStartTls(
@@ -229,6 +246,12 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
         if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
         final int token = LISTENER_CONTEXT.reserveKey();
+
+        // There is a race here.  It is possible that the native call will
+        // generate a call back, before this method completes.  Fortunately,
+        // none of the callback methods need to find the native peer.
+        // We can bind the listener, so that the callback works and
+        // set the peer later.  Messy code, but safe.
         final C4Listener listener = new C4Listener(token, nativeImpl, authenticator);
         LISTENER_CONTEXT.bind(token, listener);
 
@@ -319,13 +342,18 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
     // public methods
     //-------------------------------------------------------------------------
 
+    @CallSuper
     @Override
-    public void close() { free(); }
+    public void close() {
+        LISTENER_CONTEXT.unbind(token);
+        closePeer(null);
+    }
 
+    @NotNull
     @NonNull
     @Override
     public String toString() {
-        return "C4Listener{" + ClassUtils.objId(this) + "/" + getPeerUnchecked() + ": " + token + "}";
+        return "C4Listener{" + ClassUtils.objId(this) + "/" + super.toString() + ": " + token + "}";
     }
 
     public void shareDb(@NonNull String name, @NonNull C4Database db) throws CouchbaseLiteException {
@@ -360,9 +388,7 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
     @SuppressWarnings("NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
-        try {
-            if (free()) { Log.i(LogDomain.LISTENER, "C4Listener was not closed: " + this); }
-        }
+        try { closePeer(LogDomain.LISTENER); }
         finally { super.finalize(); }
     }
 
@@ -408,7 +434,9 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
     }
 
     boolean authenticateCert(@Nullable byte[] clientCert) {
-        Preconditions.assertThat(authenticator, "authenticator must be a certificate authenticator",
+        Preconditions.assertThat(
+            authenticator,
+            "authenticator must be a certificate authenticator",
             auth -> auth instanceof InternalCertAuthenticator); // Not expect to happen
 
         if ((clientCert == null) || (clientCert.length <= 0)) {
@@ -432,13 +460,11 @@ public class C4Listener extends C4NativePeer implements AutoCloseable {
     // Private methods
     //-------------------------------------------------------------------------
 
-    private boolean free() {
-        LISTENER_CONTEXT.unbind(token);
 
-        final long handle = getPeerAndClear();
-        if (handle == 0) { return false; }
+    private void closePeer(@Nullable LogDomain domain) {
+        final long peer = getPeerAndClear();
+        if (verifyPeerClosed(peer, domain)) { return; }
 
-        impl.nFree(handle);
-        return true;
+        impl.nFree(peer);
     }
 }

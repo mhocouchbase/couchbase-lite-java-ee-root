@@ -14,9 +14,12 @@
 //
 package com.couchbase.lite.internal.replicator;
 
+import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 
 import java.util.concurrent.Executor;
+
+import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.lite.Message;
 import com.couchbase.lite.MessageEndpoint;
@@ -71,6 +74,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         this.sendResponseStatus = true;
     }
 
+    @NotNull
     @Override
     @NonNull
     public String toString() { return "MessageSocket{" + protocolType + ", " + connection + "}"; }
@@ -113,6 +117,10 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // Implementation of Abstract methods from C4Socket
     // ---------------------------------------------------------------------------------------------
 
+    @CallSuper
+    @Override // socket_close
+    public void close() { connection.close(null, () -> connectionClosed(null)); }
+
     @Override
     protected void openSocket() {
         connection.open(
@@ -136,9 +144,6 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     @Override // socket_completedReceive
     protected void completedReceive(long byteCount) { /* Not Implemented */ }
-
-    @Override // socket_close
-    protected void close() { connection.close(null, () -> connectionClosed(null)); }
 
     @Override // socket_requestClose
     protected void requestClose(final int status, String message) {

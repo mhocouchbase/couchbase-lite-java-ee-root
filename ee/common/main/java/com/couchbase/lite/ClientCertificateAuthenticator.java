@@ -60,12 +60,11 @@ public final class ClientCertificateAuthenticator extends Authenticator {
 
     @Override
     void authenticate(Map<String, Object> options) {
-        final int token = AbstractCBLWebSocket.CLIENT_CERT_AUTH_KEY_MANAGER.reserveKey();
-        AbstractCBLWebSocket.CLIENT_CERT_AUTH_KEY_MANAGER.bind(token, new CBLKeyManager(identity));
-
         final Map<String, Object> auth = new HashMap<>();
         auth.put(C4Replicator.REPLICATOR_AUTH_TYPE, C4Replicator.AUTH_TYPE_CLIENT_CERT);
-        auth.put(C4Replicator.REPLICATOR_AUTH_CLIENT_CERT_KEY, token);
+        auth.put(
+            C4Replicator.REPLICATOR_AUTH_CLIENT_CERT_KEY,
+            AbstractCBLWebSocket.addKeyManager(new CBLKeyManager(identity)));
         options.put(C4Replicator.REPLICATOR_OPTION_AUTHENTICATION, auth);
     }
 }
