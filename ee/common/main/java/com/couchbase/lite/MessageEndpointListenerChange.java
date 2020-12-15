@@ -26,9 +26,9 @@ public class MessageEndpointListenerChange {
     private final MessageEndpointConnection connection;
     private final Replicator.Status status;
 
-    MessageEndpointListenerChange(MessageEndpointConnection connection, C4ReplicatorStatus status) {
+    MessageEndpointListenerChange(MessageEndpointConnection connection, C4ReplicatorStatus c4Status) {
         this.connection = connection;
-        this.status = new Replicator.Status(status);
+        this.status = new Replicator.Status(c4Status);
     }
 
     /**
