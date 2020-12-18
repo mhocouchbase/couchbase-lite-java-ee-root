@@ -20,6 +20,19 @@ package com.couchbase.lite;
  * The protocol type of the data transportation.
  */
 public enum ProtocolType {
-    MESSAGE_STREAM, // The message oriented transportation.
-    BYTE_STREAM     // The stream oriented transportation; the replicator will apply framing to each message.
+    /*
+     * MESSAGE protocol means that Core callbacks contain exactly
+     * the data that needs to be transferred.  Core does not format
+     * the data in any way.
+     */
+    MESSAGE_STREAM,
+
+    /*
+     * BYTE protocol means that Core knows that this is a web socket
+     * connection.  The data with which Core calls us contains the
+     * properly framed message, heartbeats and so on.
+     * ... we don't use this because that would be too easy, right?
+     * OkHTTP also wants to frame the data.
+     */
+    BYTE_STREAM
 }

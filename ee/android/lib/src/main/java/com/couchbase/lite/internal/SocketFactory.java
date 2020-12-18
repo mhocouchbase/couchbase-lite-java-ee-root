@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite.internal;
 
-import android.os.Build;
 import android.support.annotation.NonNull;
 
 import java.security.cert.Certificate;
@@ -53,12 +52,15 @@ public class SocketFactory {
         if (endpoint instanceof MessageEndpoint) { return new MessageSocket(handle, (MessageEndpoint) endpoint); }
 
         if (endpoint instanceof URLEndpoint) {
-            if (Build.VERSION.SDK_INT >= 21) {
-                return AbstractCBLWebSocket.createCBLWebSocket(
-                    handle, scheme, hostname, port, path, options, cookieStore, serverCertsListener);
-            }
-
-            throw new UnsupportedOperationException("Couchbase sockets require Android version >= 21");
+            return AbstractCBLWebSocket.createCBLWebSocket(
+                handle,
+                scheme,
+                hostname,
+                port,
+                path,
+                options,
+                cookieStore,
+                serverCertsListener);
         }
 
         throw new UnsupportedOperationException("Unrecognized endpoint type: " + endpoint.getClass());

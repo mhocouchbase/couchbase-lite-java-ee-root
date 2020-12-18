@@ -216,7 +216,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
 
     // A listener with TLS disabled and no client authenticator
-    // should accept a client that presents certificat credentials
+    // should accept a client that presents certificate credentials
     @Test
     fun testHTTPNullListenerAuthenticatorWithClientCertCredentials() {
         val docId = makeOneDoc("auth", otherDB)
@@ -379,7 +379,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         )
     }
 
-    // A client with a pinned certificate, aslo configured to accept self-signed certs
+    // A client with a pinned certificate, also configured to accept self-signed certs
     // should accept a server that presents a matching self-signed certificate
     // Pinning takes precedence
     @Test
@@ -624,6 +624,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     ////////////////  C O N N E C T E D   F U N C T I O N A L I T Y   ////////////////
 
+    @FlakyTest
     @Test(expected = CouchbaseLiteException::class)
     fun testReadOnlyListener() {
         val config = URLEndpointListenerConfiguration(otherDB)

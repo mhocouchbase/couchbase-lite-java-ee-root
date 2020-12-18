@@ -24,13 +24,13 @@ import com.couchbase.lite.internal.core.C4Replicator;
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
     private boolean acceptOnlySelfSignedServerCertificate;
 
-    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
-        super(config);
-        this.acceptOnlySelfSignedServerCertificate = config.acceptOnlySelfSignedServerCertificate;
-    }
+    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) { this(config, false); }
 
-    public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
-        super(database, target);
+    public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) { super(database, target); }
+
+    ReplicatorConfiguration(@NonNull ReplicatorConfiguration config, boolean readOnly) {
+        super(config, readOnly);
+        this.acceptOnlySelfSignedServerCertificate = config.acceptOnlySelfSignedServerCertificate;
     }
 
     /**
@@ -53,7 +53,6 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
     /**
      * Return whether the replicator will accept any and only self-signed server certificates.
      */
-    @NonNull
     public boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
 
     @Override

@@ -49,9 +49,7 @@ public class SocketFactory {
     }
 
     public C4Socket createSocket(long handle, String scheme, String hostname, int port, String path, byte[] options) {
-        if (endpoint instanceof MessageEndpoint) {
-            return new MessageSocket(handle, (MessageEndpoint) endpoint);
-        }
+        if (endpoint instanceof MessageEndpoint) { return new MessageSocket(handle, (MessageEndpoint) endpoint); }
 
         if (endpoint instanceof URLEndpoint) {
             return AbstractCBLWebSocket.createCBLWebSocket(

@@ -1004,7 +1004,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      * 1. Test that there could be database operations possible when conflicts resolver
      *    is running at the same time without blocking each other.
      * 2. Try to do a database operation from inside the conflict resolver.
-     *    Make sure the document operation is successfull before the custom conflict is resolved.
+     *    Make sure the document operation is successful before the custom conflict is resolved.
      */
     @Ignore("CBL-1190")
     @Test
@@ -1047,7 +1047,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      *    For example, the conflict resolving tasks in the queue are still in progress
      *    while the replicator becomes offline. Then the replicator becomes right online which results
      *    to a new replicator gets started. When the replicator is started, it will try to resolve
-     *    the pending conflicts which could be duplicatied to the ones are currently in the queue.
+     *    the pending conflicts which could be duplicated to the ones are currently in the queue.
      * 2. The expected behavior would be the the duplicated ones that are resolved after should be ignored.
      *    There will be two document replication notifications without errors.
      *
@@ -1171,7 +1171,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     /**
      * #19
      * 1. Purge the original document inside the conflict resolver.
-     * 2. Make sure, we receieve DocumentNotFound error in document-replication-listener.
+     * 2. Make sure, we receive DocumentNotFound error in document-replication-listener.
      */
     @Test
     fun testConflictResolverWhenDocumentIsPurged() {

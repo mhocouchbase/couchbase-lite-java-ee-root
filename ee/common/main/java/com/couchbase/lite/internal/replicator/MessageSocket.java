@@ -63,7 +63,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
             "",
             0,
             "/" + Integer.toHexString(connection.hashCode()),
-            (protocolType != ProtocolType.BYTE_STREAM)
+            (protocolType == ProtocolType.MESSAGE_STREAM)
                 ? C4Socket.NO_FRAMING
                 : C4Socket.WEB_SOCKET_CLIENT_FRAMING);
         this.connection = connection;
@@ -84,13 +84,17 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         synchronized (this) {
             if (released() || closed) { return; }
 
-            if (protocolType == ProtocolType.BYTE_STREAM) {
-                connection.close(error == null ? null : error.getError(), () -> connectionClosed(error));
-                return;
-            }
+            switch (protocolType) {
+                case MESSAGE_STREAM:
+                    closeRequested(getStatusCode(error), error == null ? "" : error.getError().getMessage());
+                    break;
 
-            if (protocolType == ProtocolType.MESSAGE_STREAM) {
-                closeRequested(getStatusCode(error), error == null ? "" : error.getError().getMessage());
+                case BYTE_STREAM:
+                    connection.close(error == null ? null : error.getError(), () -> connectionClosed(error));
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unrecognized protocol: " + protocolType);
             }
         }
     }
