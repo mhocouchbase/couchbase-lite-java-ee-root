@@ -28,6 +28,6 @@ public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
         boolean push,
         boolean pull,
         ConflictResolver resolver) {
-        return makeConfig(push, pull, false, baseTestDb, new DatabaseEndpoint(otherDB), null, resolver);
+        return makeConfig(baseTestDb, new DatabaseEndpoint(otherDB), push, pull, false, null, resolver);
     }
 }

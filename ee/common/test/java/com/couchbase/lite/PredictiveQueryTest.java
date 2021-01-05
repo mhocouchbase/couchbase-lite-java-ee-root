@@ -15,6 +15,8 @@
 
 package com.couchbase.lite;
 
+import android.support.annotation.NonNull;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +46,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         private int numberOfCalls;
 
         @Override
-        public Dictionary predict(@NotNull Dictionary input) {
+        public Dictionary predict(@NonNull Dictionary input) {
             if (!allowCalls) { throw new IllegalStateException("Should not be called."); }
 
             numberOfCalls++;

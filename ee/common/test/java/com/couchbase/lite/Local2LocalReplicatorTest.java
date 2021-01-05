@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -40,7 +39,6 @@ import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
-import static com.couchbase.lite.AbstractReplicatorConfiguration.ReplicatorType.PUSH;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -344,9 +342,8 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             otherDB.save(doc2);
             assertEquals(1, otherDB.getCount());
 
-            ReplicatorConfiguration config = new ReplicatorConfiguration(anotherDB, new DatabaseEndpoint(otherDB));
-            config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
-            config.setContinuous(true);
+            ReplicatorConfiguration config = makeConfig(anotherDB, new DatabaseEndpoint(otherDB), true, false, true);
+
             Replicator repl = run(config);
 
             assertEquals(2, otherDB.getCount());
@@ -400,10 +397,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             otherDB.save(doc2);
             assertEquals(1, otherDB.getCount());
 
-            ReplicatorConfiguration config = new ReplicatorConfiguration(anotherDB, new DatabaseEndpoint(otherDB));
-            config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PULL);
-            config.setContinuous(true);
-            run(config);
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), false, true, true));
 
             assertEquals(2, anotherDB.getCount());
             Document doc2a = anotherDB.getDocument("doc2");
@@ -450,7 +444,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
     @Test
     public void testStopContinuousReplicator() throws InterruptedException {
-        Replicator r = testReplicator(makeConfig(true, true, true, otherDB));
+        Replicator r = testReplicator(makeConfig(otherDB, true, true, true));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = r.addChangeListener(
@@ -609,9 +603,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
             }
             assertEquals(1, anotherDB.getCount());
 
-            ReplicatorConfiguration config = new ReplicatorConfiguration(anotherDB, new DatabaseEndpoint(otherDB));
-            config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PUSH);
-            run(config);
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), true, false, false));
 
             assertEquals(1, otherDB.getCount());
             Document doc1a = otherDB.getDocument("doc1");
@@ -641,9 +633,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
 
             assertEquals(1, otherDB.getCount());
 
-            ReplicatorConfiguration config = new ReplicatorConfiguration(anotherDB, new DatabaseEndpoint(otherDB));
-            config.setReplicatorType(ReplicatorConfiguration.ReplicatorType.PULL);
-            run(config);
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), false, true, false));
 
             assertEquals(1, anotherDB.getCount());
             Document doc1a = anotherDB.getDocument("doc1");
@@ -662,8 +652,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         doc1.setString("name", "Hobbes");
         baseTestDb.save(doc1);
 
-        Replicator repl = testReplicator(
-            new ReplicatorConfiguration(baseTestDb, new DatabaseEndpoint(otherDB)).setReplicatorType(PUSH));
+        Replicator repl = testReplicator(makeConfig(baseTestDb, new DatabaseEndpoint(otherDB), true, false, false));
 
         CountDownLatch latch = new CountDownLatch(1);
         final ListenerToken token = repl.addChangeListener(change -> {
@@ -789,7 +778,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc1);
         baseTestDb.purge(doc1);
 
-        baseTestReplicator = testReplicator(makeConfig(true, false, false, otherDB));
+        baseTestReplicator = testReplicator(makeConfig(otherDB, true, false, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken documentToken = baseTestReplicator.addDocumentReplicationListener(
@@ -1281,7 +1270,7 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
                 boolean started;
 
                 @Override
-                public void changed(@NotNull @NonNull ReplicatorChange change) {
+                public void changed(@NonNull ReplicatorChange change) {
                     switch (change.getStatus().getActivityLevel()) {
                         case BUSY:
                             started = true;
@@ -1328,15 +1317,15 @@ public class Local2LocalReplicatorTest extends BaseEEReplicatorTest {
     }
 
     private ReplicatorConfiguration makeConfig(boolean push, boolean pull, boolean continuous) {
-        return makeConfig(push, pull, continuous, this.otherDB);
+        return makeConfig(this.otherDB, push, pull, continuous);
     }
 
     private ReplicatorConfiguration makeConfig(
+        Database targetDatabase,
         boolean push,
         boolean pull,
-        boolean continuous,
-        Database targetDatabase) {
-        return makeConfig(push, pull, continuous, this.baseTestDb, new DatabaseEndpoint(targetDatabase));
+        boolean continuous) {
+        return makeConfig(this.baseTestDb, new DatabaseEndpoint(targetDatabase), push, pull, continuous);
     }
 
     private void stopContinuousReplicator(Replicator repl) throws InterruptedException {

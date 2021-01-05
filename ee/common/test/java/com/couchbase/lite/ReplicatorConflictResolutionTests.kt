@@ -75,7 +75,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     fun testConflictResolverConfigProperty() {
         val resolver = ConflictResolver { null }
 
-        val config = makeConfig(true, false, false, URLEndpoint(URI("wss://foo")))
+        val config = makeConfig(URLEndpoint(URI("wss://foo")), true, false, false)
         config.conflictResolver = resolver
 
         assertNotNull(config.conflictResolver)
@@ -1305,7 +1305,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         baseTestDb.save(doc)
 
         // sync with the other db
-        run(makeConfig(true, false, false, baseTestDb, DatabaseEndpoint(otherDB)))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), true, false, false))
 
         // add a blob in the local copy:
         doc = baseTestDb.getDocument(DOC1).toMutable()
@@ -1345,7 +1345,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val doc = MutableDocument(docId)
         baseTestDb.save(doc)
 
-        run(makeConfig(true, false, false, baseTestDb, DatabaseEndpoint(otherDB)))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), true, false, false))
 
         // Now make some changes in db and otherDB:
         val doc1 = baseTestDb.getDocument(docId).toMutable()
