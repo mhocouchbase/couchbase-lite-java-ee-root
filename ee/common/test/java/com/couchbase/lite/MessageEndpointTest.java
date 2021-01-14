@@ -541,7 +541,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH, false, endpoint);
 
         run(config, 0, null);
 
@@ -567,7 +567,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH, false, endpoint);
 
         run(config, 0, null);
 
@@ -592,7 +592,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH, true, endpoint);
 
         run(config, 0, null);
 
@@ -618,7 +618,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH, true, endpoint);
 
         run(config, 0, null);
 
@@ -643,7 +643,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PULL, false, endpoint);
 
         run(config, 0, null);
 
@@ -669,7 +669,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PULL, false, endpoint);
 
         run(config, 0, null);
 
@@ -694,7 +694,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PULL, true, endpoint);
 
         run(config, 0, null);
 
@@ -720,7 +720,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         final ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PULL, true, endpoint);
 
         run(config, 0, null);
 
@@ -745,7 +745,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH_AND_PULL, false, endpoint);
 
         run(config, 0, null);
 
@@ -773,7 +773,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH_AND_PULL, false, endpoint);
 
         run(config, 0, null);
 
@@ -801,7 +801,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH_AND_PULL, true, endpoint);
 
         run(config, 0, null);
 
@@ -830,7 +830,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH_AND_PULL, true, endpoint);
 
         run(config, 0, null);
 
@@ -1149,7 +1149,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1178,7 +1178,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1212,7 +1212,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
         ReplicatorConfiguration config
-            = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false, endpoint);
+            = makeConfig(AbstractReplicator.ReplicatorType.PUSH_AND_PULL, false, endpoint);
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
 
         run(config, 0, null);
@@ -1296,16 +1296,16 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     private ReplicatorConfiguration makeConfig(
-        ReplicatorConfiguration.ReplicatorType type,
+        AbstractReplicator.ReplicatorType type,
         boolean continuous,
         Endpoint target) {
         return makeConfig(
             baseTestDb,
             target,
-            ((type == AbstractReplicatorConfiguration.ReplicatorType.PUSH)
-                || (type == AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL)),
-            ((type == AbstractReplicatorConfiguration.ReplicatorType.PULL)
-                || (type == AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL)),
+            ((type == AbstractReplicator.ReplicatorType.PUSH)
+                || (type == AbstractReplicator.ReplicatorType.PUSH_AND_PULL)),
+            ((type == AbstractReplicator.ReplicatorType.PULL)
+                || (type == AbstractReplicator.ReplicatorType.PUSH_AND_PULL)),
             continuous);
     }
 
