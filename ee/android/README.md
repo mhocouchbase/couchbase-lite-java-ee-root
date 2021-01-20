@@ -46,8 +46,7 @@ healthy and working.  It is our face to the OSS community.
 
 ## Building
 1. There are three convenient targets for developer use:
-- `smokeTest` runs quickly, compiles and does static analysis
-- `unitTest` runs only tests that can be run on a local JVM
+- `smokeTest` compiles and does static analysis
 - `fullTest` runs tests that require an emulator or an attached device
 
 2. At the moment, the build process for the Java product
