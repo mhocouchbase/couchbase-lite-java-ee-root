@@ -55,11 +55,12 @@ abstract class MockConnection implements MessageEndpointConnection {
             new LinkedBlockingDeque<>(),
             runnable -> {
                 final Thread thread = new Thread(runnable, logName);
+                Report.log(LogLevel.DEBUG, "Created thread: " + thread);
                 thread.setUncaughtExceptionHandler((t, e) ->
                     Report.log(LogLevel.WARNING, "Uncaught exception on " + t.getName(), e));
                 return thread;
             },
-            (r, e) -> { } // Ignore REEs. They happen when the connection is closed prematurely
+            (r, e) -> Report.log(LogLevel.WARNING, "Rejected execution for " + logName, new Exception())
         );
     }
 
@@ -94,11 +95,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         }
 
         wire.submit(() -> {
-            Report.log(
-                LogLevel.DEBUG,
-                logName + ".open(%s, %s)",
-                String.valueOf(connection),
-                String.valueOf(completion));
+            Report.log(LogLevel.DEBUG, logName + ".open(%s, %s)", connection, (completion != null));
 
             openAsync(connection, completion);
 
@@ -113,12 +110,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         System.arraycopy(msg, 0, data, 0, data.length);
 
         wire.submit(() -> {
-            Report.log(
-                LogLevel.DEBUG,
-                logName + ".send(%s, %s)",
-                String.valueOf(data.length),
-                String.valueOf(completion));
-
+            Report.log(LogLevel.DEBUG, logName + ".send(%d, %s)", data.length, (completion != null));
             sendAsync(data, completion);
         });
     }
@@ -135,10 +127,9 @@ abstract class MockConnection implements MessageEndpointConnection {
             Report.log(
                 LogLevel.DEBUG,
                 logName + ".close(%s, %s, %s)",
-                String.valueOf(e),
-                String.valueOf(completion),
-                String.valueOf(closeCompletion));
-
+                e,
+                (completion != null),
+                (closeCompletion) != null);
             closeAsync(completion, closeCompletion);
         });
     }
@@ -165,29 +156,23 @@ abstract class MockConnection implements MessageEndpointConnection {
         final boolean disconnecting;
         final ReplicatorConnection repl;
         synchronized (this) {
-            disconnecting = !(closing || (replicatorConnection == null));
+            disconnecting = !closing && (replicatorConnection != null);
             if (disconnecting) { onClose = completion; }
             repl = replicatorConnection;
         }
 
         wire.submit(() -> {
-            Report.log(
-                LogLevel.DEBUG,
-                logName + ".disconnect(%s, %s, %s)",
-                String.valueOf(disconnecting),
-                String.valueOf(error),
-                String.valueOf(completion));
-
+            Report.log(LogLevel.DEBUG, logName + ".disconnect(%s, %s, %s)", disconnecting, error, (completion != null));
             if (disconnecting) { closeReplAsync(repl, error); }
-            else {disconnectAsync(error, completion); }
+            else { disconnectAsync(error, completion); }
         });
     }
 
-    public void stop() { disconnect(null, wire::shutdown); }
+    public void stop() { disconnect(null, this::terminate); }
 
     @Override
     protected void finalize() throws Throwable {
-        try { wire.shutdown(); }
+        try { terminate(); }
         finally { super.finalize(); }
     }
 
@@ -196,6 +181,11 @@ abstract class MockConnection implements MessageEndpointConnection {
             Report.log(LogLevel.DEBUG, logName + ".deliver(%d, %s)", message.toData().length, ClassUtils.objId(repl));
             deliverAsync(message, repl);
         });
+    }
+
+    private void terminate() {
+        Report.log(LogLevel.DEBUG, logName + ".terminate");
+        wire.shutdown();
     }
 }
 
@@ -217,8 +207,8 @@ class MockServerConnection extends MockConnection {
         Report.log(
             LogLevel.DEBUG,
             "MockServerConnection.<init>(%s, %s)",
-            String.valueOf(listener.getConfig().getProtocolType()),
-            String.valueOf(listener));
+            listener.getConfig().getProtocolType(),
+            listener);
     }
 
     public void clientOpened(MockClientConnection clientConnection) {
@@ -271,9 +261,7 @@ class MockServerConnection extends MockConnection {
     }
 
     @Override
-    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
-        repl.close(error);
-    }
+    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) { repl.close(error); }
 }
 
 
@@ -301,11 +289,7 @@ class MockClientConnection extends MockConnection {
         server = (MockServerConnection) endpoint.getTarget();
         this.errorLogic = (errorLogic != null) ? errorLogic : new NoErrorLogic();
 
-        Report.log(
-            LogLevel.DEBUG,
-            "MockClientConnection.<init>(%s, %s)",
-            String.valueOf(endpoint),
-            String.valueOf(errorLogic));
+        Report.log(LogLevel.DEBUG, "MockClientConnection.<init>(%s, %s)", endpoint, errorLogic);
     }
 
     @Override
@@ -339,9 +323,7 @@ class MockClientConnection extends MockConnection {
             return;
         }
 
-        final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.CLOSE);
-
-        server.disconnect(err, completion);
+        server.disconnect(getLogicError(ErrorLogic.LifecycleLocation.CLOSE), completion);
     }
 
     @Override
@@ -1233,7 +1215,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
     /////////////////////////////////   H E L P E R S   //////////////////////////////////////
 
-    Throwable onChange(
+    Throwable onStateChange(
         String expectedDomain,
         int expectedCode,
         CountDownLatch latch,
@@ -1245,11 +1227,16 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         final long completed = progress.getCompleted();
         final long total = progress.getTotal();
 
-        Report.log(
-            LogLevel.INFO,
-            "State change " + ClassUtils.objId(change.getReplicator())
-                + " #" + level + "(" + completed + "/" + total
-                + ") expecting: " + expectedDomain + "/" + expectedCode + ", got: " + error);
+        final Replicator repl = change.getReplicator();
+
+        final StringBuilder buf = new StringBuilder("test listener @").append(level)
+            .append('(').append(completed).append('/').append(total).append(')')
+            .append(": ").append(repl);
+        if (expectedCode != 0) {
+            buf.append(" expecting: ").append(expectedDomain).append('/').append(expectedCode)
+                .append(", got: ").append(error);
+        }
+        Report.log(LogLevel.INFO, buf.toString());
 
         // Verify change status:
         try { verifyChangeStatus(expectedDomain, expectedCode, change); }
@@ -1261,9 +1248,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         switch (level) {
             // Stop a continuous replicator:
             case IDLE:
-                if (baseTestReplicator.getConfig().isContinuous() && (completed >= total)) {
-                    baseTestReplicator.stop();
-                }
+                if (repl.getConfig().isContinuous() && (completed >= total)) { repl.stop(); }
                 break;
             case STOPPED:
                 latch.countDown();
@@ -1313,14 +1298,14 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         run(config, code, domain, false);
     }
 
-    private void run(ReplicatorConfiguration config, final int code, final String domain, final boolean reset) {
+    private void run(ReplicatorConfiguration config, int code, String domain, boolean reset) {
         baseTestReplicator = testReplicator(config);
         final CountDownLatch latch = new CountDownLatch(1);
 
         final Throwable[] fail = new Throwable[1];
         ListenerToken token = baseTestReplicator.addChangeListener(
             testSerialExecutor,
-            change -> fail[0] = onChange(domain, code, latch, change));
+            change -> fail[0] = onStateChange(domain, code, latch, change));
 
         baseTestReplicator.start(reset);
 

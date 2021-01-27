@@ -14,12 +14,11 @@
 //
 package com.couchbase.lite.internal.replicator;
 
-import android.support.annotation.CallSuper;
+import android.support.annotation.GuardedBy;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.concurrent.Executor;
-
-import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.lite.Message;
 import com.couchbase.lite.MessageEndpoint;
@@ -34,31 +33,29 @@ import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-/* Internal MessageSocket for MessageEndpoint replication. */
+/**
+ * This class should be re-implemented using the paradigms described in C4Socket and AbstractCBLWebSocket.
+ * It should be re-architected to use a single-threaded executor.
+ * It might need to be a state machine.
+ */
 public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     // ---------------------------------------------------------------------------------------------
-    // Variables
-    // ---------------------------------------------------------------------------------------------
-
+    // Fields
+    // ---------------------------------------------------------------------------------------------;
     private final Executor finalizer = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
     private final MessageEndpointConnection connection;
     private final ProtocolType protocolType;
 
-    private boolean sendResponseStatus;
-    private boolean closed;
+    @GuardedBy("getLock()")
+    private boolean sendResponseStatus = true;
+    @GuardedBy("getLock()")
+    private boolean closing;
 
     // ---------------------------------------------------------------------------------------------
     // constructors
     // ---------------------------------------------------------------------------------------------
-
-    public MessageSocket(long handle, MessageEndpoint endpoint) {
-        super(handle);
-        this.connection = endpoint.getDelegate().createConnection(endpoint);
-        this.protocolType = endpoint.getProtocolType();
-        this.sendResponseStatus = true;
-    }
 
     public MessageSocket(MessageEndpointConnection connection, ProtocolType protocolType) {
         super(
@@ -71,22 +68,39 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
                 : C4Socket.WEB_SOCKET_CLIENT_FRAMING);
         this.connection = connection;
         this.protocolType = protocolType;
-        this.sendResponseStatus = true;
     }
 
-    @NotNull
+    public MessageSocket(long peer, MessageEndpoint endpoint) {
+        super(peer);
+        this.connection = endpoint.getDelegate().createConnection(endpoint);
+        this.protocolType = endpoint.getProtocolType();
+    }
+
     @Override
     @NonNull
-    public String toString() { return "MessageSocket{" + protocolType + ", " + connection + "}"; }
+    public String toString() {
+        return "MessageSocket{@" + super.toString() + ": " + protocolType + ", " + connection + "}";
+    }
+
+    public void close() { throw new UnsupportedOperationException("close() not supported"); }
 
     // ---------------------------------------------------------------------------------------------
     // Implementation of ReplicatorConnection
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void close(final MessagingError error) {
-        synchronized (this) {
-            if (released() || closed) { return; }
+    public final void receive(@NonNull Message message) {
+        Preconditions.assertNotNull(message, "message");
+        synchronized (getLock()) {
+            if (isClosing()) { return; }
+            received(message.toData());
+        }
+    }
+
+    @Override
+    public final void close(@Nullable MessagingError error) {
+        synchronized (getLock()) {
+            if (isClosing()) { return; }
 
             switch (protocolType) {
                 case MESSAGE_STREAM:
@@ -94,7 +108,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
                     break;
 
                 case BYTE_STREAM:
-                    connection.close(error == null ? null : error.getError(), () -> connectionClosed(error));
+                    closeConnection(error == null ? null : error.getError(), error);
                     break;
 
                 default:
@@ -103,26 +117,12 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         }
     }
 
-    @Override
-    public void receive(@NonNull Message message) {
-        synchronized (this) {
-            Preconditions.assertNotNull(message, "message");
-
-            if (released() || closed) { return; }
-            received(message.toData());
-        }
-    }
-
     // ---------------------------------------------------------------------------------------------
-    // Implementation of Abstract methods from C4Socket
+    // Implementation of abstract methods from C4Socket (Core to Remote)
     // ---------------------------------------------------------------------------------------------
 
-    @CallSuper
-    @Override // socket_close
-    public void close() { connection.close(null, () -> connectionClosed(null)); }
-
     @Override
-    protected void openSocket() {
+    protected final void openSocket() {
         connection.open(
             this,
             (success, error) -> {
@@ -132,21 +132,20 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     }
 
     @Override // socket_write
-    protected void send(byte[] allocatedData) {
-        final int length = allocatedData.length;
+    protected final void send(@NonNull byte[] allocatedData) {
         connection.send(
             Message.fromData(allocatedData),
             (success, error) -> {
-                if (success) { messageSent(length); }
+                if (success) { messageSent(allocatedData.length); }
                 else { close(error); }
             });
     }
 
     @Override // socket_completedReceive
-    protected void completedReceive(long byteCount) { /* Not Implemented */ }
+    protected final void completedReceive(long byteCount) { }
 
     @Override // socket_requestClose
-    protected void requestClose(final int status, String message) {
+    protected final void requestClose(final int status, String message) {
         final Exception error = (status == C4Socket.WS_STATUS_CLOSE_NORMAL)
             ? null
             : CBLStatus.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
@@ -154,22 +153,19 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
             ? null
             : new MessagingError(error, status == C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT);
 
-        connection.close(error, () -> connectionClosed(messagingError));
+        closeConnection(error, messagingError);
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // Package Level
-    // ---------------------------------------------------------------------------------------------
-
-    MessageEndpointConnection getConnection() { return connection; }
+    @Override // socket_close
+    protected final void closeSocket() { closeConnection(null, null); }
 
     //-------------------------------------------------------------------------
-    // Acknowledgement
+    // Private methods
     //-------------------------------------------------------------------------
 
-    void connectionOpened() {
-        synchronized (this) {
-            if (released()) { return; }
+    private void connectionOpened() {
+        synchronized (getLock()) {
+            if (isClosing()) { return; }
 
             if (sendResponseStatus) { connectionGotResponse(200); }
 
@@ -177,33 +173,40 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         }
     }
 
-    void connectionClosed(MessagingError error) {
-        synchronized (this) {
-            if (released() || closed) { return; }
-
-            closed = true;
-
-            final int domain = (error == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET;
-            final int code = (error != null) ? getStatusCode(error) : 0;
-            final String message = (error != null) ? error.getError().getMessage() : "";
-
-            finalizer.execute(() -> closed(domain, code, message));
-        }
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Private methods
-    // ---------------------------------------------------------------------------------------------
-
     private void messageSent(int byteCount) {
-        synchronized (this) {
-            if (released() || closed) { return; }
+        synchronized (getLock()) {
+            if (isClosing()) { return; }
             completedWrite(byteCount);
         }
     }
 
+    private void closeConnection(@Nullable Exception error, @Nullable MessagingError messagingError) {
+        connection.close(error, () -> connectionClosed(messagingError));
+    }
+
+    private void connectionClosed(MessagingError error) {
+        synchronized (getLock()) {
+            if (isClosing()) { return; }
+
+            closing = true;
+
+            final int domain = (error == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET;
+            final int code = (error != null) ? getStatusCode(error) : 0;
+            final String msg = (error != null) ? error.getError().getMessage() : "";
+
+            // I think that this is a weak attempt to guarantee that the actual call
+            // to `closed` happens after any task that the caller might have enqueued.
+            // ... of course, since there's no guess as to where the caller enqueued tasks....
+            finalizer.execute(() -> closed(domain, code, msg));
+        }
+    }
+
+    @GuardedBy("getLock()")
+    private boolean isClosing() { return closing || isC4SocketClosing(); }
+
+    @GuardedBy("getLock()")
     private void connectionGotResponse(int httpStatus) {
-        if (released()) { return; }
+        if (isClosing()) { return; }
         gotHTTPResponse(httpStatus, null);
         sendResponseStatus = false;
     }

@@ -26,6 +26,7 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Key;
 import com.couchbase.lite.internal.utils.FileUtils;
 import com.couchbase.lite.internal.utils.IOUtils;
@@ -279,7 +280,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     @Test
     public void testReOpenExistingEncrypted2Dot8DotOhDb() throws CouchbaseLiteException {
         final String dbName = getUniqueName("test-db");
-        final String twoDot8DotOhDirPath = AbstractDatabaseConfiguration.getDbDirectory(null) + "/.couchbase";
+        final String twoDot8DotOhDirPath = CouchbaseLiteInternal.getRootDir() + "/.couchbase";
 
         Database db = null;
         try {
@@ -296,7 +297,7 @@ public class DatabaseEncryptionTest extends BaseTest {
             db = null;
 
             // This should open the database created above
-            config.setRootDirectory(null);
+            config.resetDbDir();
             db = new Database(dbName, config);
             assertEquals(1L, db.getCount());
             final Document doc = db.getDocument(mDoc.getId());

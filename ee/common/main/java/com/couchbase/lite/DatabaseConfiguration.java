@@ -38,7 +38,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
 
     public DatabaseConfiguration(@Nullable DatabaseConfiguration config) { this(config, false); }
 
-    protected DatabaseConfiguration(@Nullable DatabaseConfiguration config, boolean readOnly) {
+    DatabaseConfiguration(@Nullable DatabaseConfiguration config, boolean readOnly) {
         super(config, readOnly);
         this.encryptionKey = (config == null) ? null : config.encryptionKey;
     }
@@ -46,20 +46,6 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     //---------------------------------------------
     // API - public methods
     //---------------------------------------------
-
-    /**
-     * Set the path to the directory to store the database in. If the directory doesn't already
-     * exist it will be created when the database is opened.
-     *
-     * @param directory the directory
-     * @return The self object.
-     */
-    @NonNull
-    @Override
-    public DatabaseConfiguration setDirectory(@NonNull String directory) {
-        super.setDirectory(directory);
-        return this;
-    }
 
     /**
      * <b>ENTERPRISE EDITION API</b><br><br>
@@ -72,7 +58,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      */
     @NonNull
     public DatabaseConfiguration setEncryptionKey(EncryptionKey encryptionKey) {
-        if (isReadOnly()) { throw new IllegalStateException("DatabaseConfiguration is readonly mode."); }
+        verifyWritable();
         this.encryptionKey = encryptionKey;
         return this;
     }

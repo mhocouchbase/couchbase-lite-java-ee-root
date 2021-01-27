@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jetbrains.annotations.NotNull;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
@@ -69,7 +68,6 @@ public class C4KeyPair extends C4NativePeer {
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
-
     static {
         final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
         m.put(KeyStoreManager.KeyAlgorithm.RSA, (byte) 0x00);
@@ -77,7 +75,6 @@ public class C4KeyPair extends C4NativePeer {
     }
 
     private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
-
     static {
         final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();
         m.put(0, Signature.SignatureDigestAlgorithm.NONE);
@@ -338,7 +335,6 @@ public class C4KeyPair extends C4NativePeer {
         closePeer(null);
     }
 
-    @NotNull
     @NonNull
     @Override
     public String toString() {
@@ -357,13 +353,8 @@ public class C4KeyPair extends C4NativePeer {
     }
 
     //-------------------------------------------------------------------------
-    // protected methods
+    // private methods
     //-------------------------------------------------------------------------
 
-    private void closePeer(@Nullable LogDomain domain) {
-        final long peer = getPeerAndClear();
-        if (verifyPeerClosed(peer, domain)) { return; }
-
-        impl.nFree(peer);
-    }
+    private void closePeer(@Nullable LogDomain domain) { releasePeer(domain, impl::nFree); }
 }

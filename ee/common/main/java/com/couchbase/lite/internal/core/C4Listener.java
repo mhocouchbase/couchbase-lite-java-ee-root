@@ -31,8 +31,6 @@ import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.couchbase.lite.CBLError;
 import com.couchbase.lite.ConnectionStatus;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -349,7 +347,6 @@ public class C4Listener extends C4NativePeer {
         closePeer(null);
     }
 
-    @NotNull
     @NonNull
     @Override
     public String toString() {
@@ -461,10 +458,5 @@ public class C4Listener extends C4NativePeer {
     //-------------------------------------------------------------------------
 
 
-    private void closePeer(@Nullable LogDomain domain) {
-        final long peer = getPeerAndClear();
-        if (verifyPeerClosed(peer, domain)) { return; }
-
-        impl.nFree(peer);
-    }
+    private void closePeer(@Nullable LogDomain domain) { releasePeer(domain, impl::nFree); }
 }

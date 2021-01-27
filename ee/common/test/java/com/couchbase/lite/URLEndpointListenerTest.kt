@@ -88,7 +88,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         listener.start()
         assertEquals(port, listener.port)
 
-        listener.stop()
+        listener.stop(/**/)
         assertEquals(-1, listener.port)
     }
 
