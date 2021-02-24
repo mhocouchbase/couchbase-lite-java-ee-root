@@ -146,12 +146,12 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     @Override // socket_requestClose
     protected final void requestClose(final int status, String message) {
-        final Exception error = (status == C4Socket.WS_STATUS_CLOSE_NORMAL)
+        final Exception error = (status == C4Constants.WebSocketError.NORMAL)
             ? null
             : CBLStatus.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
         final MessagingError messagingError = (error == null)
             ? null
-            : new MessagingError(error, status == C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT);
+            : new MessagingError(error, status == C4Constants.WebSocketError.USER_TRANSIENT);
 
         closeConnection(error, messagingError);
     }
@@ -212,9 +212,9 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     }
 
     private int getStatusCode(MessagingError error) {
-        if (error == null) { return C4Socket.WS_STATUS_CLOSE_NORMAL; }
+        if (error == null) { return C4Constants.WebSocketError.NORMAL; }
         return error.isRecoverable()
-            ? C4Socket.WS_STATUS_CLOSE_USER_TRANSIENT
-            : C4Socket.WS_STATUS_CLOSE_USER_PERMANENT;
+            ? C4Constants.WebSocketError.USER_TRANSIENT
+            : C4Constants.WebSocketError.USER_PERMANENT;
     }
 }
