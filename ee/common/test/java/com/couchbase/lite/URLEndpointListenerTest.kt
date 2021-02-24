@@ -825,7 +825,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // Closing a database should shutdown all listeners
-    @FlakyTest
     @Test
     fun testCloseDbWithActiveListeners() {
         createDocsInDb(1000, 10, otherDB)
@@ -861,8 +860,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
         repl2.start(false)
 
-        assertTrue(idleLatch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(idleLatch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
 
         assertEquals(2, listener.status?.connectionCount)
 
@@ -870,13 +869,12 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         baseTestDb.close()
         otherDB.close()
 
-        assertTrue(stopLatch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(stopLatch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
         assertFalse(listener.isRunning)
     }
 
     // Deleting a database should shutdown all listeners
-    @FlakyTest
     @Test
     fun testDeleteDbWithActiveListeners() {
         createDocsInDb(1000, 10, otherDB)
@@ -912,8 +910,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
         repl2.start(false)
 
-        assertTrue(idleLatch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(idleLatch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
 
         assertEquals(2, listener.status?.connectionCount)
 
@@ -921,8 +919,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         baseTestDb.delete()
         otherDB.delete()
 
-        assertTrue(stopLatch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(stopLatch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
         assertFalse(listener.isRunning)
     }
 
