@@ -81,7 +81,7 @@ public class URLEndpointListener {
      * Get the listener's port.
      * This method will return a value of -1 except between the time
      * the listener is started and the time it is stopped.
-     *
+     * <p>
      * When a listener is configured with the port number 0, the return value from this function will
      * give the port at which the listener is actually listening.
      *
@@ -165,9 +165,17 @@ public class URLEndpointListener {
 
         if (listener == null) { return; }
 
-        getConfig().getDatabase().unregisterUrlListener(this);
-
         listener.close();
+
+        getConfig().getDatabase().unregisterUrlListener(this);
+    }
+
+    public String toString() {
+        return "URLListener{" +
+            (config.isTlsDisabled() ? "ws" : "wss")
+            + "://localhost" + ":" + port
+            + '/' + config.getDatabase().getName()
+            + "}";
     }
 
     boolean isRunning() {
