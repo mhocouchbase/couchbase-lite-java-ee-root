@@ -937,7 +937,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val listener = listenHttp()
 
-        val repl = run(makeConfig(listener.endpoint(), true, true, false))
+        val repl =
+            run(makeConfig(listener.endpoint(), AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false))
 
         assertEquals(20, baseTestDb.count)
         assertEquals(20, otherDB.count)
@@ -1237,7 +1238,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         pinnedServerCert: Certificate?,
         continuous: Boolean
     ): ReplicatorConfiguration {
-        val config = makeConfig(source, target, true, true, continuous, pinnedServerCert)
+        val config = makeConfig(
+            source,
+            target,
+            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            continuous,
+            pinnedServerCert
+        )
         config.isAcceptOnlySelfSignedServerCertificate = true
         if (auth != null) {
             config.setAuthenticator(auth)

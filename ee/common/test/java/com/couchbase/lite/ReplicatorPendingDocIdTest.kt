@@ -436,6 +436,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             ?.fold(true) { acc: Boolean, isPending: Boolean -> acc && (isPending == expected) }
             ?: true
 
-    private fun pushPull() = run(testReplicator(makeConfigTargetingOtherDb(true, true)))
+    private fun pushPull() =
+        run(testReplicator(makeConfigTargetingOtherDb(AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL)))
 }
 
