@@ -68,7 +68,7 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
         @AfterClass
         fun tearDownSecurityBaseTest() = deleteTestAliases()
 
-        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 8).toLowerCase()
+        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 12).toLowerCase()
 
         fun createDigest(algorithm: Signature.SignatureDigestAlgorithm, data: ByteArray): ByteArray {
             if (algorithm == Signature.SignatureDigestAlgorithm.NONE) {

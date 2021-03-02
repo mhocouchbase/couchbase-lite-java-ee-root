@@ -1281,7 +1281,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     private fun makeOneDoc(id: String, db: Database): String {
         assertEquals(0, db.count)
 
-        val docId = StringUtils.getUniqueName(id, 8)
+        val docId = getUniqueName(id)
 
         val testDoc = MutableDocument(docId)
         testDoc.setString("species", "Tiger")

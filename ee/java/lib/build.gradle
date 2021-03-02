@@ -452,7 +452,7 @@ test {
     }
 
 
-    workingDir = new File(workingDir, ".test-" + new Date(0).format('yymmddHHmm'))
+    workingDir = new File(workingDir, ".test-" + new Date().format('yMMddHHmm'))
     if (!workingDir.exists()) { workingDir.mkdirs() }
 
     if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
