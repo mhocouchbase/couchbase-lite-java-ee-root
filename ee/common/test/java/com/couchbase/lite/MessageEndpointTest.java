@@ -1331,13 +1331,13 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         String expectedDomain = recoverable ? null : CBLError.Domain.CBLITE;
         int expectedCode = recoverable ? 0 : CBLError.Code.WEB_SOCKET_CLOSE_USER_PERMANENT;
 
-        Report.log(LogLevel.DEBUG, "Run testP2PError with BYTE-STREAM protocol ...");
+        Report.log(LogLevel.DEBUG, "Test %s with BYTE-STREAM protocol", testName);
         run(
             createFailureP2PConfig(testName, ProtocolType.BYTE_STREAM, location, recoverable),
             expectedCode,
             expectedDomain);
 
-        Report.log(LogLevel.DEBUG, "Run testP2PError with MESSAGE-STREAM protocol ...");
+        Report.log(LogLevel.DEBUG, "Test %s with MESSAGE-STREAM protocol", testName);
         run(
             createFailureP2PConfig(testName, ProtocolType.MESSAGE_STREAM, location, recoverable),
             expectedCode,
