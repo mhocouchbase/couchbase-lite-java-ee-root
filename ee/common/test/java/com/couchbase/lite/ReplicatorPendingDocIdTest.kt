@@ -384,7 +384,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         var expectedPendingAfter: Boolean? = null
         var expectedNotPendingAfter: Boolean? = null
 
-        val token = replicator.addChangeListener(testSerialExecutor, ReplicatorChangeListener { change ->
+        val token = replicator.addChangeListener(testSerialExecutor, { change ->
             try {
                 // Apparently the replicator doesn't actually promise that it will
                 // give us all of the state changes.  Running this test on a (slow) Nexus 4

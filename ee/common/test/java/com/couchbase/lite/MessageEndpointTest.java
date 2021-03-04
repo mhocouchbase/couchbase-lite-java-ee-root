@@ -95,7 +95,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         }
 
         wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".open(%s, %s)", connection, (completion != null));
+            Report.log(LogLevel.DEBUG, logName + ".open(%s)", connection);
 
             openAsync(connection, completion);
 
@@ -110,7 +110,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         System.arraycopy(msg, 0, data, 0, data.length);
 
         wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".send(%d, %s)", data.length, (completion != null));
+            Report.log(LogLevel.DEBUG, logName + ".send(%d)", data.length);
             sendAsync(data, completion);
         });
     }
@@ -126,9 +126,8 @@ abstract class MockConnection implements MessageEndpointConnection {
         wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
-                logName + ".close(%s, %s, %s)",
+                logName + ".close(%s, %s)",
                 e,
-                (completion != null),
                 (closeCompletion) != null);
             closeAsync(completion, closeCompletion);
         });
@@ -162,7 +161,7 @@ abstract class MockConnection implements MessageEndpointConnection {
         }
 
         wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".disconnect(%s, %s, %s)", disconnecting, error, (completion != null));
+            Report.log(LogLevel.DEBUG, logName + ".disconnect(%s, %s)", disconnecting, error);
             if (disconnecting) { closeReplAsync(repl, error); }
             else { disconnectAsync(error, completion); }
         });
@@ -940,7 +939,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             endpoint,
             AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
             true);
-        final Replicator repl = new Replicator(null, config);
+        final Replicator repl = testReplicator(config);
         repl.addChangeListener(ch -> {
             switch (ch.getStatus().getActivityLevel()) {
                 case CONNECTING:
