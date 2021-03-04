@@ -20,7 +20,6 @@ import com.couchbase.lite.internal.utils.FlakyTest
 import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
-import com.couchbase.lite.internal.utils.StringUtils
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -55,10 +54,12 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     @Before
     fun setupURLEndpointListenerTest() {
         SecurityBaseTest.deleteTestAliases()
+        BaseTest.logTestInitializationComplete("URLEndpointListener")
     }
 
     @After
     fun cleanupURLEndpointListenerTest() {
+        BaseTest.logTestTeardownBegun("URLEndpointListener")
         listeners.forEach {
             it.stop()
             val alias = AbstractTLSIdentity.getAlias(it.tlsIdentity)
@@ -926,7 +927,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // https://issues.couchbase.com/browse/CBL-1116
     // A document listener on a replicator connected to a URLEndpointListener should observe deletions
-    @FlakyTest
     @Test
     fun testDeleteEvent() {
         createDocsInDb(200, 10, baseTestDb)
@@ -935,10 +935,15 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(10, baseTestDb.count)
         assertEquals(10, otherDB.count)
 
-        val listener = listenHttp()
+        //val listener =
 
-        val repl =
-            run(makeConfig(listener.endpoint(), AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false))
+        val repl = run(
+            makeConfig(
+                listenHttp().endpoint(),
+                AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+                false
+            )
+        )
 
         assertEquals(20, baseTestDb.count)
         assertEquals(20, otherDB.count)
@@ -962,8 +967,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             }
         }
         repl.start(false)
-
         assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+
         repl.removeChangeListener(token)
 
         assertEquals(18, baseTestDb.count)

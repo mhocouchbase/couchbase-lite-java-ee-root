@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite.internal.core
 
+import com.couchbase.lite.BaseTest
 import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.internal.KeyStoreManager
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair
@@ -132,10 +133,13 @@ class C4KeyPairTest : PlatformSecurityTest() {
         c4NativeMock.reset()
         C4KeyPair.nativeImpl = c4NativeMock
         C4KeyPair.KEY_PAIR_CONTEXT.clear()
+        BaseTest.logTestInitializationComplete("C4KeyPair")
+
     }
 
     @After
     fun tearDownC4ListenerTest() {
+        BaseTest.logTestTeardownBegun("C4KeyPair")
         KeyStoreManager.setInstance(null)
         C4Listener.nativeImpl = NativeC4Listener()
         C4KeyPair.nativeImpl = NativeC4KeyPair()

@@ -843,7 +843,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNull(otherDB.getDocument("doc1"));
     }
 
-    @FlakyTest
     @Test
     public void testDocumentReplicationEvent() throws CouchbaseLiteException, InterruptedException {
         final MutableDocument doc1 = new MutableDocument("doc1");
@@ -911,7 +910,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc3);
 
         final CountDownLatch latch2 = new CountDownLatch(1);
-        token = baseTestReplicator.addDocumentReplicationListener(update -> {
+        r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        token = r.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
             for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
             latch2.countDown();

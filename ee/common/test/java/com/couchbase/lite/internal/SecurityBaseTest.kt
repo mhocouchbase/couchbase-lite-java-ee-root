@@ -15,13 +15,13 @@
 //
 package com.couchbase.lite.internal
 
+import com.couchbase.lite.BaseTest
 import com.couchbase.lite.LogLevel
 import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.core.C4KeyPair
 import com.couchbase.lite.internal.security.Signature
-import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
 import com.couchbase.lite.internal.utils.StringUtils
@@ -62,11 +62,17 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
 
         @JvmStatic
         @BeforeClass
-        fun setupSecurityBaseTest() = deleteTestAliases()
+        fun setupSecurityBaseTest() {
+            BaseTest.setUpPlatformSuite()
+            deleteTestAliases()
+        }
 
         @JvmStatic
         @AfterClass
-        fun tearDownSecurityBaseTest() = deleteTestAliases()
+        fun tearDownSecurityBaseTest() {
+            deleteTestAliases()
+            BaseTest.tearDownBaseTestSuite()
+        }
 
         fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 12).toLowerCase()
 
@@ -81,9 +87,7 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
         }
 
         fun deleteTestAliases() {
-            PlatformSecurityTest.deleteEntries(Fn.Predicate { alias ->
-                alias.startsWith(BASE_KEY_ALIAS)
-            })
+            PlatformSecurityTest.deleteEntries({ alias -> alias.startsWith(BASE_KEY_ALIAS) })
         }
 
         fun loadTestKeyStore(): KeyStore {
@@ -107,10 +111,11 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
     fun dumpKeystore() {
         val keystore = loadPlatformKeyStore()
         val aliases = keystore.aliases()
+        Report.log(LogLevel.INFO, "Keystore:")
         while (aliases.hasMoreElements()) {
             val alias = aliases.nextElement()
             val entry = keystore.getEntry(alias, null)
-            Report.log(LogLevel.INFO, "============\n@${alias}:\n${entry}")
+            Report.log(LogLevel.INFO, "==${alias}==\n${entry}")
         }
     }
 

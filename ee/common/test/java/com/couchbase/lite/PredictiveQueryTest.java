@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -161,7 +162,11 @@ public class PredictiveQueryTest extends BaseQueryTest {
         Database.prediction.unregisterModel(AggregateModel.NAME);
         Database.prediction.unregisterModel(TextModel.NAME);
         Database.prediction.unregisterModel(EchoModel.NAME);
+        BaseTest.logTestInitializationComplete("Predictive Query");
     }
+
+    @After
+    public void tearDownPredictiveQueryTest() { BaseTest.logTestTeardownBegun("Predictive Query"); }
 
     @Test
     public void testRegisterAndUnregisterModel() throws Exception {
