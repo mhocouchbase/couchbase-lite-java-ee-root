@@ -74,7 +74,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.save(doc2);
 
         // Create replicator with pull filter
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PULL, false);
         config.setPullFilter((document, flags) -> {
             docIds.add(document.getId());
             revIds.add(document.getRevisionID());
@@ -142,7 +142,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         docIds.add(doc1.getId());
 
         // Create replicator with pull filter
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PULL, false);
         config.setPullFilter((document, flags) -> {
             docIds.add(document.getId());
             revIds.add(document.getRevisionID());
@@ -222,7 +222,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc3);
 
         // Create replicator with push filter
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH, false);
         config.setPushFilter((document, flags) -> {
             String docId = document.getId();
             docIds.add(docId);
@@ -308,7 +308,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testEmptyPush()
-        throws CouchbaseLiteException { run(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false)); }
+        throws CouchbaseLiteException { run(makeConfig(Replicator.Type.PUSH, false)); }
 
     @Test
     public void testPushDoc() throws CouchbaseLiteException {
@@ -322,7 +322,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        run(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        run(makeConfig(Replicator.Type.PUSH, false));
 
         assertEquals(2, otherDB.getCount());
         Document doc2a = otherDB.getDocument("doc2");
@@ -346,7 +346,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             ReplicatorConfiguration config = makeConfig(
                 anotherDB,
                 new DatabaseEndpoint(otherDB),
-                AbstractReplicatorConfiguration.ReplicatorType.PUSH,
+                Replicator.Type.PUSH,
                 true);
 
             Replicator repl = run(config);
@@ -377,7 +377,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.save(doc2);
         assertEquals(1, otherDB.getCount());
 
-        run(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false));
+        run(makeConfig(Replicator.Type.PULL, false));
 
         assertEquals(2, baseTestDb.getCount());
         Document doc2a = baseTestDb.getDocument("doc2");
@@ -402,11 +402,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             otherDB.save(doc2);
             assertEquals(1, otherDB.getCount());
 
-            run(makeConfig(
-                anotherDB,
-                new DatabaseEndpoint(otherDB),
-                AbstractReplicatorConfiguration.ReplicatorType.PULL,
-                true));
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), Replicator.Type.PULL, true));
 
             assertEquals(2, anotherDB.getCount());
             Document doc2a = anotherDB.getDocument("doc2");
@@ -439,7 +435,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         doc2 = otherDB.getDocument(mDoc2.getId());
         assertEquals(1, otherDB.getCount());
 
-        run(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false));
+        run(makeConfig(Replicator.Type.PULL, false));
         assertEquals(1, baseTestDb.getCount());
 
         String revId1 = doc1.getRevisionID();
@@ -453,10 +449,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @Test
     public void testStopContinuousReplicator() throws InterruptedException {
-        Replicator r = testReplicator(makeConfig(
-            otherDB,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator r = testReplicator(makeConfig(otherDB, Replicator.Type.PUSH_AND_PULL, true));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = r.addChangeListener(
@@ -522,9 +515,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.save(doc4);
         otherDB.getDocument(doc4.getId());
 
-        ReplicatorConfiguration config = makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH_AND_PULL, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
         run(config);
         assertEquals(3, baseTestDb.getCount());
@@ -540,7 +531,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc0);
 
         boolean[] gotException = new boolean[1];
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH, false);
         config.setPushFilter((document, flags) -> {
             try { document.toMutable(); }
             catch (UnsupportedOperationException e) { gotException[0] = true; }
@@ -569,9 +560,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     @Test
     public void testCloseDatabaseWithActiveReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(1);
-        Replicator repl = testReplicator(makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator repl = testReplicator(makeConfig(Replicator.Type.PUSH_AND_PULL, true));
         ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
         repl.start(false);
 
@@ -588,9 +577,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     @Test
     public void testDeleteDatabaseWithActiveReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(1);
-        Replicator repl = testReplicator(makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator repl = testReplicator(makeConfig(Replicator.Type.PUSH_AND_PULL, true));
         ListenerToken token = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
         repl.start(false);
 
@@ -622,11 +609,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             }
             assertEquals(1, anotherDB.getCount());
 
-            run(makeConfig(
-                anotherDB,
-                new DatabaseEndpoint(otherDB),
-                AbstractReplicatorConfiguration.ReplicatorType.PUSH,
-                false));
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), Replicator.Type.PUSH, false));
 
             assertEquals(1, otherDB.getCount());
             Document doc1a = otherDB.getDocument("doc1");
@@ -657,11 +640,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
             assertEquals(1, otherDB.getCount());
 
-            run(makeConfig(
-                anotherDB,
-                new DatabaseEndpoint(otherDB),
-                AbstractReplicatorConfiguration.ReplicatorType.PULL,
-                false));
+            run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), Replicator.Type.PULL, false));
 
             assertEquals(1, anotherDB.getCount());
             Document doc1a = anotherDB.getDocument("doc1");
@@ -683,7 +662,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         Replicator repl = testReplicator(makeConfig(
             baseTestDb,
             new DatabaseEndpoint(otherDB),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH,
+            Replicator.Type.PUSH,
             false));
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -724,12 +703,12 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(0, otherDB.getCount());
 
         // push
-        run(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        run(makeConfig(Replicator.Type.PUSH, false));
         assertEquals(2, baseTestDb.getCount());
         assertEquals(2, otherDB.getCount());
 
         // pull
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PULL, false);
         run(config);
         assertEquals(2, baseTestDb.getCount());
         assertEquals(2, otherDB.getCount());
@@ -787,11 +766,11 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         Thread.sleep(1000);
 
         // push
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH, false);
         run(config);
 
         // pull
-        config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        config = makeConfig(Replicator.Type.PULL, false);
         run(config);
 
         assertNull(otherDB.getDocument("doc1")); // expired; not copied
@@ -810,10 +789,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc1);
         baseTestDb.purge(doc1);
 
-        baseTestReplicator = testReplicator(makeConfig(
-            otherDB,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH,
-            false));
+        baseTestReplicator = testReplicator(makeConfig(otherDB, Replicator.Type.PUSH, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken documentToken = baseTestReplicator.addDocumentReplicationListener(
@@ -859,7 +835,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         final boolean[] isPush = new boolean[1];
 
         // Push
-        Replicator r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        Replicator r = testReplicator(makeConfig(Replicator.Type.PUSH, false));
 
         final CountDownLatch latch1 = new CountDownLatch(1);
         ListenerToken token = r.addDocumentReplicationListener(update -> {
@@ -910,7 +886,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc3);
 
         final CountDownLatch latch2 = new CountDownLatch(1);
-        r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        r = testReplicator(makeConfig(Replicator.Type.PUSH, false));
         token = r.addDocumentReplicationListener(update -> {
             isPush[0] = update.isPush();
             for (ReplicatedDocument doc: update.getDocuments()) { docs.put(doc.getID(), doc); }
@@ -979,7 +955,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         doc1b.setString("pattern", "Striped");
         otherDB.save(doc1b);
 
-        Replicator r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, false));
+        Replicator r = testReplicator(makeConfig(Replicator.Type.PULL, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = r.addDocumentReplicationListener(
@@ -1021,7 +997,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.save(doc2);
 
         // Push
-        Replicator r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        Replicator r = testReplicator(makeConfig(Replicator.Type.PUSH, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = r.addDocumentReplicationListener(
@@ -1060,7 +1036,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.save(doc1);
         baseTestDb.delete(doc1);
 
-        Replicator r = testReplicator(makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, false));
+        Replicator r = testReplicator(makeConfig(Replicator.Type.PUSH, false));
 
         final CountDownLatch latch = new CountDownLatch(1);
         ListenerToken token = r.addDocumentReplicationListener(
@@ -1092,9 +1068,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     public void testCloseDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);
 
-        Replicator repl = testReplicator(makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator repl = testReplicator(makeConfig(Replicator.Type.PUSH_AND_PULL, true));
 
         AbstractQuery query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
@@ -1134,9 +1108,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertTrue(baseDbPath.exists());
         assertTrue(otherDbPath.exists());
 
-        Replicator repl = testReplicator(makeConfig(
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator repl = testReplicator(makeConfig(Replicator.Type.PUSH_AND_PULL, true));
 
         AbstractQuery query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
@@ -1173,14 +1145,14 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     public void testAddListenerAfterStart() throws CouchbaseLiteException {
         Replicator repl = testReplicator(makeConfig(
             new DatabaseEndpoint(otherDB),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            Replicator.Type.PUSH_AND_PULL,
             true));
 
         assertEquals(0, repl.getListenerCount());
         repl.start();
 
         final CountDownLatch latch = new CountDownLatch(1);
-        repl.addDocumentReplicationListener(replication -> { latch.countDown(); });
+        repl.addDocumentReplicationListener(replication -> latch.countDown());
         assertEquals(1, repl.getListenerCount());
 
         MutableDocument doc = new MutableDocument("doc1");
@@ -1224,7 +1196,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.delete(doc3);
 
         // Create replicator with push filter
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PUSH, continuous);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH, continuous);
 
         config.setPushFilter((document, flags) -> {
             String docId = document.getId();
@@ -1302,7 +1274,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         otherDB.delete(doc3);
 
         // Create replicator with pull filter
-        ReplicatorConfiguration config = makeConfig(AbstractReplicatorConfiguration.ReplicatorType.PULL, continuous);
+        ReplicatorConfiguration config = makeConfig(Replicator.Type.PULL, continuous);
         config.setPullFilter((document, flags) -> {
             String docId = document.getId();
             docIds.add(docId);
@@ -1383,16 +1355,11 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
     }
 
-    private ReplicatorConfiguration makeConfig(
-        AbstractReplicatorConfiguration.ReplicatorType type,
-        boolean continuous) {
+    private ReplicatorConfiguration makeConfig(Replicator.Type type, boolean continuous) {
         return makeConfig(this.otherDB, type, continuous);
     }
 
-    private ReplicatorConfiguration makeConfig(
-        Database targetDatabase,
-        AbstractReplicatorConfiguration.ReplicatorType type,
-        boolean continuous) {
+    private ReplicatorConfiguration makeConfig(Database targetDatabase, Replicator.Type type, boolean continuous) {
         return makeConfig(this.baseTestDb, new DatabaseEndpoint(targetDatabase), type, continuous);
     }
 

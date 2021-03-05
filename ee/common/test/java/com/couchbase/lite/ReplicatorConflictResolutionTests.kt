@@ -77,7 +77,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val config = makeConfig(
             URLEndpoint(URI("wss://foo")),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH,
+            AbstractReplicator.Type.PUSH,
             false
         )
         config.conflictResolver = resolver
@@ -682,7 +682,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
      */
     @FlakyTest
     @Test
-    fun testConflictResolutionDefaul3() {
+    fun testConflictResolutionDefault3() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // local has higher generation
@@ -1309,7 +1309,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         baseTestDb.save(doc)
 
         // sync with the other db
-        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicatorConfiguration.ReplicatorType.PUSH, false))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
 
         // add a blob in the local copy:
         doc = baseTestDb.getDocument(DOC1).toMutable()
@@ -1349,7 +1349,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val doc = MutableDocument(docId)
         baseTestDb.save(doc)
 
-        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicatorConfiguration.ReplicatorType.PUSH, false))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
 
         // Now make some changes in db and otherDB:
         val doc1 = baseTestDb.getDocument(docId).toMutable()
@@ -1395,7 +1395,6 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     }
 
     private fun pullConfigWitResolver(resolver: ConflictResolver?): ReplicatorConfiguration {
-        return makeConfigTargetingOtherDb(AbstractReplicatorConfiguration.ReplicatorType.PULL, resolver)
+        return makeConfigTargetingOtherDb(AbstractReplicator.Type.PULL, resolver)
     }
 }
-

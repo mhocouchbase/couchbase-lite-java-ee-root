@@ -940,7 +940,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl = run(
             makeConfig(
                 listenHttp().endpoint(),
-                AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+                AbstractReplicator.Type.PUSH_AND_PULL,
                 false
             )
         )
@@ -1246,7 +1246,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val config = makeConfig(
             source,
             target,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            AbstractReplicator.Type.PUSH_AND_PULL,
             continuous,
             pinnedServerCert
         )

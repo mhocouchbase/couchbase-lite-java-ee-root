@@ -521,8 +521,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
 
         run(config, 0, null);
 
@@ -547,8 +546,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
 
         run(config, 0, null);
 
@@ -572,8 +570,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, true);
 
         run(config, 0, null);
 
@@ -598,8 +595,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, true);
 
         run(config, 0, null);
 
@@ -623,8 +619,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
 
         run(config, 0, null);
 
@@ -649,8 +644,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
 
         run(config, 0, null);
 
@@ -674,8 +668,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, true);
 
         run(config, 0, null);
 
@@ -700,8 +693,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        final ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PULL, true);
+        final ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, true);
 
         run(config, 0, null);
 
@@ -725,8 +717,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
 
         run(config, 0, null);
 
@@ -753,8 +744,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
 
         run(config, 0, null);
 
@@ -781,8 +771,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, true);
 
         run(config, 0, null);
 
@@ -810,8 +799,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, true);
 
         run(config, 0, null);
 
@@ -871,11 +859,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
 
-        Replicator replicator = testReplicator(makeConfig(
-            baseTestDb,
-            endpoint,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true));
+        Replicator replicator = testReplicator(makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true));
 
         final CountDownLatch latch = new CountDownLatch(3);
         final AtomicBoolean didCloseListener = new AtomicBoolean(false);
@@ -934,11 +918,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         final MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest2", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(1));
-        final ReplicatorConfiguration config = makeConfig(
-            baseTestDb,
-            endpoint,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true);
+        final ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
         final Replicator repl = testReplicator(config);
         repl.addChangeListener(ch -> {
             switch (ch.getStatus().getActivityLevel()) {
@@ -986,7 +966,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 serverConnection1,
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            Replicator.Type.PUSH_AND_PULL,
             true));
 
         final MockServerConnection serverConnection2 = getServerConnection("P2PPassiveCloseAll2", listener);
@@ -997,7 +977,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 serverConnection2,
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
+            Replicator.Type.PUSH_AND_PULL,
             true));
 
         final CountDownLatch closeWait1 = new CountDownLatch(1);
@@ -1077,11 +1057,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             serverConnection,
             ProtocolType.BYTE_STREAM,
             new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(
-            baseTestDb,
-            endpoint,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true);
+        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
 
         listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
 
@@ -1107,11 +1083,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             serverConnection,
             ProtocolType.BYTE_STREAM,
             new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(
-            baseTestDb,
-            endpoint,
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL,
-            true);
+        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
 
         ListenerToken token = listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
         listener.removeChangeListener(token);
@@ -1143,8 +1115,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PushWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1172,8 +1143,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PullWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1206,8 +1176,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PushPullWithFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config
-            = makeConfig(endpoint, AbstractReplicatorConfiguration.ReplicatorType.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
 
         run(config, 0, null);
@@ -1372,7 +1341,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         return makeConfig(
             baseTestDb,
             new MessageEndpoint("p2ptest0", server, protocolType, new MockConnectionFactory(errorLocation)),
-            AbstractReplicatorConfiguration.ReplicatorType.PUSH,
+            Replicator.Type.PUSH,
             false);
     }
 }
