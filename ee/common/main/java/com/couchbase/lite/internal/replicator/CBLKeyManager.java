@@ -54,12 +54,12 @@ public class CBLKeyManager implements X509KeyManager {
 
     @Override
     public String[] getServerAliases(String keyType, Principal[] issuers) {
-        throw new UnsupportedOperationException("Server Operation");
+        throw new UnsupportedOperationException("getServerAliases(String, Principal[]) not supported for client");
     }
 
     @Override
     public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
-        throw new UnsupportedOperationException("Server Operation");
+        throw new UnsupportedOperationException("chooseServerAlias(String, Principal[]) not supported for client");
     }
 
     @Override

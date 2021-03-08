@@ -82,7 +82,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         return "MessageSocket{@" + super.toString() + ": " + protocolType + ", " + connection + "}";
     }
 
-    public void close() { throw new UnsupportedOperationException("close() not supported"); }
+    public void close() { throw new UnsupportedOperationException("close() not supported for MessageSocket"); }
 
     // ---------------------------------------------------------------------------------------------
     // Implementation of ReplicatorConnection
