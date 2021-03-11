@@ -168,6 +168,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         listener.start()
     }
 
+    @FlakyTest
     @Test
     fun testURLs() {
         val config = URLEndpointListenerConfiguration(otherDB)
@@ -548,6 +549,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents a cert chain whose root is pinned
+    @FlakyTest
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingChainClientCredentials() {
         val clientIdentity = getTestChainIdentity()
@@ -588,6 +590,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a callback client authenticator
     // should accept a client that presents credentials that cause the authenticator to return true.
+    @FlakyTest
     @Test
     fun testCertAuthenticatorWithCallbackSucceeds() {
         val clientIdentity = createIdentity(false)
