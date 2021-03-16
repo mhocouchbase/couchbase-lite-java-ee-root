@@ -32,7 +32,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
 import com.couchbase.lite.internal.security.Signature;
@@ -143,7 +142,7 @@ public class C4KeyPair extends C4NativePeer {
 
         final long peer;
         try { peer = nativeImpl.nFromExternal(getC4KeyAlgorithm(algorithm), keySize.getBitLength(), token); }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
 
         keyPair.setPeer(peer);
 
@@ -324,7 +323,7 @@ public class C4KeyPair extends C4NativePeer {
                 expSecond);
         }
         catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
+            throw CouchbaseLiteException.convertException(e);
         }
     }
 

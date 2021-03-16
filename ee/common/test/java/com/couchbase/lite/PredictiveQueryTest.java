@@ -29,7 +29,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.DateUtils;
+import com.couchbase.lite.internal.utils.JSONUtils;
 import com.couchbase.lite.internal.utils.Report;
 import com.couchbase.lite.internal.utils.TestUtils;
 
@@ -244,7 +244,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         // Create a prediction function input:
         Date date = new Date();
-        final String dateStr = DateUtils.toJson(date);
+        final String dateStr = JSONUtils.toJSON(date);
         Expression power = Function.power(Expression.property("number"), Expression.intValue(2));
         final Map<String, Object> map = new HashMap<>();
         map.put("null", null);
@@ -290,22 +290,22 @@ public class PredictiveQueryTest extends BaseQueryTest {
             assertEquals(10.1, pred.getDouble("number2"), 0.0);
             assertTrue(pred.getBoolean("boolean"));
             assertEquals("hello", pred.getString("string"));
-            assertEquals(dateStr, DateUtils.toJson(pred.getDate("date")));
+            assertEquals(dateStr, JSONUtils.toJSON(pred.getDate("date")));
             assertNull(pred.getString("null"));
             assertEquals(subMap, pred.getDictionary("dict").toMap());
-            assertArrayEquals(new String[] {"1", "2", "3"}, pred.getArray("array").toList().toArray(new String[3]));
+            assertArrayEquals(new String[] {"1", "2", "3"}, pred.getArray("array").toList().toArray(new Object[3]));
             // Expression:
             assertEquals("Daniel", pred.getString("expr_property"));
             assertEquals(20, pred.getInt("expr_value_number1"));
             assertEquals(20.1, pred.getDouble("expr_value_number2"), 0.0);
             assertTrue(pred.getBoolean("expr_value_boolean"));
             assertEquals("hi", pred.getString("expr_value_string"));
-            assertEquals(dateStr, DateUtils.toJson(pred.getDate("expr_value_date")));
+            assertEquals(dateStr, JSONUtils.toJSON(pred.getDate("expr_value_date")));
             assertNull(pred.getString("expr_value_null"));
             assertEquals(subExprMap, pred.getDictionary("expr_value_dict").toMap());
             assertArrayEquals(
                 subExprList.toArray(new String[3]),
-                pred.getArray("expr_value_array").toList().toArray(new String[3]));
+                pred.getArray("expr_value_array").toList().toArray(new Object[3]));
             assertEquals(4, pred.getInt("expr_power"));
         });
 

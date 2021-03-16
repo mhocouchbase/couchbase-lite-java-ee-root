@@ -20,13 +20,13 @@ import android.support.annotation.Nullable;
 
 import java.util.concurrent.Executor;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Message;
 import com.couchbase.lite.MessageEndpoint;
 import com.couchbase.lite.MessageEndpointConnection;
 import com.couchbase.lite.MessagingError;
 import com.couchbase.lite.ProtocolType;
 import com.couchbase.lite.ReplicatorConnection;
-import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Socket;
@@ -145,10 +145,10 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     protected final void completedReceive(long byteCount) { }
 
     @Override // socket_requestClose
-    protected final void requestClose(final int status, String message) {
+    protected final void requestClose(final int status, String msg) {
         final Exception error = (status == C4Constants.WebSocketError.NORMAL)
             ? null
-            : CBLStatus.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, message, null);
+            : CouchbaseLiteException.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, msg, null);
         final MessagingError messagingError = (error == null)
             ? null
             : new MessagingError(error, status == C4Constants.WebSocketError.USER_TRANSIENT);

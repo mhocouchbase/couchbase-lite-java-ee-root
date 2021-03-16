@@ -19,7 +19,6 @@ import android.support.annotation.Nullable;
 
 import java.io.File;
 
-import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
@@ -118,7 +117,7 @@ public final class Database extends AbstractDatabase {
     public void changeEncryptionKey(EncryptionKey encryptionKey) throws CouchbaseLiteException {
         synchronized (getLock()) {
             try { getC4DatabaseLocked().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
-            catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+            catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
         }
     }
 

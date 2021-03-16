@@ -39,7 +39,6 @@ import com.couchbase.lite.ListenerCertificateAuthenticator;
 import com.couchbase.lite.ListenerPasswordAuthenticator;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
-import com.couchbase.lite.internal.CBLStatus;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
@@ -159,7 +158,7 @@ public class C4Listener extends C4NativePeer {
                 (authenticator != null));
         }
         catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
+            throw CouchbaseLiteException.convertException(e);
         }
 
         listener.setPeer(peer);
@@ -213,7 +212,7 @@ public class C4Listener extends C4NativePeer {
                 (authenticator != null));
         }
         catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
+            throw CouchbaseLiteException.convertException(e);
         }
         catch (CertificateEncodingException e) {
             throw new CouchbaseLiteException(
@@ -275,7 +274,7 @@ public class C4Listener extends C4NativePeer {
                 false);
         }
         catch (LiteCoreException e) {
-            throw CBLStatus.convertException(e);
+            throw CouchbaseLiteException.convertException(e);
         }
         catch (CertificateEncodingException e) {
             throw new CouchbaseLiteException(
@@ -355,12 +354,12 @@ public class C4Listener extends C4NativePeer {
 
     public void shareDb(@NonNull String name, @NonNull C4Database db) throws CouchbaseLiteException {
         try { impl.nShareDb(getPeer(), name, db.getHandle()); }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
     }
 
     public void unshareDb(@NonNull C4Database db) throws CouchbaseLiteException {
         try { impl.nUnshareDb(getPeer(), db.getHandle()); }
-        catch (LiteCoreException e) { throw CBLStatus.convertException(e); }
+        catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
     }
 
     @Nullable
