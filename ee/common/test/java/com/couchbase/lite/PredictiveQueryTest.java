@@ -244,7 +244,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
         // Create a prediction function input:
         Date date = new Date();
-        final String dateStr = JSONUtils.toJSON(date);
+        final String dateStr = JSONUtils.toJSONString(date);
         Expression power = Function.power(Expression.property("number"), Expression.intValue(2));
         final Map<String, Object> map = new HashMap<>();
         map.put("null", null);
@@ -290,7 +290,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             assertEquals(10.1, pred.getDouble("number2"), 0.0);
             assertTrue(pred.getBoolean("boolean"));
             assertEquals("hello", pred.getString("string"));
-            assertEquals(dateStr, JSONUtils.toJSON(pred.getDate("date")));
+            assertEquals(dateStr, JSONUtils.toJSONString(pred.getDate("date")));
             assertNull(pred.getString("null"));
             assertEquals(subMap, pred.getDictionary("dict").toMap());
             assertArrayEquals(new String[] {"1", "2", "3"}, pred.getArray("array").toList().toArray(new Object[3]));
@@ -300,7 +300,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
             assertEquals(20.1, pred.getDouble("expr_value_number2"), 0.0);
             assertTrue(pred.getBoolean("expr_value_boolean"));
             assertEquals("hi", pred.getString("expr_value_string"));
-            assertEquals(dateStr, JSONUtils.toJSON(pred.getDate("expr_value_date")));
+            assertEquals(dateStr, JSONUtils.toJSONString(pred.getDate("expr_value_date")));
             assertNull(pred.getString("expr_value_null"));
             assertEquals(subExprMap, pred.getDictionary("expr_value_dict").toMap());
             assertArrayEquals(

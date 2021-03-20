@@ -715,7 +715,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         assertEquals(1, otherDB.count)
 
-        // ??? The count of active connections is, apparently, so incredibly fleeting as to be pretty much useless.
+        // The count of active connections is, apparently, so incredibly fleeting as to be pretty much useless.
         // assertEquals(1, maxVals[0])
         assertEquals(1, maxVals[1])
 
@@ -832,9 +832,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // Closing a database should shutdown all listeners
     @Test
     fun testCloseDbWithActiveListeners() {
-        createDocsInDb(1000, 10, otherDB)
+        createDocsInDb(1000, 7, otherDB)
 
-        createDocsInDb(2000, 10, baseTestDb)
+        createDocsInDb(2000, 11, baseTestDb)
 
         val serverId = createIdentity()
         val listener = listenTls(serverId)
@@ -882,9 +882,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // Deleting a database should shutdown all listeners
     @Test
     fun testDeleteDbWithActiveListeners() {
-        createDocsInDb(1000, 10, otherDB)
+        createDocsInDb(1000, 7, otherDB)
 
-        createDocsInDb(2000, 10, baseTestDb)
+        createDocsInDb(2000, 11, baseTestDb)
 
         val serverId = createIdentity()
         val listener = listenTls(serverId)
@@ -933,13 +933,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // A document listener on a replicator connected to a URLEndpointListener should observe deletions
     @Test
     fun testDeleteEvent() {
-        createDocsInDb(200, 10, baseTestDb)
-        createDocsInDb(300, 10, otherDB)
+        createDocsInDb(200, 7, baseTestDb)
+        createDocsInDb(300, 11, otherDB)
 
-        assertEquals(10, baseTestDb.count)
-        assertEquals(10, otherDB.count)
-
-        //val listener =
+        assertEquals(7, baseTestDb.count)
+        assertEquals(11, otherDB.count)
 
         val repl = run(
             makeConfig(
@@ -949,8 +947,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             )
         )
 
-        assertEquals(20, baseTestDb.count)
-        assertEquals(20, otherDB.count)
+        assertEquals(18, baseTestDb.count)
+        assertEquals(18, otherDB.count)
 
         var deleted = 0
         repl.addDocumentReplicationListener { replication ->
@@ -975,8 +973,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         repl.removeChangeListener(token)
 
-        assertEquals(18, baseTestDb.count)
-        assertEquals(18, otherDB.count)
+        assertEquals(16, baseTestDb.count)
+        assertEquals(16, otherDB.count)
 
         assertEquals(2, deleted)
     }

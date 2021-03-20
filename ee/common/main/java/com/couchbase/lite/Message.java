@@ -42,7 +42,7 @@ public class Message {
 
     private final byte[] data;
 
-    // !!! FIXME: This method stores a mutable array as private data
+    // !!! This method stores a mutable array as private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @SuppressWarnings("PMD.ArrayIsStoredDirectly")
     Message(byte[] data) { this.data = data; }
@@ -53,7 +53,7 @@ public class Message {
      *
      * @return the data
      */
-    // !!! FIXME: This method returns a writable copy of its private data
+    // !!! This method returns a writable copy of its private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @SuppressWarnings("PMD.MethodReturnsInternalArray")
     @NonNull
