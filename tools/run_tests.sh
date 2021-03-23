@@ -2,7 +2,7 @@
 
 mkdir allTests
 pushd allTests > /dev/null
-/Users/blakemeike/Working/java/lithium/tools/mk_classpath.sh
+../tools/mk_classpath.sh
 
 java \
    -cp classes/java/test:classes/kotlin/test:resources/test:./* \
