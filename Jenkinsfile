@@ -64,7 +64,6 @@ pipeline {
                     cp local.properties ce/java
 
                     echo "sdk.dir=${ANDROID_SDK}" >> local.properties
-                    echo "cmake.dir=${ANDROID_SDK}/cmake/${CMAKE_VERSION}" >> local.properties
                     cp local.properties ee/android
                     cp local.properties ce/android
                 """
