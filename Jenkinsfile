@@ -28,7 +28,7 @@ pipeline {
                     currentBuild.displayName = "cbl-java-verify-${env.JOB_BASE_NAME} #${env.CHANGE_ID}"
                     currentBuild.description = "${CHANGE_TITLE}"
                     ANDROID_SDK = "${env.ANDROID_HOME}"
-                    SDK_MGR="${ANDROID_SDK}/tools/bin/sdkmanager"
+                    SDK_MGR="${ANDROID_SDK}/tools/bin/sdkmanager --channel=1 --install"
                 }
             }
         }
@@ -50,9 +50,9 @@ pipeline {
                     set +x
                     echo "======== Install Toolchain"
                     echo "yes" | ${SDK_MGR} --licenses > /dev/null 2>&1
-                    ${SDK_MGR} --install "build-tools;${BUILD_TOOLS_VERSION}"
-                    ${SDK_MGR} --install "ndk;${NDK_VERSION}"
-                    ${SDK_MGR} --install "cmake;${CMAKE_VERSION}"
+                    ${SDK_MGR} "build-tools;${BUILD_TOOLS_VERSION}"
+                    ${SDK_MGR} "ndk;${NDK_VERSION}"
+                    ${SDK_MGR} "cmake;${CMAKE_VERSION}"
                 """
 
                 // must be done after the source is downloaded
@@ -64,7 +64,6 @@ pipeline {
                     cp local.properties ce/java
 
                     echo "sdk.dir=${ANDROID_SDK}" >> local.properties
-                    echo "ndk.dir=${ANDROID_SDK}/ndk/${NDK_VERSION}" >> local.properties
                     echo "cmake.dir=${ANDROID_SDK}/cmake/${CMAKE_VERSION}" >> local.properties
                     cp local.properties ee/android
                     cp local.properties ce/android
