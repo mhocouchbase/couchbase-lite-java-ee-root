@@ -2,9 +2,9 @@
 
 // Used for the android builds.
 // Note that both flavors must use the same toolchain
-final NDK_VERSION='21.3.6528147'
-final CMAKE_VERSION='3.10.2.4988404'
-final BUILD_TOOLS_VERSION='30.0.2'
+final NDK_VERSION='22.0.7026061'
+final CMAKE_VERSION='3.18.1'
+final BUILD_TOOLS_VERSION='30.0.3'
 
 def JOB_NAME = ""
 def ANDROID_SDK = ""
