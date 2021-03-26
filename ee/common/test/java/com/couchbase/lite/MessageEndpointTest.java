@@ -578,7 +578,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
-;
     @Test
     public void testPushDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
