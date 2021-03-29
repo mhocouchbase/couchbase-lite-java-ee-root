@@ -959,8 +959,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             }
         }
 
-        otherDB.delete(otherDB.getDocument("doc-303"))
-        otherDB.delete(otherDB.getDocument("doc-307"))
+        otherDB.delete(otherDB.getNonNullDoc("doc-303"))
+        otherDB.delete(otherDB.getNonNullDoc("doc-307"))
 
         val latch = CountDownLatch(1)
         val token = repl.addChangeListener { change ->
@@ -1303,7 +1303,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 }
 
-fun URLEndpointListener.endpointUri() =
+private fun URLEndpointListener.endpointUri() =
     URI(
         if (config.isTlsDisabled) "ws" else "wss",
         null,
@@ -1314,4 +1314,8 @@ fun URLEndpointListener.endpointUri() =
         null
     )
 
-fun URLEndpointListener.endpoint() = URLEndpoint(endpointUri())
+private fun URLEndpointListener.endpoint() = URLEndpoint(endpointUri())
+
+private fun Database.getNonNullDoc(id: String) =
+    this.getDocument(id) ?: throw IllegalStateException("document ${id} is null")
+

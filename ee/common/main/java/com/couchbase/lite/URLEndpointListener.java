@@ -191,11 +191,14 @@ public class URLEndpointListener {
         final ListenerAuthenticator auth = config.getAuthenticator();
         Log.i(LogDomain.LISTENER, "Starting with auth: " + auth);
 
+        final String path = config.getDatabase().getPath();
+        if (path == null) { throw new IllegalStateException("Listener database is not open"); }
+
         if (config.isTlsDisabled()) {
             return C4Listener.createHttpListener(
                 config.getPort(),
                 config.getNetworkInterface(),
-                config.getDatabase().getPath(),
+                path,
                 (ListenerPasswordAuthenticator) auth,
                 true,
                 !config.isReadOnly(),
@@ -219,7 +222,7 @@ public class URLEndpointListener {
             return C4Listener.createTlsListenerPasswordAuth(
                 config.getPort(),
                 config.getNetworkInterface(),
-                config.getDatabase().getPath(),
+                path,
                 (ListenerPasswordAuthenticator) auth,
                 true,
                 !config.isReadOnly(),
@@ -232,7 +235,7 @@ public class URLEndpointListener {
         return C4Listener.createTlsListenerCertAuth(
             config.getPort(),
             config.getNetworkInterface(),
-            config.getDatabase().getPath(),
+            path,
             (ListenerCertificateAuthenticator) auth,
             true,
             !config.isReadOnly(),

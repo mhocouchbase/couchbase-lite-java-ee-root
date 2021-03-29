@@ -172,7 +172,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         pushPull()
 
         changed.forEach { id ->
-            baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
+            baseTestDb.getNonNullDoc(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
         }
 
         validatePendingDocumentIds(changed)
@@ -192,7 +192,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        deleted.forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.delete(it) } }
+        deleted.forEach { id -> baseTestDb.getNonNullDoc(id).let { baseTestDb.delete(it) } }
 
         validatePendingDocumentIds(deleted)
     }
@@ -211,7 +211,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        ids.drop(3).forEach { id -> baseTestDb.getDocument(id).let { baseTestDb.purge(it) } }
+        ids.drop(3).forEach { id -> baseTestDb.getNonNullDoc(id).let { baseTestDb.purge(it) } }
 
         validatePendingDocumentIds(emptySet())
     }
@@ -241,7 +241,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        baseTestDb.getDocument(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
+        baseTestDb.getNonNullDoc(id).let { baseTestDb.save(it.toMutable().setString(TEST_KEY, "quiche")) }
 
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
@@ -254,7 +254,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         pushPull()
 
-        baseTestDb.getDocument(id).let { baseTestDb.delete(it) }
+        baseTestDb.getNonNullDoc(id).let { baseTestDb.delete(it) }
 
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
@@ -438,5 +438,8 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
     private fun pushPull() =
         run(testReplicator(makeConfigTargetingOtherDb(AbstractReplicator.Type.PUSH_AND_PULL)))
+
+    private fun Database.getNonNullDoc(id: String) =
+        this.getDocument(id) ?: throw IllegalStateException("document ${id} is null")
 }
 

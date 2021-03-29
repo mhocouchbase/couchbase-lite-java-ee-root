@@ -107,15 +107,15 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
-        assertEquals(prePushSeq, otherDB.getDocument(DOC1).sequence)
+        assertEquals(prePushSeq, otherDB.getNonNullDoc(DOC1).sequence)
     }
 
     /**
@@ -166,15 +166,15 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.getDocument(DOC1).sequence)
+        assertTrue(prePushSeq < otherDB.getNonNullDoc(DOC1).sequence)
     }
 
     /**
@@ -204,7 +204,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val savedDoc = baseTestDb.getDocument(DOC1)
         assertNull(savedDoc)
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -234,12 +234,12 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertEquals(VAL3, doc.getString(KEY3))
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -268,12 +268,12 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
         assertEquals(VAL3, doc.getString(KEY3))
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -302,11 +302,11 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL3, doc.getString(KEY3))
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -331,7 +331,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -379,7 +379,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
-        val prePushSeq = otherDB.getDocument(DOC1).sequence
+        val prePushSeq = otherDB.getNonNullDoc(DOC1).sequence
 
         run(pushConfig())
 
@@ -401,7 +401,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         var count = 0
         pullConfig.conflictResolver = TestConflictResolver { conflict ->
             if (count++ <= 0) {
-                val savedDoc = baseTestDb.getDocument(DOC1).toMutable()
+                val savedDoc = baseTestDb.getNonNullDoc(DOC1).toMutable()
                 savedDoc.setString(KEY3, VAL3)
                 baseTestDb.save(savedDoc)
             }
@@ -418,7 +418,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(1, baseTestDb.count)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(3, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertEquals(VAL3, doc.getString(KEY3))
@@ -494,7 +494,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, errors.size)
 
-        val doc1 = baseTestDb.getDocument(DOC1)
+        val doc1 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(doc2.count(), doc1.count())
         assertEquals(VAL3, doc1.getString(KEY3))
     }
@@ -513,7 +513,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val doc = MutableDocument(DOC3)
         doc.setString(KEY3, VAL3)
         baseTestDb.save(doc)
-        val doc3 = baseTestDb.getDocument(DOC3)
+        val doc3 = baseTestDb.getNonNullDoc(DOC3)
 
         var replicator: Replicator? = null
         var token: ListenerToken? = null
@@ -528,7 +528,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, errors.size)
 
-        val doc1 = baseTestDb.getDocument(DOC1)
+        val doc1 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(doc3.count(), doc1.count())
         assertEquals(VAL3, doc1.getString(KEY3))
     }
@@ -550,7 +550,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfigWitResolver(TestConflictResolver { otherDB.getDocument(DOC1) })) { r: Replicator ->
+        run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) { r: Replicator ->
             replicator = r
             token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
@@ -562,9 +562,9 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(CBLError.Domain.CBLITE, error.domain)
         assertEquals(CBLError.Code.UNEXPECTED_ERROR, error.code)
 
-        val doc1 = baseTestDb.getDocument(DOC1)
+        val doc1 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc1.count())
-        assertEquals(VAL1, doc1?.getString(KEY1))
+        assertEquals(VAL1, doc1.getString(KEY1))
 
         replicator?.removeChangeListener(token!!)
     }
@@ -602,15 +602,15 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(CBLError.Domain.CBLITE, error.domain)
         assertEquals(CBLError.Code.UNEXPECTED_ERROR, error.code)
 
-        val doc1 = baseTestDb.getDocument(DOC1)
+        val doc1 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc1.count())
-        assertEquals(VAL1, doc1?.getString(KEY1))
+        assertEquals(VAL1, doc1.getString(KEY1))
 
         run(pullConfigWitResolver(RemoteResolver))
 
-        val doc2 = baseTestDb.getDocument(DOC1)
+        val doc2 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc2.count())
-        assertEquals(VAL2, doc2?.getString(KEY2))
+        assertEquals(VAL2, doc2.getString(KEY2))
     }
 
     /**
@@ -621,7 +621,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     @Test
     fun testDocumentReplicationEventForConflictedDocs() {
         var ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver {
-            otherDB.getDocument(DOC1)
+            otherDB.getNonNullDoc(DOC1)
         })
         assertEquals(1, ids.size)
         assertEquals(ids[0], DOC1)
@@ -649,7 +649,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // delete local
-        baseTestDb.delete(baseTestDb.getDocument(DOC1))
+        baseTestDb.delete(baseTestDb.getNonNullDoc(DOC1))
 
         run(pullConfig())
 
@@ -667,7 +667,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // delete remote
-        otherDB.delete(otherDB.getDocument(DOC1))
+        otherDB.delete(otherDB.getNonNullDoc(DOC1))
 
         run(pullConfig())
 
@@ -686,13 +686,13 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // local has higher generation
-        val doc = baseTestDb.getDocument(DOC1).toMutable()
+        val doc = baseTestDb.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY3, VAL3)
         baseTestDb.save(doc)
 
         run(pullConfig())
 
-        assertTrue(baseTestDb.getDocument(DOC1).generation() > otherDB.getDocument(DOC1).generation())
+        assertTrue(baseTestDb.getNonNullDoc(DOC1).generation() > otherDB.getNonNullDoc(DOC1).generation())
     }
 
     /**
@@ -706,13 +706,13 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // remote has higher generation
-        val doc = otherDB.getDocument(DOC1).toMutable()
+        val doc = otherDB.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY3, VAL3)
         otherDB.save(doc)
 
         run(pullConfig())
 
-        assertEquals(baseTestDb.getDocument(DOC1).generation(), otherDB.getDocument(DOC1).generation())
+        assertEquals(baseTestDb.getNonNullDoc(DOC1).generation(), otherDB.getNonNullDoc(DOC1).generation())
     }
 
     /**
@@ -727,10 +727,10 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
         // delete local
-        baseTestDb.delete(baseTestDb.getDocument(DOC1))
+        baseTestDb.delete(baseTestDb.getNonNullDoc(DOC1))
 
         // higher remote generation
-        val doc = otherDB.getDocument(DOC1).toMutable()
+        val doc = otherDB.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY3, VAL3)
         otherDB.save(doc)
 
@@ -750,9 +750,9 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     fun testConflictResolutionDefault6() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val localDoc = baseTestDb.getDocument(DOC1)
+        val localDoc = baseTestDb.getNonNullDoc(DOC1)
         val localDocRevId = localDoc.revisionID ?: ""
-        val remoteDoc = otherDB.getDocument(DOC1)
+        val remoteDoc = otherDB.getNonNullDoc(DOC1)
         val remoteDocRevId = remoteDoc.revisionID ?: ""
 
         run(pullConfig())
@@ -764,14 +764,14 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         //  -- The remote wins: In this case, the local document has never been seen elsewhere and it is ok
         //     simply to delete it and replace it with the remote. The local doc will have the remote's rev id
         if (remoteDocRevId > localDocRevId) {
-            assertEquals(remoteDoc.toMap(), baseTestDb.getDocument(DOC1).toMap())
+            assertEquals(remoteDoc.toMap(), baseTestDb.getNonNullDoc(DOC1).toMap())
             assertEquals(remoteDocRevId, resolvedDoc.revID)
         }
         //  -- The local wins: In this case, we use the contents of the local doc but we have to create a new
         //     revision id for it.  The new doc will have a revision id that is neither the id of the remote
         //     nor the id of the local.
         else {
-            assertEquals(localDoc.toMap(), baseTestDb.getDocument(DOC1).toMap())
+            assertEquals(localDoc.toMap(), baseTestDb.getNonNullDoc(DOC1).toMap())
             assertNotEquals(localDocRevId, resolvedDoc.revID)
             assertNotEquals(remoteDocRevId, resolvedDoc.revID)
         }
@@ -791,7 +791,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfigWitResolver(RemoteResolver))
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertNull(doc.getBlob(KEY5)) // redundant check to verify no blob
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
@@ -811,7 +811,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfigWitResolver(LocalResolver))
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertEquals(blob, doc.getBlob(KEY5))
@@ -832,7 +832,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfigWitResolver(RemoteResolver))
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
         assertEquals(blob, doc.getBlob(KEY5))
@@ -853,7 +853,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfigWitResolver(LocalResolver))
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertNull(doc.getBlob(KEY5)) // redundant check to verify no blob
         assertEquals(1, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
@@ -880,7 +880,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfig)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(blob, doc.getBlob(KEY5))
     }
@@ -917,7 +917,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, errors.size)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
         assertNotNull(doc.getBlob(KEY5))
@@ -954,7 +954,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(0, errors.size)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(2, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertNotNull(doc.getBlob(KEY5))
@@ -997,7 +997,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(CBLError.Domain.CBLITE, error.domain)
         assertEquals(CBLError.Code.UNEXPECTED_ERROR, error.code)
 
-        val doc = baseTestDb.getDocument(DOC1)
+        val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertNull(doc.getBlob(KEY5))
@@ -1023,7 +1023,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
                 val newDoc = MutableDocument(DOC4)
                 newDoc.setValue(KEY4, VAL4)
                 baseTestDb.save(newDoc)
-                doc = baseTestDb.getDocument(DOC4)
+                doc = baseTestDb.getNonNullDoc(DOC4)
                 conflict.remoteDocument
             })
         run(pullConfig)
@@ -1034,15 +1034,13 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         assertEquals(2, baseTestDb.count)
 
-        val newDoc = baseTestDb.getDocument(DOC4)
-        assertNotNull(newDoc)
-        assertEquals(1, newDoc?.count())
-        assertEquals(VAL4, newDoc?.getString(KEY4))
+        val newDoc = baseTestDb.getNonNullDoc(DOC4)
+        assertEquals(1, newDoc.count())
+        assertEquals(VAL4, newDoc.getString(KEY4))
 
-        val resolvedDoc = baseTestDb.getDocument(DOC1)
-        assertNotNull(resolvedDoc)
-        assertEquals(1, resolvedDoc?.count())
-        assertEquals(VAL2, resolvedDoc?.getString(KEY2))
+        val resolvedDoc = baseTestDb.getNonNullDoc(DOC1)
+        assertEquals(1, resolvedDoc.count())
+        assertEquals(VAL2, resolvedDoc.getString(KEY2))
     }
 
     /**
@@ -1141,7 +1139,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertNull(doc2!!.error)
 
         // verify that DOC1 resolved to the remote version.
-        var doc = baseTestDb.getDocument(DOC1)
+        var doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
 
@@ -1162,7 +1160,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         // verify that the db contains the original local version
         // and not the remote version
-        doc = baseTestDb.getDocument(DOC1)
+        doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
         assertNull(doc.getString(KEY1))
@@ -1231,19 +1229,19 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfig)
 
-        var doc = baseTestDb.getDocument(DOC1).toMutable()
+        var doc = baseTestDb.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY1, VAL1)
         doc.setString(KEY3, VAL3)
         baseTestDb.save(doc)
 
-        doc = otherDB.getDocument(DOC1).toMutable()
+        doc = otherDB.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY1, VAL1)
         doc.setString(KEY3, VAL4)
         otherDB.save(doc)
 
         run(pullConfig)
 
-        var testDoc = baseTestDb.getDocument(DOC1)
+        var testDoc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(3, doc.count())
         assertEquals(VAL1, testDoc.getString(KEY1))
         assertEquals(VAL2, testDoc.getString(KEY2))
@@ -1253,7 +1251,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         run(pullConfig)
 
-        testDoc = baseTestDb.getDocument(DOC1)
+        testDoc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(3, doc.count())
         assertEquals(VAL1, testDoc.getString(KEY1))
         assertEquals(VAL2, testDoc.getString(KEY2))
@@ -1289,7 +1287,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         val pullConfig = pullConfigWitResolver(TestConflictResolver { conflict ->
             localDoc = conflict.localDocument
             remoteDoc = conflict.remoteDocument
-            baseTestDb.delete(baseTestDb.getDocument(DOC1))
+            baseTestDb.delete(baseTestDb.getNonNullDoc(DOC1))
             conflict.remoteDocument
         })
 
@@ -1312,7 +1310,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
 
         // add a blob in the local copy:
-        doc = baseTestDb.getDocument(DOC1).toMutable()
+        doc = baseTestDb.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY1, VAL2)
         doc.setBlob(KEY2, Blob("text/plain", "i'm blob".toByteArray(Charsets.UTF_8)))
         baseTestDb.save(doc)
@@ -1320,7 +1318,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertNotEquals(0, expectedFlags)
 
         // add a string in the remote
-        doc = otherDB.getDocument(DOC1).toMutable()
+        doc = otherDB.getNonNullDoc(DOC1).toMutable()
         doc.setString(KEY1, VAL3)
         doc.setString(KEY3, VAL4)
         otherDB.save(doc)
@@ -1337,7 +1335,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         assertEquals(expectedFlags, localFlags)
 
         // expected flags on saved doc
-        val doc1 = baseTestDb.getDocument(DOC1)
+        val doc1 = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(expectedFlags, doc1.c4doc!!.selectedFlags)
     }
 
@@ -1352,7 +1350,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
 
         // Now make some changes in db and otherDB:
-        val doc1 = baseTestDb.getDocument(docId).toMutable()
+        val doc1 = baseTestDb.getNonNullDoc(docId).toMutable()
         if (localData == null) {
             baseTestDb.delete(doc1)
         } else {
@@ -1361,7 +1359,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         }
 
         // ... and otherDB:
-        val doc2 = otherDB.getDocument(docId).toMutable()
+        val doc2 = otherDB.getNonNullDoc(docId).toMutable()
         if (remoteData == null) {
             otherDB.delete(doc2)
         } else {
@@ -1397,4 +1395,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
     private fun pullConfigWitResolver(resolver: ConflictResolver?): ReplicatorConfiguration {
         return makeConfigTargetingOtherDb(AbstractReplicator.Type.PULL, resolver)
     }
+
+    private fun Database.getNonNullDoc(id: String) =
+        this.getDocument(id) ?: throw IllegalStateException("document ${id} is null")
 }
