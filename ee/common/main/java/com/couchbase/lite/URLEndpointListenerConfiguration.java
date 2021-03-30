@@ -70,7 +70,7 @@ public class URLEndpointListenerConfiguration {
      * Clone the passed listener configuration.
      *
      * @param config    the configuration to duplicate
-     * @param immutable if true, the copy will throw an exception on attemtps to mutate.
+     * @param immutable if true, the copy will throw an exception on attempts to mutate.
      */
     URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config, boolean immutable) {
         this.database = config.database;

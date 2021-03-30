@@ -170,6 +170,7 @@ public class URLEndpointListener {
         getConfig().getDatabase().unregisterUrlListener(this);
     }
 
+    @NonNull
     public String toString() {
         return "URLListener{" +
             (config.isTlsDisabled() ? "ws" : "wss")
