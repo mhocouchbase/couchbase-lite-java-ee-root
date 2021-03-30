@@ -328,7 +328,7 @@ public class C4Listener extends C4NativePeer {
     // Constructors
     //-------------------------------------------------------------------------
 
-    protected C4Listener(int token, @NonNull NativeImpl impl, @Nullable ListenerAuthenticator authenticator) {
+    private C4Listener(int token, @NonNull NativeImpl impl, @Nullable ListenerAuthenticator authenticator) {
         Preconditions.assertNotZero(token, "token");
         this.token = token;
         this.impl = Preconditions.assertNotNull(impl, "native impl");

@@ -472,7 +472,7 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
     }
 
     public void waitForListener() throws InterruptedException {
-        latch.await(MessageEndpointTest.LONG_DELAY_SEC, TimeUnit.SECONDS);
+        latch.await(MessageEndpointTest.LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
 
     public void validate() { assertTrue(exceptions.isEmpty()); }
@@ -493,8 +493,6 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
 /////////////////////////////////   T E S T   S U I T E   //////////////////////////////////////
 
 public class MessageEndpointTest extends BaseReplicatorTest {
-    public static final long LONG_DELAY_SEC = 10;  // Core takes 5s to retry after a
-
     static final List<MockConnection> CONNECTIONS = new ArrayList<>();
 
     @After
@@ -884,7 +882,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         replicator.start(false);
 
-        latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
+        latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
         awaiter.waitForListener();
         awaiter.validate();
 
@@ -933,14 +931,14 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         });
 
         repl.start(false);
-        assertTrue(startLatch.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        assertTrue(startLatch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
 
         otherDB.close();
-        assertTrue(listenerStopLatch.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        assertTrue(listenerStopLatch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
         assertTrue(listener.isStopped());
 
         baseTestDb.close();
-        assertTrue(replStopLatch.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        assertTrue(replStopLatch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
         final AbstractReplicator.Status status = repl.getStatus();
         assertEquals(AbstractReplicator.ActivityLevel.STOPPED, status.getActivityLevel());
         final CouchbaseLiteException err = status.getError();
@@ -1027,21 +1025,21 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         replicator1.start(false);
         replicator2.start(false);
 
-        idleLatch1.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
-        idleLatch2.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
+        idleLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
+        idleLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
 
         listener.closeAll();
 
         // wait for replicators to stop
-        stopLatch1.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
-        stopLatch2.await(LONG_DELAY_SEC, TimeUnit.SECONDS);
+        stopLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
+        stopLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
 
         replicator1.removeChangeListener(token1);
         replicator2.removeChangeListener(token2);
 
         // wait for all notifications to come in
-        assertTrue(closeWait1.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
-        assertTrue(closeWait2.await(LONG_DELAY_SEC, TimeUnit.SECONDS));
+        assertTrue(closeWait1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
+        assertTrue(closeWait2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
     }
 
     @FlakyTest
@@ -1277,7 +1275,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         baseTestReplicator.start(reset);
 
         boolean success = false;
-        try { success = latch.await(LONG_DELAY_SEC, TimeUnit.SECONDS); }
+        try { success = latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS); }
         catch (InterruptedException ignore) { }
         finally { baseTestReplicator.removeChangeListener(token); }
 

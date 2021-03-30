@@ -548,7 +548,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             baseTestReplicator.start(false);
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             baseTestReplicator.removeChangeListener(token);
@@ -673,7 +673,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         });
 
         repl.start(false);
-        try { assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)); }
+        try { assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)); }
         catch (InterruptedException ignore) { }
         finally { repl.removeChangeListener(token); }
 
@@ -805,7 +805,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             baseTestReplicator.start(false);
             baseTestReplicator.removeChangeListener(documentToken);
 
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             baseTestReplicator.removeChangeListener(documentToken);
@@ -846,7 +846,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             run(r);
-            assertTrue(latch1.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch1.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -896,7 +896,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         // Run the replicator again
         try {
             run(r);
-            assertTrue(latch2.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch2.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -932,7 +932,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         // Run the replicator a third time
         try {
             run(r);
-            assertTrue(latch3.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch3.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -969,7 +969,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             run(r);
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -1011,7 +1011,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             run(r);
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -1050,7 +1050,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             run(r);
-            assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -1161,7 +1161,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(1, otherDB.getCount());
 
         try {
-            try { assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)); }
+            try { assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)); }
             catch (InterruptedException ignore) { }
         }
         finally {
@@ -1330,7 +1330,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         // Run the replicator
         try {
             baseTestReplicator.start(false);
-            assertTrue(doneLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(doneLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
 
             // Check documents passed to the filter
             assertEquals(3, docIds.size());
@@ -1348,7 +1348,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             assertNull(baseTestDb.getDocument("doc3"));
 
             baseTestReplicator.stop();
-            assertTrue(stoppedLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+            assertTrue(stoppedLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             baseTestReplicator.removeChangeListener(token);
@@ -1374,7 +1374,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         try {
             repl.stop();
             if (repl.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) {
-                assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS));
+                assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             }
         }
         finally {

@@ -178,7 +178,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        assertTrue(listener.urls.count() > 0)
+        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -865,8 +865,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
         repl2.start(false)
 
-        assertTrue(idleLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(idleLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
+        assertTrue(idleLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
 
         assertEquals(2, listener.status?.connectionCount)
 
@@ -874,8 +874,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         baseTestDb.close()
         otherDB.close()
 
-        assertTrue(stopLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(stopLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
+        assertTrue(stopLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         assertFalse(listener.isRunning)
     }
 
@@ -915,8 +915,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
         repl2.start(false)
 
-        assertTrue(idleLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(idleLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(idleLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
+        assertTrue(idleLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
 
         assertEquals(2, listener.status?.connectionCount)
 
@@ -924,8 +924,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         baseTestDb.delete()
         otherDB.delete()
 
-        assertTrue(stopLatch1.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
-        assertTrue(stopLatch2.await(LONG_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch1.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
+        assertTrue(stopLatch2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         assertFalse(listener.isRunning)
     }
 
@@ -969,7 +969,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             }
         }
         repl.start(false)
-        assertTrue(latch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
 
         repl.removeChangeListener(token)
 
@@ -1017,7 +1017,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val filter = ReplicationFilter { _, _ ->
             if (shouldWait) {
                 try {
-                    barrier.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)
+                    barrier.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
                 } catch (_: TimeoutException) {
                 } catch (_: BrokenBarrierException) {
                 }
@@ -1059,7 +1059,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         repl1.start(false)
         repl2.start(false)
 
-        assertTrue(stopLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
 
         repl1.stop()
         repl1.removeChangeListener(token1)
@@ -1099,7 +1099,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val filter = ReplicationFilter { _, _ ->
             if (shouldWait) {
                 try {
-                    barrier.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS)
+                    barrier.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
                 } catch (_: TimeoutException) {
                 }
             }
@@ -1140,7 +1140,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         repl1.start(false)
         repl2.start(false)
 
-        assertTrue(stopLatch.await(STD_TIMEOUT_SECS, TimeUnit.SECONDS))
+        assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
 
         repl1.stop()
         repl1.removeChangeListener(token1)
