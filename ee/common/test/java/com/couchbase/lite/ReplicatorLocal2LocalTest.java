@@ -755,7 +755,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         long now = System.currentTimeMillis();
         Date nowPlusHalfSec = new Date(now + 500);
-        Date nowPlusTenSecs = new Date(now + (5 * 1000));
+        Date nowPlusTenSecs = new Date(now + BaseTest.LONG_TIMEOUT_MS);
 
         baseTestDb.setDocumentExpiration("doc1", nowPlusHalfSec);
         otherDB.setDocumentExpiration("doc3", nowPlusHalfSec);
@@ -763,7 +763,11 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         baseTestDb.setDocumentExpiration("doc2", nowPlusTenSecs);
         otherDB.setDocumentExpiration("doc4", nowPlusTenSecs);
 
-        Thread.sleep(1000);
+        assertEquals(2, baseTestDb.getCount());
+        assertEquals(2, otherDB.getCount());
+
+        // wait for the expiration...
+        BaseTest.waitUntil(BaseTest.LONG_TIMEOUT_MS, () -> (2 == (baseTestDb.getCount() + otherDB.getCount())));
 
         // push
         ReplicatorConfiguration config = makeConfig(Replicator.Type.PUSH, false);

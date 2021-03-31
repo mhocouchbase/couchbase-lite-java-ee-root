@@ -18,10 +18,12 @@
 // as is possible.
 //
 import com.github.spotbugs.snom.SpotBugsTask
+
 import org.apache.tools.ant.filters.ReplaceTokens
 import org.gradle.internal.os.OperatingSystem
 
 import java.util.regex.Pattern
+
 
 // ----------------------------------------------------------------
 // Plugins
@@ -292,29 +294,28 @@ model {
                     cppCompiler.args "-I${JAVA_INCLUDE}"
                     cppCompiler.args "-I${JAVA_INCLUDE}/win32"
                     cppCompiler.args "/MD"
+                    cppCompiler.args "/EHsc"
+                    cppCompiler.args "/wd4068"
+                    cppCompiler.args "/std:c++17"
                     cppCompiler.args "-DCOUCHBASE_ENTERPRISE"
                 }
                 else if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
                     cppCompiler.args '-I', JAVA_INCLUDE
                     cppCompiler.args '-I', "${JAVA_INCLUDE}/darwin"
-                    cppCompiler.args '-std=c++11'
+                    cppCompiler.args '-std=c++17'
                     cppCompiler.args '-stdlib=libc++'
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                 }
                 else if (targetPlatform.operatingSystem.linux) {
                     def libCxxIncDir = properties.getProperty('LINUX_LIBCXX_INCDIR')
-                    if (libCxxIncDir != null) {
-                        cppCompiler.args '-isystem', libCxxIncDir
-                    }
+                    if (libCxxIncDir != null) { cppCompiler.args '-isystem', libCxxIncDir }
                     cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
                     cppCompiler.args '-I', JAVA_INCLUDE
                     cppCompiler.args '-I', "${JAVA_INCLUDE}/linux"
                     cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                     def libCxxLibDir = properties.getProperty('LINUX_LIBCXX_LIBDIR')
-                    if (libCxxLibDir != null) {
-                        linker.args '-L', libCxxLibDir
-                    }
+                    if (libCxxLibDir != null) { linker.args '-L', libCxxLibDir }
                 }
             }
         }
@@ -452,7 +453,7 @@ test {
     }
 
 
-    workingDir = new File(workingDir, ".test-" + new Date().format('yMMddHHmm'))
+    workingDir = new File(workingDir, ".test-" + new Date().format('yyMMddHHmm'))
     if (!workingDir.exists()) { workingDir.mkdirs() }
 
     if (TEST_FILTER != null) { exclude "${TEST_FILTER}" }
