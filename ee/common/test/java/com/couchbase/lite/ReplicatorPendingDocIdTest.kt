@@ -59,7 +59,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         try {
             replicator.start(false)
-            assertTrue(latch.await(15, TimeUnit.SECONDS))
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         } finally {
             replicator.removeChangeListener(token)
         }
@@ -98,7 +98,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         try {
             replicator.start(false)
-            assertTrue(latch.await(15, TimeUnit.SECONDS))
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         } finally {
             replicator.removeChangeListener(token)
         }
@@ -136,7 +136,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         try {
             replicator.start(false)
-            assertTrue(latch.await(15, TimeUnit.SECONDS))
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         } finally {
             replicator.removeChangeListener(token)
         }
@@ -356,7 +356,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         try {
             replicator.start(false)
-            assertTrue(latch.await(15, TimeUnit.SECONDS))
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         } finally {
             replicator.removeChangeListener(token)
         }
@@ -419,7 +419,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
 
         try {
             replicator.start(false)
-            assertTrue(latch.await(15, TimeUnit.SECONDS))
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS))
         } finally {
             replicator.removeChangeListener(token)
         }

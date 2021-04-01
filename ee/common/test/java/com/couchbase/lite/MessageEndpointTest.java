@@ -472,7 +472,7 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
     }
 
     public void waitForListener() throws InterruptedException {
-        latch.await(MessageEndpointTest.LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
+        latch.await(BaseTest.LONG_TIMEOUT_SEC, TimeUnit.SECONDS);
     }
 
     public void validate() { assertTrue(exceptions.isEmpty()); }
@@ -752,6 +752,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testPushPullDocContinuousWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");

@@ -58,7 +58,7 @@ private object RemoteResolver : TestConflictResolver({ conflict -> conflict.remo
 
 fun CountDownLatch.stdWait(): Boolean {
     try {
-        return this.await(2, TimeUnit.SECONDS)
+        return this.await(BaseTest.STD_TIMEOUT_SEC, TimeUnit.SECONDS)
     } catch (ignore: InterruptedException) {
     }
     return false
@@ -441,10 +441,10 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val pullConfig1 = pullConfig()
         pullConfig1.conflictResolver = TestConflictResolver { conflict ->
-            barrier.await(30, TimeUnit.SECONDS)
+            barrier.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS)
             Thread.sleep(100)
             latch1.countDown()
-            latch2.await(2, TimeUnit.SECONDS)
+            latch2.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
             latch3.countDown()
             conflict.localDocument
         }
@@ -452,8 +452,8 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
 
         val pullConfig2 = pullConfig()
         pullConfig2.conflictResolver = TestConflictResolver { conflict ->
-            barrier.await(30, TimeUnit.SECONDS)
-            latch1.await(2, TimeUnit.SECONDS)
+            barrier.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS)
+            latch1.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
             Thread.sleep(100)
             latch2.countDown()
             latch3.countDown()
@@ -464,7 +464,7 @@ class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
         repl1.start(false)
         repl2.start(false)
 
-        assertTrue(latch3.await(2, TimeUnit.SECONDS))
+        assertTrue(latch3.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
     }
 
     /**

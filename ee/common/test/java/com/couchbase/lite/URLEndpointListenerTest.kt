@@ -178,7 +178,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
+        BaseTest.waitUntil(BaseTest.LONG_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -650,7 +650,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val urlKey = "URL"
 
         val listener = listenTls()
-        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
+        BaseTest.waitUntil(BaseTest.LONG_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         val localUrls = listener.urls.filter {
             val host = it.host
@@ -675,6 +675,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             .allResults()
             .map { it.getString(urlKey) }
 
+        Report.log("Local URLs: ${localUrls}, db urls: ${dbUrls}")
         assertEquals(localUrls.size, dbUrls.size)
         localUrls.forEach { assertTrue(dbUrls.contains(it.toString())) }
     }

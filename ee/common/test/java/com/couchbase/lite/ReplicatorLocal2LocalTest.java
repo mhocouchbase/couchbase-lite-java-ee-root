@@ -473,7 +473,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         try {
             r.start(false);
-            assertTrue(latch.await(10, TimeUnit.SECONDS));
+            assertTrue(latch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
         }
         finally {
             r.removeChangeListener(token);
@@ -565,7 +565,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         repl.start(false);
 
         try {
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
             baseTestDb.close();
         }
@@ -582,7 +582,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         repl.start(false);
 
         try {
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
             baseTestDb.delete();
         }
@@ -1086,7 +1086,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             replToken = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
             repl.start(false);
 
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
             assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
 
@@ -1126,7 +1126,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             replToken = repl.addChangeListener(testSerialExecutor, change -> latch.countDown());
             repl.start(false);
 
-            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(Replicator.ActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
             assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
 
