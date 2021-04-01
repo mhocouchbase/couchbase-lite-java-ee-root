@@ -650,6 +650,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val urlKey = "URL"
 
         val listener = listenTls()
+        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         val localUrls = listener.urls.filter {
             val host = it.host
