@@ -64,7 +64,7 @@ fun CountDownLatch.stdWait(): Boolean {
     return false
 }
 
-class ReplicatorConflictResolutionTests : BaseEEReplicatorTest() {
+class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
     /**
      * #1
