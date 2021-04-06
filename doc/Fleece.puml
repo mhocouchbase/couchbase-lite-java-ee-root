@@ -1,0 +1,104 @@
+@startuml Fleece
+
+skinparam BackgroundColor LightGray
+
+skinparam state {
+    BackgroundColor pink
+    BackgroundColor<< Continuous >> lightblue
+    StartColor red
+    FontName Monserrat
+    ArrowColor red
+    BorderColor black
+}
+
+interface AllocSlice
+
+class Array
+FLEncodable <|-- Array
+Array *-- MArray
+
+class C4Document #red
+
+class Dictionary
+FLEncodable <|-- Dictionary
+Dictionary *-- MDict
+
+class DocContext
+MContext <|-- DocContext
+DocContext *-- C4Document
+
+class Blob
+FLEncodable <|-- Blob
+
+class Document
+Document *-- Dictionary
+Document *-- C4Document
+Document *-- FLDict
+Document *-- MRoot
+
+interface Encodable
+
+class FLArray #red
+
+class FLArrayIterator #red
+
+class FLDict #red
+
+class FLDictIterator #red
+
+interface FLEncodable
+
+class FLSliceResult #red
+AllocSlice <|-- FLSliceResult
+
+class FLValue #red
+
+class FleeceArray
+Encodable <|-- FleeceArray
+FleeceArray *-- MArray
+
+class FleeceDict
+Encodable <|-- FleeceDict
+FleeceDict *-- MDict
+
+class MArray
+MCollection <|-- MArray
+MArray *-- MValue
+MArray *-- FLArray
+
+class MCollection
+Encodable <|-- MCollection
+MCollection *-- MValue
+MCollection *-- MContext
+MCollection *-- MCollection
+
+class MContext
+MContext *-- AllocSlice
+
+class MDict
+MCollection <|-- MDict
+MDict *-- MValue
+MDict *-- FLDict
+
+class MRoot
+MCollection <|-- MRoot
+MRoot *-- MValue
+
+class MValue
+Encodable <|-- MValue
+MValue *-- Object
+MValue *-- FLValue
+
+class MutableArray
+Array <|-- MutableArray
+
+class MutableDictionary
+Dictionary <|-- MutableDictionary
+
+class Object #red
+
+class Result
+Result *-- FLValue
+Result *-- MContext
+
+@enduml

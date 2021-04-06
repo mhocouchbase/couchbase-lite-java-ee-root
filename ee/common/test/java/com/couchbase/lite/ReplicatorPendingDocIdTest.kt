@@ -264,6 +264,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    3. Purge one doc in the saved docs.
     //    4. Call IsDocumentPending method before replication start and expect false when pass the edited doc id
     //       in saved doc as parameter.
+    @FlakyTest
     @Test
     fun testIsDocumentPendingPurge() {
         val ids = createDocs(2)
