@@ -260,7 +260,7 @@ public class C4KeyPair extends C4NativePeer {
     //-------------------------------------------------------------------------
 
     @SuppressWarnings("PMD.ArrayIsStoredDirectly")
-    private C4KeyPair(
+    C4KeyPair(
         int token,
         @NonNull NativeImpl impl,
         @Nullable KeyStore keyStore,
