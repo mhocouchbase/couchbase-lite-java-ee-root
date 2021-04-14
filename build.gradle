@@ -15,7 +15,7 @@
 // limitations under the License.
 //
 buildscript {
-    ext { KOTLIN_VERSION = '1.4.31' }
+    ext { KOTLIN_VERSION = '1.4.32' }
 
     repositories {
         google()

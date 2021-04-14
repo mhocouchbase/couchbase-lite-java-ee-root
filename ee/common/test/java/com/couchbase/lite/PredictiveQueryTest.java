@@ -379,7 +379,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         textModel.unregisterModel();
     }
 
-    @Test(expected = CouchbaseLiteException.class)
+    @Test
     public void testPredictionWithUnsupportedInputType1() throws CouchbaseLiteException {
         loadNumberedDocs(10);
 
@@ -390,6 +390,12 @@ public class PredictiveQueryTest extends BaseQueryTest {
                 .select(SelectResult.expression(Function.prediction(EchoModel.NAME, Expression.value("string"))))
                 .from(DataSource.database(baseTestDb))
                 .execute();
+        }
+        catch (CouchbaseLiteException e) {
+            assertEquals(CBLError.Domain.SQLITE, e.getDomain());
+            assertEquals(CBLError.Code.ASSERTION_FAILED, e.getCode());
+            // QE, honest to god, tests for this message.  I can't even.
+            assertTrue(e.getMessage().startsWith("Parameter of prediction() must be a dictionary"));
         }
         finally { echoModel.unregisterModel(); }
     }
