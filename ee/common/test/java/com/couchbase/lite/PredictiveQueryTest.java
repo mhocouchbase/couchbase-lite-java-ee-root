@@ -42,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 
 public class PredictiveQueryTest extends BaseQueryTest {
-    private static abstract class TestPredictiveModel implements PredictiveModel {
+    private static abstract class BaseTestModel implements PredictiveModel {
         private boolean allowCalls = true;
         private int numberOfCalls;
 
@@ -73,17 +73,22 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
     }
 
-    private static final class EchoModel extends TestPredictiveModel {
+    private static final class EchoModel extends BaseTestModel {
         public static final String NAME = "EchoModel";
+        final String name;
+
+        public EchoModel() { this(NAME); }
+
+        public EchoModel(String name) { this.name = name; }
 
         @Override
-        public String getName() { return NAME; }
+        public String getName() { return name; }
 
         @Override
         public Dictionary getPrediction(Dictionary input) { return input; }
     }
 
-    private static final class AggregateModel extends TestPredictiveModel {
+    private static final class AggregateModel extends BaseTestModel {
         public static final String NAME = "AggregateModel";
 
         @Override
@@ -120,7 +125,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
     }
 
-    private static final class TextModel extends TestPredictiveModel {
+    private static final class TextModel extends BaseTestModel {
         public static final String NAME = "TextModel";
 
         @Override
@@ -157,6 +162,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         }
     }
 
+
     @Before
     public void setUpPredictiveQueryTest() {
         Database.prediction.unregisterModel(AggregateModel.NAME);
@@ -167,6 +173,23 @@ public class PredictiveQueryTest extends BaseQueryTest {
 
     @After
     public void tearDownPredictiveQueryTest() { BaseTest.logTestTeardownBegun("Predictive Query"); }
+
+    // CBL-1860
+    @Test
+    public void testWeirdWhitespace() throws CouchbaseLiteException {
+        loadNumberedDocs(20);
+
+        EchoModel model = new EchoModel();
+        model.registerModel();
+
+        Map<String, Object> input = new HashMap<>();
+        input.put("dangerous", "crlf \r\n");
+
+        QueryBuilder
+            .select(SelectResult.expression(Function.prediction(model.getName(), Expression.value(input))))
+            .from(DataSource.database(baseTestDb))
+            .execute();
+    }
 
     @Test
     public void testRegisterAndUnregisterModel() throws Exception {
