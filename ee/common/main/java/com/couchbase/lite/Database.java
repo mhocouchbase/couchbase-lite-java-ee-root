@@ -19,6 +19,7 @@ import android.support.annotation.Nullable;
 
 import java.io.File;
 
+import com.couchbase.lite.internal.ImmutableDatabaseConfiguration;
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
@@ -38,23 +39,17 @@ public final class Database extends AbstractDatabase {
      * @param config a config with the new location
      * @throws CouchbaseLiteException on copy failure
      */
-    public static void copy(
-        @NonNull File path,
-        @NonNull String name,
-        @NonNull DatabaseConfiguration config)
+    public static void copy(@NonNull File path, @NonNull String name, @NonNull DatabaseConfiguration config)
         throws CouchbaseLiteException {
-        Preconditions.assertNotNull(path, "path");
-        Preconditions.assertNotNull(name, "name");
         Preconditions.assertNotNull(config, "config");
+        final EncryptionKey key = config.getEncryptionKey();
+        AbstractDatabase.copy(path, name, config.getDirectory(), getEncryptionAlgorithm(key), getEncryptionKey(key));
+    }
 
-        final EncryptionKey encryptionKey = config.getEncryptionKey();
-
-        AbstractDatabase.copy(
-            path,
-            name,
-            config,
-            getEncryptionAlgorithm(encryptionKey),
-            getEncryptionKey(encryptionKey));
+    static void copy(@NonNull File path, @NonNull String name, @NonNull ImmutableDatabaseConfiguration config)
+        throws CouchbaseLiteException {
+        final EncryptionKey key = config.getEncryptionKey();
+        AbstractDatabase.copy(path, name, config.getDirectory(), getEncryptionAlgorithm(key), getEncryptionKey(key));
     }
 
     private static byte[] getEncryptionKey(EncryptionKey key) { return (key == null) ? null : key.getKey(); }
@@ -100,7 +95,9 @@ public final class Database extends AbstractDatabase {
         super(name, config);
     }
 
-    Database(long c4dbHandle) { super(c4dbHandle); }
+    Database(@NonNull String name, @NonNull ImmutableDatabaseConfiguration config) throws CouchbaseLiteException {
+        super(name, config);
+    }
 
     //---------------------------------------------
     // Public API
@@ -115,8 +112,11 @@ public final class Database extends AbstractDatabase {
      * @throws CouchbaseLiteException on error
      */
     public void changeEncryptionKey(EncryptionKey encryptionKey) throws CouchbaseLiteException {
-        synchronized (getLock()) {
-            try { getC4DatabaseLocked().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
+        synchronized (getDbLock()) {
+            try {
+                getOpenC4DbLocked()
+                    .rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey));
+            }
             catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
         }
     }
@@ -140,8 +140,8 @@ public final class Database extends AbstractDatabase {
         @Nullable C4ReplicatorListener listener,
         @NonNull Object replicatorContext)
         throws LiteCoreException {
-        synchronized (getLock()) {
-            return getC4DatabaseLocked().createTargetReplicator(
+        synchronized (getDbLock()) {
+            return getOpenC4DbLocked().createTargetReplicator(
                 openSocket,
                 push,
                 pull,
@@ -152,7 +152,7 @@ public final class Database extends AbstractDatabase {
     }
 
     void registerUrlListener(URLEndpointListener listener) {
-        synchronized (getLock()) {
+        synchronized (getDbLock()) {
             mustBeOpen();
             registerProcess(new ActiveProcess<URLEndpointListener>(listener) {
                 @Override
@@ -167,7 +167,7 @@ public final class Database extends AbstractDatabase {
     void unregisterUrlListener(URLEndpointListener listener) { unregisterProcess(listener); }
 
     void registerMessageListener(MessageEndpointListener listener) {
-        synchronized (getLock()) {
+        synchronized (getDbLock()) {
             mustBeOpen();
             registerProcess(new ActiveProcess<MessageEndpointListener>(listener) {
                 @Override

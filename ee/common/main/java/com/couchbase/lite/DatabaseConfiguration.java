@@ -18,30 +18,34 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.couchbase.lite.internal.ImmutableDatabaseConfiguration;
+
 
 /**
  * Configuration for opening a database.
  */
 public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
-
     //---------------------------------------------
     // member variables
     //---------------------------------------------
-
     private EncryptionKey encryptionKey;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
 
-    public DatabaseConfiguration() { this(null); }
+    public DatabaseConfiguration() { this((DatabaseConfiguration) null); }
 
-    public DatabaseConfiguration(@Nullable DatabaseConfiguration config) { this(config, false); }
-
-    DatabaseConfiguration(@Nullable DatabaseConfiguration config, boolean readOnly) {
-        super(config, readOnly);
+    public DatabaseConfiguration(@Nullable DatabaseConfiguration config) {
+        super(config);
         this.encryptionKey = (config == null) ? null : config.encryptionKey;
     }
+
+    DatabaseConfiguration(@Nullable ImmutableDatabaseConfiguration config) {
+        super(config);
+        this.encryptionKey = (config == null) ? null : config.getEncryptionKey();
+    }
+
 
     //---------------------------------------------
     // API - public methods
@@ -57,8 +61,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      * @return The self object.
      */
     @NonNull
-    public DatabaseConfiguration setEncryptionKey(EncryptionKey encryptionKey) {
-        verifyWritable();
+    public DatabaseConfiguration setEncryptionKey(@Nullable EncryptionKey encryptionKey) {
         this.encryptionKey = encryptionKey;
         return this;
     }
@@ -70,6 +73,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      *
      * @return the key
      */
+    @Nullable
     public EncryptionKey getEncryptionKey() { return encryptionKey; }
 
     @Override

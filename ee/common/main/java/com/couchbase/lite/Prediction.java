@@ -47,7 +47,7 @@ public final class Prediction {
         public long predict(long input, long c4db) {
             return encode(model.predict(
                 (Dictionary) new MRoot(
-                    new DbContext(new Database(c4db)),
+                    new DbContext(new ShellDb(c4db)),
                     new FLValue(input),
                     false)
                     .asNative()))

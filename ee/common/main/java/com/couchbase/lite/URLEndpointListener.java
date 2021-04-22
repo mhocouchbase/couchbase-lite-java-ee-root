@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
 
@@ -101,11 +102,17 @@ public class URLEndpointListener {
         final List<URI> uris = new ArrayList<>();
 
         final List<String> uriStrs;
-        synchronized (lock) {
-            if (c4Listener == null) { return uris; }
 
-            uriStrs = c4Listener.getUrls(getConfig().getDatabase().getC4Database());
-            if (uriStrs == null) { return uris; }
+        final Database db = getConfig().getDatabase();
+        synchronized (db.getDbLock()) { // must seize db lock first
+            final C4Database c4db = db.getOpenC4DbLocked();
+
+            synchronized (lock) {
+                if (c4Listener == null) { return uris; }
+
+                uriStrs = c4Listener.getUrls(c4db);
+                if (uriStrs == null) { return uris; }
+            }
         }
 
         for (String uri: uriStrs) {
@@ -150,7 +157,9 @@ public class URLEndpointListener {
             c4Listener = listener;
         }
 
-        listener.shareDb(db.getName(), db.getC4Database());
+        synchronized (db.getDbLock()) {
+            listener.shareDb(db.getName(), db.getOpenC4DbLocked());
+        }
     }
 
     /**

@@ -48,9 +48,9 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     private final MessageEndpointConnection connection;
     private final ProtocolType protocolType;
 
-    @GuardedBy("getLock()")
+    @GuardedBy("getPeerLock()")
     private boolean sendResponseStatus = true;
-    @GuardedBy("getLock()")
+    @GuardedBy("getPeerLock()")
     private boolean closing;
 
     // ---------------------------------------------------------------------------------------------
@@ -91,7 +91,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     @Override
     public final void receive(@NonNull Message message) {
         Preconditions.assertNotNull(message, "message");
-        synchronized (getLock()) {
+        synchronized (getPeerLock()) {
             if (isClosing()) { return; }
             received(message.toData());
         }
@@ -99,7 +99,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
 
     @Override
     public final void close(@Nullable MessagingError error) {
-        synchronized (getLock()) {
+        synchronized (getPeerLock()) {
             if (isClosing()) { return; }
 
             switch (protocolType) {
@@ -164,7 +164,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     //-------------------------------------------------------------------------
 
     private void connectionOpened() {
-        synchronized (getLock()) {
+        synchronized (getPeerLock()) {
             if (isClosing()) { return; }
 
             if (sendResponseStatus) { connectionGotResponse(200); }
@@ -174,7 +174,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     }
 
     private void messageSent(int byteCount) {
-        synchronized (getLock()) {
+        synchronized (getPeerLock()) {
             if (isClosing()) { return; }
             completedWrite(byteCount);
         }
@@ -185,7 +185,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     }
 
     private void connectionClosed(MessagingError error) {
-        synchronized (getLock()) {
+        synchronized (getPeerLock()) {
             if (isClosing()) { return; }
 
             closing = true;
@@ -201,10 +201,10 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         }
     }
 
-    @GuardedBy("getLock()")
+    @GuardedBy("getPeerLock()")
     private boolean isClosing() { return closing || isC4SocketClosing(); }
 
-    @GuardedBy("getLock()")
+    @GuardedBy("getPeerLock()")
     private void connectionGotResponse(int httpStatus) {
         if (isClosing()) { return; }
         gotHTTPResponse(httpStatus, null);

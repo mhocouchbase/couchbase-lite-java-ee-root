@@ -120,7 +120,7 @@ public class MessageEndpointListener {
         final C4Replicator replicator;
 
         C4ReplicatorStatus status;
-        synchronized (db.getLock()) {
+        synchronized (db.getDbLock()) {
             try {
                 replicator = db.createTargetReplicator(
                     new MessageSocket(connection, config.getProtocolType()),

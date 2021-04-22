@@ -145,11 +145,11 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val savedDoc = baseTestDb.getDocument(DOC1)
         assertNull(savedDoc)
 
-        val prePushSeq = otherDB.c4Database.get(DOC1, false).sequence
+        val prePushSeq = otherDB.openC4Database.get(DOC1, false).sequence
 
         run(pushConfig())
 
-        assertEquals(prePushSeq, otherDB.c4Database.get(DOC1, false).sequence)
+        assertEquals(prePushSeq, otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -208,7 +208,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -243,7 +243,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -277,7 +277,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -310,7 +310,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -335,7 +335,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -355,11 +355,11 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
-        val prePushSeq = otherDB.c4Database.get(DOC1, false).sequence
+        val prePushSeq = otherDB.openC4Database.get(DOC1, false).sequence
 
         run(pushConfig())
 
-        assertEquals(prePushSeq, otherDB.c4Database.get(DOC1, false).sequence)
+        assertEquals(prePushSeq, otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -383,7 +383,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pushConfig())
 
-        assertTrue(prePushSeq < otherDB.c4Database.get(DOC1, false).sequence)
+        assertTrue(prePushSeq < otherDB.openC4Database.get(DOC1, false).sequence)
     }
 
     /**
@@ -653,7 +653,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        assertTrue(baseTestDb.c4Database.get(DOC1, false).deleted())
+        assertTrue(baseTestDb.openC4Database.get(DOC1, false).deleted())
     }
 
     /**
@@ -671,7 +671,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        assertTrue(baseTestDb.c4Database.get(DOC1, false).deleted())
+        assertTrue(baseTestDb.openC4Database.get(DOC1, false).deleted())
     }
 
     /**
@@ -736,7 +736,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        assertTrue(baseTestDb.c4Database.get(DOC1, false).deleted())
+        assertTrue(baseTestDb.openC4Database.get(DOC1, false).deleted())
     }
 
     /**
@@ -757,7 +757,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        val resolvedDoc = baseTestDb.c4Database.get(DOC1, false)
+        val resolvedDoc = baseTestDb.openC4Database.get(DOC1, false)
         assertFalse(resolvedDoc.deleted())
 
         // This test is somewhat brittle.  There are two possibilities:
