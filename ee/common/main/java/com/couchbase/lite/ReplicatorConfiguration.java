@@ -15,22 +15,72 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import java.util.List;
 import java.util.Map;
 
-import com.couchbase.lite.internal.core.C4Replicator;
+import com.couchbase.lite.internal.ImmutableReplicatorConfiguration;
 
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
+    //---------------------------------------------
+    // member variables
+    //---------------------------------------------
     private boolean acceptOnlySelfSignedServerCertificate;
 
-    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) { this(config, false); }
+    //---------------------------------------------
+    // Constructors
+    //---------------------------------------------
 
     public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) { super(database, target); }
 
-    ReplicatorConfiguration(@NonNull ReplicatorConfiguration config, boolean readOnly) {
-        super(config, readOnly);
-        this.acceptOnlySelfSignedServerCertificate = config.acceptOnlySelfSignedServerCertificate;
+    public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
+        super(config);
+        this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
+    }
+
+    ReplicatorConfiguration(@NonNull ImmutableReplicatorConfiguration config) {
+        super(config);
+        this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
+    }
+
+    // for Kotlin
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    ReplicatorConfiguration(
+        @NonNull Database database,
+        @NonNull Replicator.Type type,
+        boolean continuous,
+        @Nullable Authenticator authenticator,
+        @Nullable Map<String, String> headers,
+        @Nullable byte[] pinnedServerCertificate,
+        @Nullable List<String> channels,
+        @Nullable List<String> documentIDs,
+        @Nullable ReplicationFilter pushFilter,
+        @Nullable ReplicationFilter pullFilter,
+        @Nullable ConflictResolver conflictResolver,
+        int maxRetries,
+        long maxRetryWaitTime,
+        long heartbeat,
+        @NonNull Endpoint target,
+        boolean acceptOnlySelfSignedServerCertificate) {
+        super(
+            database,
+            type,
+            continuous,
+            authenticator,
+            headers,
+            pinnedServerCertificate,
+            channels,
+            documentIDs,
+            pushFilter,
+            pullFilter,
+            conflictResolver,
+            maxRetries,
+            maxRetryWaitTime,
+            heartbeat,
+            target);
+        this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
     }
 
     /**
@@ -45,7 +95,6 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
     @NonNull
     public ReplicatorConfiguration setAcceptOnlySelfSignedServerCertificate(
         boolean acceptOnlySelfSignedServerCertificate) {
-        checkReadOnly();
         this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
         return getReplicatorConfiguration();
     }
@@ -57,11 +106,4 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
 
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }
-
-    @Override
-    protected Map<String, Object> effectiveOptions() {
-        final Map<String, Object> options = super.effectiveOptions();
-        options.put(C4Replicator.REPLICATOR_OPTION_SELF_SIGNED_SERVER_CERT, acceptOnlySelfSignedServerCertificate);
-        return options;
-    }
 }

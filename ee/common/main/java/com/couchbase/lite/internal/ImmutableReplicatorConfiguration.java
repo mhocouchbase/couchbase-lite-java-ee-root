@@ -15,5 +15,27 @@
 //
 package com.couchbase.lite.internal;
 
-public class ImmutableReplicatorConfiguration {
+import android.support.annotation.NonNull;
+
+import java.util.Map;
+
+import com.couchbase.lite.ReplicatorConfiguration;
+import com.couchbase.lite.internal.core.C4Replicator;
+
+
+public class ImmutableReplicatorConfiguration extends BaseImmutableReplicatorConfiguration {
+    private final boolean acceptOnlySelfSignedServerCertificate;
+
+    public ImmutableReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
+        super(config);
+        this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
+    }
+
+    public final boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
+
+    @Override
+    public void addEffectiveOptions(@NonNull Map<String, Object> options) {
+        super.addEffectiveOptions(options);
+        options.put(C4Replicator.REPLICATOR_OPTION_SELF_SIGNED_SERVER_CERT, acceptOnlySelfSignedServerCertificate);
+    }
 }

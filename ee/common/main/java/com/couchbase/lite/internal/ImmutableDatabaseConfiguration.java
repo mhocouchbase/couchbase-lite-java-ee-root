@@ -25,7 +25,7 @@ public class ImmutableDatabaseConfiguration extends BaseImmutableDatabaseConfigu
     private final EncryptionKey encryptionKey;
 
     public ImmutableDatabaseConfiguration(@NonNull DatabaseConfiguration config) {
-        super(config.getDirectory());
+        super(config);
         this.encryptionKey = config.getEncryptionKey();
     }
 

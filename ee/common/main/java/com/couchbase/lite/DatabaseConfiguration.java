@@ -34,7 +34,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     // Constructors
     //---------------------------------------------
 
-    public DatabaseConfiguration() { this((DatabaseConfiguration) null); }
+    public DatabaseConfiguration() { }
 
     public DatabaseConfiguration(@Nullable DatabaseConfiguration config) {
         super(config);
@@ -46,6 +46,11 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
         this.encryptionKey = (config == null) ? null : config.getEncryptionKey();
     }
 
+    // for Kotlin
+    DatabaseConfiguration(@Nullable String dbDirectory, @Nullable EncryptionKey encryptionKey) {
+        super(dbDirectory);
+        this.encryptionKey = encryptionKey;
+    }
 
     //---------------------------------------------
     // API - public methods

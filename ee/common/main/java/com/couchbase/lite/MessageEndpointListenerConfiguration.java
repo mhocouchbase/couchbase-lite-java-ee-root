@@ -35,12 +35,8 @@ public class MessageEndpointListenerConfiguration {
     }
 
     @NonNull
-    public Database getDatabase() {
-        return database;
-    }
+    public Database getDatabase() { return database; }
 
     @NonNull
-    public ProtocolType getProtocolType() {
-        return protocolType;
-    }
+    public ProtocolType getProtocolType() { return protocolType; }
 }
