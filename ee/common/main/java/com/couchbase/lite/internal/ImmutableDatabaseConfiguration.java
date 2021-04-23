@@ -15,19 +15,30 @@
 //
 package com.couchbase.lite.internal;
 
-import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.couchbase.lite.DatabaseConfiguration;
 import com.couchbase.lite.EncryptionKey;
 
 
 public class ImmutableDatabaseConfiguration extends BaseImmutableDatabaseConfiguration {
+    //-------------------------------------------------------------------------
+    // Data members
+    //-------------------------------------------------------------------------
+    @Nullable
     private final EncryptionKey encryptionKey;
 
-    public ImmutableDatabaseConfiguration(@NonNull DatabaseConfiguration config) {
+    //-------------------------------------------------------------------------
+    // Constructors
+    //-------------------------------------------------------------------------
+    public ImmutableDatabaseConfiguration(@Nullable DatabaseConfiguration config) {
         super(config);
-        this.encryptionKey = config.getEncryptionKey();
+        this.encryptionKey = (config == null) ? null : config.getEncryptionKey();
     }
 
+    //-------------------------------------------------------------------------
+    // Properties
+    //-------------------------------------------------------------------------
+    @Nullable
     public EncryptionKey getEncryptionKey() { return encryptionKey; }
 }

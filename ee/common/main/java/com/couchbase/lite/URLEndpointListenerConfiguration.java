@@ -18,6 +18,9 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.couchbase.lite.internal.ImmutableURLEndpointListenerConfiguration;
+import com.couchbase.lite.internal.utils.Preconditions;
+
 
 /**
  * Configuration information for a URL endpoint listener.
@@ -27,11 +30,9 @@ public class URLEndpointListenerConfiguration {
     public static final int MIN_PORT = 0;
     public static final int MAX_PORT = 65535;
 
-
     //-------------------------------------------------------------------------
     // Data Members
     //-------------------------------------------------------------------------
-
     @NonNull
     private final Database database;
 
@@ -50,38 +51,64 @@ public class URLEndpointListenerConfiguration {
     private boolean enableDeltaSync;
     private boolean readOnly;
 
-    private final boolean immutable;
-
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
-
     /**
      * Create a listener configuration, for the specified database, with default values.
      *
      * @param database the database to which the listener is attached
      */
     public URLEndpointListenerConfiguration(@NonNull Database database) {
-        this.database = database;
-        this.immutable = false;
+        this(database, null, 0, false, null, null, false, false);
     }
 
     /**
      * Clone the passed listener configuration.
      *
-     * @param config    the configuration to duplicate
-     * @param immutable if true, the copy will throw an exception on attempts to mutate.
+     * @param config the configuration to duplicate
      */
-    URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config, boolean immutable) {
-        this.database = config.database;
-        this.networkInterface = config.networkInterface;
-        this.port = config.port;
-        this.disableTls = config.disableTls;
-        this.identity = config.identity;
-        this.authenticator = config.authenticator;
-        this.readOnly = config.readOnly;
-        this.enableDeltaSync = config.enableDeltaSync;
-        this.immutable = immutable;
+    public URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config) {
+        this(
+            config.getDatabase(),
+            config.getNetworkInterface(),
+            config.getPort(),
+            config.isTlsDisabled(),
+            config.getTlsIdentity(),
+            config.getAuthenticator(),
+            config.isReadOnly(),
+            config.isDeltaSyncEnabled());
+    }
+
+    URLEndpointListenerConfiguration(ImmutableURLEndpointListenerConfiguration config) {
+        this(
+            config.getDatabase(),
+            config.getNetworkInterface(),
+            config.getPort(),
+            config.isTlsDisabled(),
+            config.getTlsIdentity(),
+            config.getAuthenticator(),
+            config.isReadOnly(),
+            config.isDeltaSyncEnabled());
+    }
+
+    public URLEndpointListenerConfiguration(
+        @NonNull Database database,
+        @Nullable String networkInterface,
+        int port,
+        boolean disableTls,
+        @Nullable TLSIdentity identity,
+        @Nullable ListenerAuthenticator authenticator,
+        boolean readOnly,
+        boolean enableDeltaSync) {
+        this.database = Preconditions.assertNotNull(database, "database");
+        this.networkInterface = networkInterface;
+        this.identity = identity;
+        this.authenticator = authenticator;
+        this.port = port;
+        this.disableTls = disableTls;
+        this.enableDeltaSync = enableDeltaSync;
+        this.readOnly = readOnly;
     }
 
     //-------------------------------------------------------------------------
@@ -109,10 +136,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @param networkInterface the name of the interface on which to configure the listener (e.g. "en0")
      */
-    public void setNetworkInterface(@Nullable String networkInterface) {
-        checkReadOnly();
-        this.networkInterface = networkInterface;
-    }
+    public void setNetworkInterface(@Nullable String networkInterface) { this.networkInterface = networkInterface; }
 
     /**
      * Get the configured port.
@@ -128,8 +152,6 @@ public class URLEndpointListenerConfiguration {
      * @param port the port number on which to configure the listener (between 0 and 65535, inclusive)
      */
     public void setPort(int port) {
-        checkReadOnly();
-
         if ((port < MIN_PORT) || (port > MAX_PORT)) {
             throw new IllegalArgumentException(
                 "port " + port + "is not between " + MIN_PORT + " and " + MAX_PORT + " inclusive");
@@ -151,10 +173,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @param disableTls true to disable TLS security.
      */
-    public void setDisableTls(boolean disableTls) {
-        checkReadOnly();
-        this.disableTls = disableTls;
-    }
+    public void setDisableTls(boolean disableTls) { this.disableTls = disableTls; }
 
     /**
      * Get the configured TLS identity.
@@ -169,10 +188,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @param identity a TLSIdentity that the listener will supply to authenticate itself.
      */
-    public void setTlsIdentity(@Nullable TLSIdentity identity) {
-        checkReadOnly();
-        this.identity = identity;
-    }
+    public void setTlsIdentity(@Nullable TLSIdentity identity) { this.identity = identity; }
 
     /**
      * Get the configured authenticator.
@@ -195,10 +211,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @param authenticator the client authenticator
      */
-    public void setAuthenticator(@Nullable ListenerAuthenticator authenticator) {
-        checkReadOnly();
-        this.authenticator = authenticator;
-    }
+    public void setAuthenticator(@Nullable ListenerAuthenticator authenticator) { this.authenticator = authenticator; }
 
     /**
      * Is connection read-only.
@@ -226,12 +239,5 @@ public class URLEndpointListenerConfiguration {
      *
      * @param enableDeltaSync set true to enable delta sync
      */
-    public void setEnableDeltaSync(boolean enableDeltaSync) {
-        checkReadOnly();
-        this.enableDeltaSync = enableDeltaSync;
-    }
-
-    private void checkReadOnly() {
-        if (immutable) { throw new IllegalStateException("Attempt to modify read-only config"); }
-    }
+    public void setEnableDeltaSync(boolean enableDeltaSync) { this.enableDeltaSync = enableDeltaSync; }
 }

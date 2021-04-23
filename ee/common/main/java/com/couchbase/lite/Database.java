@@ -81,7 +81,7 @@ public final class Database extends AbstractDatabase {
      * @param name The name of the database: May NOT contain capital letters!
      * @throws CouchbaseLiteException if any error occurs during the open operation.
      */
-    public Database(@NonNull String name) throws CouchbaseLiteException { super(name, new DatabaseConfiguration()); }
+    public Database(@NonNull String name) throws CouchbaseLiteException { super(name); }
 
     /**
      * Construct a  AbstractDatabase with a given name and database config.
@@ -113,10 +113,7 @@ public final class Database extends AbstractDatabase {
      */
     public void changeEncryptionKey(EncryptionKey encryptionKey) throws CouchbaseLiteException {
         synchronized (getDbLock()) {
-            try {
-                getOpenC4DbLocked()
-                    .rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey));
-            }
+            try { getOpenC4DbLocked().rekey(getEncryptionAlgorithm(encryptionKey), getEncryptionKey(encryptionKey)); }
             catch (LiteCoreException e) { throw CouchbaseLiteException.convertException(e); }
         }
     }
@@ -138,16 +135,10 @@ public final class Database extends AbstractDatabase {
         int pull,
         @Nullable byte[] options,
         @Nullable C4ReplicatorListener listener,
-        @NonNull Object replicatorContext)
+        @NonNull Object context)
         throws LiteCoreException {
         synchronized (getDbLock()) {
-            return getOpenC4DbLocked().createTargetReplicator(
-                openSocket,
-                push,
-                pull,
-                options,
-                listener,
-                replicatorContext);
+            return getOpenC4DbLocked().createTargetReplicator(openSocket, push, pull, options, listener, context);
         }
     }
 

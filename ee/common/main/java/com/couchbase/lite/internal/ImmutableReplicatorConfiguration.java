@@ -24,15 +24,27 @@ import com.couchbase.lite.internal.core.C4Replicator;
 
 
 public class ImmutableReplicatorConfiguration extends BaseImmutableReplicatorConfiguration {
+    //-------------------------------------------------------------------------
+    // Data members
+    //-------------------------------------------------------------------------
     private final boolean acceptOnlySelfSignedServerCertificate;
 
+    //-------------------------------------------------------------------------
+    // Constructors
+    //-------------------------------------------------------------------------
     public ImmutableReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
         super(config);
         this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
     }
 
+    //-------------------------------------------------------------------------
+    // Properties
+    //-------------------------------------------------------------------------
     public final boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
 
+    //-------------------------------------------------------------------------
+    // Public methods
+    //-------------------------------------------------------------------------
     @Override
     public void addEffectiveOptions(@NonNull Map<String, Object> options) {
         super.addEffectiveOptions(options);

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.ImmutableURLEndpointListenerConfiguration;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
@@ -37,7 +38,7 @@ public class URLEndpointListener {
     private final Object lock = new Object();
 
     @NonNull
-    private final URLEndpointListenerConfiguration config;
+    private final ImmutableURLEndpointListenerConfiguration config;
 
     @Nullable
     @GuardedBy("lock")
@@ -62,7 +63,7 @@ public class URLEndpointListener {
         if (config.getDatabase().getUuid() == null) {
             throw new IllegalArgumentException("Configured database is not open");
         }
-        this.config = new URLEndpointListenerConfiguration(config, true);
+        this.config = new ImmutableURLEndpointListenerConfiguration(config);
         identity = (config.isTlsDisabled()) ? null : config.getTlsIdentity();
     }
 
@@ -76,7 +77,7 @@ public class URLEndpointListener {
      * @return the listener's configuration (read only).
      */
     @NonNull
-    public URLEndpointListenerConfiguration getConfig() { return config; }
+    public URLEndpointListenerConfiguration getConfig() { return new URLEndpointListenerConfiguration(config); }
 
     /**
      * Get the listener's port.

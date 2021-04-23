@@ -69,9 +69,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
     /**
      * #1
      * 1. Test whether a custom conflict resolver can be set to/get from the ReplicatorConfiguration.
-     * 2. After the ReplicatorConfiguration set to the replicator, the conflictResolver property should be readonly.
      */
-    @Test(expected = IllegalStateException::class)
     fun testConflictResolverConfigProperty() {
         val resolver = ConflictResolver { null }
 
@@ -88,9 +86,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val repl = testReplicator(config)
         assertNotNull(repl.config.conflictResolver)
         assertEquals(repl.config.conflictResolver, resolver)
-
-        // should throw ISE
-        repl.config.conflictResolver = null
     }
 
     /**

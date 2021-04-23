@@ -24,7 +24,6 @@ import com.couchbase.lite.internal.replicator.NetworkConnectivityManager;
 
 
 public final class Replicator extends AbstractReplicator {
-
     /**
      * Initializes a replicator with the given configuration.
      *

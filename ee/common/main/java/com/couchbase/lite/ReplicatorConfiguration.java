@@ -24,15 +24,15 @@ import com.couchbase.lite.internal.ImmutableReplicatorConfiguration;
 
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
+
     //---------------------------------------------
-    // member variables
+    // Data Members
     //---------------------------------------------
     private boolean acceptOnlySelfSignedServerCertificate;
 
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-
     public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) { super(database, target); }
 
     public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {

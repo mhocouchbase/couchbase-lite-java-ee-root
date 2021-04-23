@@ -33,7 +33,7 @@ public final class Replicator extends AbstractReplicator {
     /**
      * Initializes a replicator with the given configuration.
      *
-     * @param config the configuration
+     * @param config replicator configuration
      */
     public Replicator(@NonNull ReplicatorConfiguration config) {
         this(CouchbaseLiteInternal.getNetworkConnectivityManager(), config);

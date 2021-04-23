@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
@@ -81,6 +80,9 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     @Nullable
     public EncryptionKey getEncryptionKey() { return encryptionKey; }
 
+    //---------------------------------------------
+    // protected methods
+    //---------------------------------------------
     @Override
     protected DatabaseConfiguration getDatabaseConfiguration() { return this; }
 }
