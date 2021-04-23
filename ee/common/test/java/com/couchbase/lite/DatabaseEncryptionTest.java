@@ -284,12 +284,16 @@ public class DatabaseEncryptionTest extends BaseTest {
 
         Database db = null;
         try {
-            // Create a database in the misguided 2.8.0 directory
-            final DatabaseConfiguration config = new DatabaseConfiguration();
-            config.setDirectory(twoDot8DotOhDirPath);
-            config.setEncryptionKey(new EncryptionKey("rub-a-dub-dub"));
+            // Configure an encrypted db
+            final DatabaseConfiguration config1 = new DatabaseConfiguration();
+            config1.setEncryptionKey(new EncryptionKey("rub-a-dub-dub"));
 
-            db = new Database(dbName, config);
+            // Copy the cnfig
+            final DatabaseConfiguration config2 = new DatabaseConfiguration(config1);
+
+            // Create a database in the misguided 2.8.0 directory
+            config1.setDirectory(twoDot8DotOhDirPath);
+            db = new Database(dbName, config1);
             final MutableDocument mDoc = new MutableDocument();
             mDoc.setString("foo", "bar");
             db.save(mDoc);
@@ -297,8 +301,8 @@ public class DatabaseEncryptionTest extends BaseTest {
             db = null;
 
             // This should open the database created above
-            config.resetDbDir();
-            db = new Database(dbName, config);
+            // despite the fact that the duplicate config points at the default directory.
+            db = new Database(dbName, config2);
             assertEquals(1L, db.getCount());
             final Document doc = db.getDocument(mDoc.getId());
             assertEquals("bar", doc.getString("foo"));
