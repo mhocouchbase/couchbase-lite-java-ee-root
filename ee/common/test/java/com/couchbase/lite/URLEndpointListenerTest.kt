@@ -168,6 +168,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         listener.start()
     }
 
+    // This test fails if no network is available
     @FlakyTest
     @Test
     fun testURLs() {
@@ -178,7 +179,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        BaseTest.waitUntil(BaseTest.LONG_TIMEOUT_MS) { 0 < listener.urls.count() }
+        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -644,13 +645,14 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         runRepl(listener.endpoint())
     }
 
+    // This test fails if no network is available
     @FlakyTest
     @Test
     fun testNetworkInterfaces() {
         val urlKey = "URL"
 
         val listener = listenTls()
-        BaseTest.waitUntil(BaseTest.LONG_TIMEOUT_MS) { 0 < listener.urls.count() }
+        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         val localUrls = listener.urls.filter {
             val host = it.host

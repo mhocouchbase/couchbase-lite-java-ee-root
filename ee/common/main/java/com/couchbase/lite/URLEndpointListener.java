@@ -106,14 +106,9 @@ public class URLEndpointListener {
 
         final Database db = getConfig().getDatabase();
         synchronized (db.getDbLock()) { // must seize db lock first
-            // !!! REMOVE THIS:
-            Log.w(LogDomain.LISTENER, "getUrls: got db lock");
-
             final C4Database c4db = db.getOpenC4DbLocked();
 
             synchronized (lock) {
-                // !!! REMOVE THIS:
-                Log.w(LogDomain.LISTENER, "getUrls: got listener lock: " + c4db + ", " + c4Listener);
                 if (c4Listener == null) { return uris; }
 
                 uriStrs = c4Listener.getUrls(c4db);
