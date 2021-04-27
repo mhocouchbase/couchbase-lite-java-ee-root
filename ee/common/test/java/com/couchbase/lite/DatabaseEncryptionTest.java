@@ -382,10 +382,11 @@ public class DatabaseEncryptionTest extends BaseTest {
             .from(DataSource.database(encryptionTestDb))
             .where(SEQ.notNullOrMissing())
             .orderBy(Ordering.expression(SEQ));
-        ResultSet rs = query.execute();
-        assertNotNull(rs);
-        int i = 0;
-        for (Result r: rs) { assertEquals(i++, r.getInt(0)); }
+        try (ResultSet rs = query.execute()) {
+            assertNotNull(rs);
+            int i = 0;
+            for (Result r: rs) { assertEquals(i++, r.getInt(0)); }
+        }
     }
 
     private String createAndVerifyEncryptedBlob(String password) throws CouchbaseLiteException, IOException {
