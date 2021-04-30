@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.utils.FlakyTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -70,6 +69,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * #1
      * 1. Test whether a custom conflict resolver can be set to/get from the ReplicatorConfiguration.
      */
+    @Test
     fun testConflictResolverConfigProperty() {
         val resolver = ConflictResolver { null }
 
@@ -121,7 +121,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc doesn't need to be push back to the remote database
      *    so the remote doc stays deleted.
      */
-    @FlakyTest
     @Test
     fun testConflictResolverDeletedRemoteWins() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), null)
@@ -179,7 +178,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 3. Make sure that document is deleted from the database.
      * 4. Make sure that the resolved doc can be push to the remote database.
      */
-    @FlakyTest
     @Test
     fun testConflictResolverDeletedLocalWins() {
         makeConflict(DOC1, null, hashMapOf(KEY1 to VAL1))
@@ -214,7 +212,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc can be push to the remote database.
      * Case: Mutated local doc
      */
-    @FlakyTest
     @Test
     fun testConflictResolverMergeLocal() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -317,7 +314,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 4. Make sure that the resolved doc can be push to the remote database.
      * Case: Local is deleted
      */
-    @FlakyTest
     @Test
     fun testConflictResolverNullLocalDeleted() {
         makeConflict(DOC1, null, hashMapOf(KEY2 to VAL2))
@@ -424,7 +420,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * #9
      * 1. Test that there could be multiple conflicts resolver running at the same time without blocking each other.
      */
-    @FlakyTest
     @Test
     fun testConflictResolversRunConcurrently() {
         val barrier = CyclicBarrier(2)
@@ -612,7 +607,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * #13
      * 1. Test that the DocumentReplicationEvent will not be notified until the conflicted document is resolved.
      */
-    @FlakyTest
     @Test
     fun testDocumentReplicationEventForConflictedDocs() {
         var ids = validateDocumentReplicationEventForConflictedDocs(TestConflictResolver {
@@ -638,7 +632,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: deleted local
      */
-    @FlakyTest
     @Test
     fun testConflictResolutionDefault1() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -675,7 +668,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: return newer doc
      */
-    @FlakyTest
     @Test
     fun testConflictResolutionDefault3() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -716,7 +708,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. We should already have tests for this already.
      * Case: delete and generation
      */
-    @FlakyTest
     @Test
     fun testConflictResolutionDefault5() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -818,7 +809,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Remote has blob; remote wins
      */
-    @FlakyTest
     @Test
     fun testConflictResolverRemoteWithRemoteBlob() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -860,7 +850,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Neither has blob new doc with blob wins
      */
-    @FlakyTest
     @Test
     fun testConflictResolverNewWithBlob() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -886,7 +875,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      *    Test whether the error has been captured and thrown or not
      * Case: Blob from Local DB
      */
-    @FlakyTest
     @Test
     fun testConflictResolverReturnsBlobFromLocalDB() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -960,7 +948,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 1. Using blob object from a different database is currently not allowed.
      *    Test whether the error has been captured and thrown or not
      */
-    @FlakyTest
     @Test
     fun testConflictResolverReturnsBlobFromWrongDB() {
         val blob = Blob("text/plain", "I'm a blob".toByteArray())
@@ -1199,7 +1186,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
     /**
      * @borden's merge test, for good measure.
      */
-    @FlakyTest
     @Test
     fun testConflictResolverMergeDoc() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY1 to VAL1, KEY2 to VAL2))
@@ -1270,7 +1256,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * two conflicted deleted documents shouldn't be treat as conflict. The replicator
      * should be able to resolve this scenario without calling the conflict resolver.
      */
-    @FlakyTest
     @Test
     fun testConflictResolverShouldNotGetBothDeletedLocalAndDeletedRemote() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), null)
@@ -1294,7 +1279,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
     /**
      * CBL-623: Revision flags get cleared while saving resolved document
      */
-    @FlakyTest
     @Test
     fun testConflictResolverPreservesFlags() {
         var doc = MutableDocument(DOC1)

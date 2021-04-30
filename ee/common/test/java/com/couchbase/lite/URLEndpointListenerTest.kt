@@ -16,7 +16,6 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.AbstractTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
-import com.couchbase.lite.internal.utils.FlakyTest
 import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
@@ -169,7 +168,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // This test fails if no network is available
-    @FlakyTest
     @Test
     fun testURLs() {
         val config = URLEndpointListenerConfiguration(otherDB)
@@ -531,7 +529,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents pinned credentials
-    @FlakyTest
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingClientCredentials() {
         val clientIdentity = createIdentity()
@@ -551,7 +548,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents a cert chain whose root is pinned
-    @FlakyTest
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingChainClientCredentials() {
         val clientIdentity = getTestChainIdentity()
@@ -592,7 +588,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a callback client authenticator
     // should accept a client that presents credentials that cause the authenticator to return true.
-    @FlakyTest
     @Test
     fun testCertAuthenticatorWithCallbackSucceeds() {
         val clientIdentity = createIdentity(false)
@@ -630,7 +625,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     ////////////////  C O N N E C T E D   F U N C T I O N A L I T Y   ////////////////
 
-    @FlakyTest
     @Test(expected = CouchbaseLiteException::class)
     fun testReadOnlyListener() {
         val config = URLEndpointListenerConfiguration(otherDB)
@@ -646,7 +640,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // This test fails if no network is available
-    @FlakyTest
     @Test
     fun testNetworkInterfaces() {
         val urlKey = "URL"
@@ -1010,7 +1003,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true

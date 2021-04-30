@@ -204,7 +204,6 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //       is equal to the total count of saved documents - 1.
     //    5. Start replication and wait for activity status to stop.
     //    6. Call PendingDocumentIDs method again and expect all pending doc ids set count is 0.
-    @FlakyTest
     @Test
     fun testPendingDocIdsWithPurge() {
         val ids = createDocs(5)
@@ -246,7 +245,6 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         validateIsDocumentPending(setOf(id), setOf("foo"))
     }
 
-    @FlakyTest
     @Test
     fun testIsDocumentPendingDelete() {
         val ids = createDocs(2)
@@ -264,7 +262,6 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
     //    3. Purge one doc in the saved docs.
     //    4. Call IsDocumentPending method before replication start and expect false when pass the edited doc id
     //       in saved doc as parameter.
-    @FlakyTest
     @Test
     fun testIsDocumentPendingPurge() {
         val ids = createDocs(2)

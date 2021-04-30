@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
@@ -48,8 +47,6 @@ import static org.junit.Assert.assertTrue;
 
 
 public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
-
-    @FlakyTest
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -194,7 +191,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
-    @FlakyTest
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -296,7 +292,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     @Test
     public void testContinuousPushFilter() throws CouchbaseLiteException, InterruptedException { testPushFilter(true); }
 
-    @FlakyTest
     @Test
     public void testPullFilter() throws CouchbaseLiteException, InterruptedException { testPullFilter(false); }
 
@@ -387,7 +382,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     /*
      * https://github.com/couchbase/couchbase-lite-core/issues/156
      */
-    @FlakyTest
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
         Database anotherDB = createDb("pull-cont-db");
@@ -480,7 +474,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
     }
 
-    @FlakyTest
     @Test
     public void testDocIDFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -1102,7 +1095,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
     }
 
-    @FlakyTest
     @Test
     public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);

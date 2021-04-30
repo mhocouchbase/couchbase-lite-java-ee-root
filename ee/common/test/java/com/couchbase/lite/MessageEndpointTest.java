@@ -22,7 +22,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.ClassUtils;
-import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.Report;
 import com.couchbase.lite.internal.utils.SlowTest;
 
@@ -527,7 +526,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Tiger", otherDB.getDocument("doc1").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPushDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -624,7 +622,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPullDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -673,7 +670,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -698,7 +694,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPushPullDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -753,7 +748,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPushPullDocContinuousWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -781,7 +775,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPushPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -815,14 +808,12 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
-    @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
-    @FlakyTest
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
@@ -834,13 +825,11 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PPermanentFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, false);
     }
 
-    @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PPermanentFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
-    @FlakyTest
     @Test
     public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError("P2PPermanentFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
@@ -1044,7 +1033,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(closeWait2.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
     }
 
-    @FlakyTest
     @Test
     public void testP2PChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
@@ -1069,7 +1057,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
-    @FlakyTest
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
@@ -1096,7 +1083,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals(0, statuses.size());
     }
 
-    @FlakyTest
     @Test
     public void testPushWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -1153,7 +1139,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertNull(baseTestDb.getDocument("doc2"));
     }
 
-    @FlakyTest
     @Test
     public void testPushPullWithDocIDsFilter() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
