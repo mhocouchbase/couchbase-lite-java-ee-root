@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.lite.internal.ImmutableReplicatorConfiguration;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
@@ -33,7 +34,9 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
     //---------------------------------------------
     // Constructors
     //---------------------------------------------
-    public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) { super(database, target); }
+    public ReplicatorConfiguration(@NonNull Database database, @NonNull Endpoint target) {
+        super(Preconditions.assertNotNull(database, "database"), Preconditions.assertNotNull(target, "target"));
+    }
 
     public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
         super(config);
@@ -60,17 +63,17 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
         @Nullable ReplicationFilter pullFilter,
         @Nullable ConflictResolver conflictResolver,
         int maxRetries,
-        long maxRetryWaitTime,
-        long heartbeat,
+        int maxRetryWaitTime,
+        int heartbeat,
         @NonNull Endpoint target,
         boolean acceptOnlySelfSignedServerCertificate) {
         super(
-            database,
-            type,
+            Preconditions.assertNotNull(database, "database"),
+            Preconditions.assertNotNull(type, "type"),
             continuous,
             authenticator,
             headers,
-            pinnedServerCertificate,
+            copyCert(pinnedServerCertificate),
             channels,
             documentIDs,
             pushFilter,
@@ -78,8 +81,8 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
             conflictResolver,
             maxRetries,
             maxRetryWaitTime,
-            heartbeat,
-            target);
+            verifyHeartbeat(heartbeat),
+            Preconditions.assertNotNull(target, "target"));
         this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
     }
 
