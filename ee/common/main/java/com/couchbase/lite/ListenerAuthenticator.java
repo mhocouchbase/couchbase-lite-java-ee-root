@@ -15,7 +15,4 @@
 //
 package com.couchbase.lite;
 
-/**
- * Oh joy!  Another marker interface...
- */
 public interface ListenerAuthenticator {}

@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
  * PredictiveModel protocol that allows to integrate machine learning model into
  * CouchbaseLite Query via invoking the Function.prediction() function.
  */
+@FunctionalInterface
 public interface PredictiveModel {
     /**
      * The prediction callback called when invoking the Function.prediction() function

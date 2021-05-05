@@ -22,6 +22,7 @@ import android.support.annotation.NonNull;
  * <p>
  * A delegate used by the replicator to create MessageEndpointConnection objects.
  */
+@FunctionalInterface
 public interface MessageEndpointDelegate {
     /**
      * Creates an object of type MessageEndpointConnection interface.

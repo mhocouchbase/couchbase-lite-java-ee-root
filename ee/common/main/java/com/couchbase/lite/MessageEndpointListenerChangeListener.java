@@ -20,6 +20,7 @@ import android.support.annotation.NonNull;
 /**
  * A change listener protocol.
  */
+@FunctionalInterface
 public interface MessageEndpointListenerChangeListener extends ChangeListener<MessageEndpointListenerChange> {
     @Override
     void changed(@NonNull MessageEndpointListenerChange change);

@@ -20,6 +20,7 @@ package com.couchbase.lite;
  * The MessagingCompletion callback interface used for acknowledging
  * the completion of a messaging operation.
  */
+@FunctionalInterface
 public interface MessagingCompletion {
     /**
      * Acknowledges completion of the operation.
