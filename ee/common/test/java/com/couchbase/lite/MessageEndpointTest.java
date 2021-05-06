@@ -802,19 +802,16 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringOpen() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
-    @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
-    @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, true);
@@ -937,6 +934,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals(CBLError.Code.WEB_SOCKET_GOING_AWAY, err.getCode());
     }
 
+    @SlowTest
     @Test
     public void testP2PPassiveCloseAll() throws InterruptedException, CouchbaseLiteException {
         MutableDocument doc = new MutableDocument("test");

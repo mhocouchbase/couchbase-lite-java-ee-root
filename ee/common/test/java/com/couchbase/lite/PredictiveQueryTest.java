@@ -168,11 +168,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
         Database.prediction.unregisterModel(AggregateModel.NAME);
         Database.prediction.unregisterModel(TextModel.NAME);
         Database.prediction.unregisterModel(EchoModel.NAME);
-        BaseTest.logTestInitializationComplete("Predictive Query");
     }
-
-    @After
-    public void tearDownPredictiveQueryTest() { BaseTest.logTestTeardownBegun("Predictive Query"); }
 
     // CBL-1860
     @Test

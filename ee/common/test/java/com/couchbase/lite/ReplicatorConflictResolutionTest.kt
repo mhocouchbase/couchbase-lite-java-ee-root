@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -1186,6 +1187,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
     /**
      * @borden's merge test, for good measure.
      */
+    @SlowTest
     @Test
     fun testConflictResolverMergeDoc() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY1 to VAL1, KEY2 to VAL2))

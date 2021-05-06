@@ -17,7 +17,6 @@ package com.couchbase.lite.internal
 
 import com.couchbase.lite.BaseTest
 import com.couchbase.lite.LogLevel
-import com.couchbase.lite.PlatformBaseTest
 import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.core.C4KeyPair
@@ -25,13 +24,11 @@ import com.couchbase.lite.internal.security.Signature
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
 import com.couchbase.lite.internal.utils.StringUtils
-import org.junit.AfterClass
-import org.junit.BeforeClass
 import java.security.KeyStore
 import java.security.MessageDigest
 
 
-abstract class SecurityBaseTest : PlatformBaseTest() {
+abstract class SecurityBaseTest : BaseTest() {
     companion object {
         data class AlgorithmInfo(val signatureAlgorithm: String, val digestAlgorithm: String)
 
@@ -59,20 +56,6 @@ abstract class SecurityBaseTest : PlatformBaseTest() {
             TLSIdentity.CERT_ATTRIBUTE_ORGANIZATION_UNIT to "Mobile",
             TLSIdentity.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
-
-        @JvmStatic
-        @BeforeClass
-        fun setupSecurityBaseTest() {
-            BaseTest.setUpPlatformSuite()
-            deleteTestAliases()
-        }
-
-        @JvmStatic
-        @AfterClass
-        fun tearDownSecurityBaseTest() {
-            deleteTestAliases()
-            BaseTest.tearDownBaseTestSuite()
-        }
 
         fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 12).toLowerCase()
 

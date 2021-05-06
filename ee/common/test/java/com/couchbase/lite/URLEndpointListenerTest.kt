@@ -19,6 +19,7 @@ import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.utils.Fn
 import com.couchbase.lite.internal.utils.PlatformUtils
 import com.couchbase.lite.internal.utils.Report
+import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -51,14 +52,10 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     private val listeners = mutableListOf<URLEndpointListener>()
 
     @Before
-    fun setupURLEndpointListenerTest() {
-        SecurityBaseTest.deleteTestAliases()
-        BaseTest.logTestInitializationComplete("URLEndpointListener")
-    }
+    fun setupURLEndpointListenerTest() { SecurityBaseTest.deleteTestAliases() }
 
     @After
     fun cleanupURLEndpointListenerTest() {
-        BaseTest.logTestTeardownBegun("URLEndpointListener")
         listeners.forEach {
             it.stop()
             val alias = AbstractTLSIdentity.getAlias(it.tlsIdentity)
@@ -177,7 +174,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
+        waitUntil(STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -360,6 +357,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A client with a pinned certificate
     // should refuse a server that presents certificate chain (even if the root is the pinned cert)
+    @SlowTest
     @Test
     fun testTLSPinnedCertClientAuthenticatorWithChainedServerCredentials() {
         val caCert = getTestCACertificate()
@@ -645,7 +643,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val urlKey = "URL"
 
         val listener = listenTls()
-        BaseTest.waitUntil(BaseTest.STD_TIMEOUT_MS) { 0 < listener.urls.count() }
+        waitUntil(STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
         val localUrls = listener.urls.filter {
             val host = it.host
@@ -675,6 +673,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         localUrls.forEach { assertTrue(dbUrls.contains(it.toString())) }
     }
 
+    @SlowTest
     @Test
     fun testStatus() {
         makeOneDoc("connectionStatus", otherDB)
@@ -721,6 +720,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // A listener with TLS disabled should not create an anonymous identity
+    @SlowTest
     @Test
     fun testHTTPListenerIdentity() {
         val listener = listenHttp()
@@ -750,6 +750,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // A replicator should report that no certificate was supplied by a server with TLS disabled
+    @SlowTest
     @Test
     fun testHTTPListenerReplicatorGetCertificate() {
         val listener = listenHttp()

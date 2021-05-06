@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite.internal.core
 
-import com.couchbase.lite.BaseTest
 import com.couchbase.lite.ConnectionStatus
 import com.couchbase.lite.ListenerCertificateAuthenticator
 import com.couchbase.lite.ListenerPasswordAuthenticator
@@ -94,12 +93,10 @@ class C4ListenerTest : PlatformSecurityTest() {
     fun setUpC4ListenerTest() {
         C4Listener.nativeImpl = c4ListenerMock
         C4Listener.LISTENER_CONTEXT.clear()
-        BaseTest.logTestInitializationComplete("C4Listener")
     }
 
     @After
     fun tearDownC4ListenerTest() {
-        BaseTest.logTestTeardownBegun("C4Listener")
         C4Listener.nativeImpl = NativeC4Listener()
         C4Listener.LISTENER_CONTEXT.clear()
     }

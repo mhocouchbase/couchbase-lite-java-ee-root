@@ -18,7 +18,6 @@ package com.couchbase.lite.internal
 import com.couchbase.lite.PlatformSecurityTest
 import com.couchbase.lite.TLSIdentity
 import com.couchbase.lite.internal.security.Signature
-import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
 import org.junit.Assert
 import org.junit.Test
@@ -33,7 +32,6 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
             .deleteEntries(loadPlatformKeyStore()) { alias -> alias.startsWith(BASE_KEY_ALIAS) }
     }
 
-    @SlowTest
     @Test
     fun testGetKeyData() {
         val key = loadTestKeyStore().getCertificate(EXTERNAL_KEY_ALIAS_TEST).publicKey.encoded
@@ -48,7 +46,6 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         Assert.assertArrayEquals(key, data)
     }
 
-    @SlowTest
     @Test
     fun testSign() {
         val testStore = loadTestKeyStore()
@@ -74,7 +71,6 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         }
     }
 
-    @SlowTest
     @Test
     fun testDecrypt() {
         val testStore = loadTestKeyStore()
@@ -171,7 +167,6 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
         )
     }
 
-    @SlowTest
     @Test
     fun testDeleteEntries() {
         val alias1 = newKeyAlias()

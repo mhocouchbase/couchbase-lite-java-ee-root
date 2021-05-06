@@ -167,7 +167,7 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    arguments '-DANDROID_STL=c++_static', "-DANDROID_TOOLCHAIN=clang", '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=Debug', '-DBUILD_ENTERPRISE=ON'
+                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=Debug', '-DBUILD_ENTERPRISE=ON'
                     cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
                 }
             }
@@ -183,7 +183,7 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    arguments '-DANDROID_STL=c++_static', "-DANDROID_TOOLCHAIN=clang", '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBUILD_ENTERPRISE=ON'
+                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBUILD_ENTERPRISE=ON'
                     cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
                 }
             }
@@ -630,4 +630,3 @@ def getCommit(project, dflt) {
 
     return dflt
 }
-

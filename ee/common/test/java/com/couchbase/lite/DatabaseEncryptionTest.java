@@ -373,7 +373,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         assertNotNull(blob);
         final byte[] body = blob.getContent();
         assertNotNull(body);
-        assertEquals(BLOB_CONTENT, new String(body));
+        assertEquals(BaseDbTest.BLOB_CONTENT, new String(body));
 
         // Query documents:
         Expression SEQ = Expression.property("seq");
@@ -397,7 +397,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         assertNotNull(encryptionTestDb);
 
         // Save a doc with a blob:
-        final byte[] body = BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
+        final byte[] body = BaseDbTest.BLOB_CONTENT.getBytes(StandardCharsets.UTF_8);
 
         MutableDocument mDoc = new MutableDocument(docId);
         mDoc.setBlob("blob", new Blob("text/plain", body));
