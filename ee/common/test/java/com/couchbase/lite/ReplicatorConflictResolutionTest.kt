@@ -75,7 +75,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         val config = makeConfig(
             URLEndpoint(URI("wss://foo")),
-            AbstractReplicator.Type.PUSH,
+            ReplicatorType.PUSH,
             false
         )
         config.conflictResolver = resolver
@@ -1063,7 +1063,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val repl1 = testReplicator(pullConfigWitResolver(resolver1))
         // this is just here so that we can tell when this resolver is done.
         val token1c = repl1.addChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
+            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
                 latch4.countDown()
             }
         }
@@ -1093,7 +1093,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val repl2 = testReplicator(pullConfig2)
         // Again, only here so that we know when this replicator is done
         val token2c = repl2.addChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
+            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
                 latch3.countDown()
             }
         }
@@ -1286,7 +1286,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         baseTestDb.save(doc)
 
         // sync with the other db
-        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), ReplicatorType.PUSH, false))
 
         // add a blob in the local copy:
         doc = baseTestDb.getNonNullDoc(DOC1).toMutable()
@@ -1326,7 +1326,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val doc = MutableDocument(docId)
         baseTestDb.save(doc)
 
-        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), AbstractReplicator.Type.PUSH, false))
+        run(makeConfig(baseTestDb, DatabaseEndpoint(otherDB), ReplicatorType.PUSH, false))
 
         // Now make some changes in db and otherDB:
         val doc1 = baseTestDb.getNonNullDoc(docId).toMutable()
@@ -1372,7 +1372,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
     }
 
     private fun pullConfigWitResolver(resolver: ConflictResolver?): ReplicatorConfiguration {
-        return makeConfigTargetingOtherDb(AbstractReplicator.Type.PULL, resolver)
+        return makeConfigTargetingOtherDb(ReplicatorType.PULL, resolver)
     }
 
     private fun Database.getNonNullDoc(id: String) =

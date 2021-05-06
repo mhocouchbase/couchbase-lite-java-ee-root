@@ -15,7 +15,6 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.utils.FlakyTest
 import com.couchbase.lite.internal.utils.Report
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -46,8 +45,8 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         val token = replicator.addChangeListener { change ->
             try {
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY -> change.replicator.pendingDocumentIds
-                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    ReplicatorActivityLevel.BUSY -> change.replicator.pendingDocumentIds
+                    ReplicatorActivityLevel.STOPPED -> latch.countDown()
                     else -> Unit
                 }
             } catch (e: CouchbaseLiteException) {
@@ -85,8 +84,8 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         val token = replicator.addChangeListener { change ->
             try {
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY -> change.replicator.isDocumentPending("some-doc")
-                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    ReplicatorActivityLevel.BUSY -> change.replicator.isDocumentPending("some-doc")
+                    ReplicatorActivityLevel.STOPPED -> latch.countDown()
                     else -> Unit
                 }
             } catch (e: CouchbaseLiteException) {
@@ -123,8 +122,8 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         val token = replicator.addChangeListener { change ->
             try {
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY -> callIsDocumentPendingWithNullId(change.replicator)
-                    AbstractReplicator.ActivityLevel.STOPPED -> latch.countDown()
+                    ReplicatorActivityLevel.BUSY -> callIsDocumentPendingWithNullId(change.replicator)
+                    ReplicatorActivityLevel.STOPPED -> latch.countDown()
                     else -> Unit
                 }
             } catch (e: IllegalArgumentException) {
@@ -331,17 +330,17 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
                 val ids = change.replicator.pendingDocumentIds
 
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.CONNECTING ->
+                    ReplicatorActivityLevel.CONNECTING ->
                         if (!beforeSet) {
                             pendingIdBefore = ids
                             beforeSet = true
                         }
-                    AbstractReplicator.ActivityLevel.BUSY ->
+                    ReplicatorActivityLevel.BUSY ->
                         if (!beforeSet) {
                             pendingIdBefore = ids
                             beforeSet = true
                         }
-                    AbstractReplicator.ActivityLevel.STOPPED -> {
+                    ReplicatorActivityLevel.STOPPED -> {
                         pendingIdAfter = ids
                         latch.countDown()
                     }
@@ -389,21 +388,21 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
                 // I never saw the CONNECTING state.  This is, so I am told, for my own good...
                 Report.log(LogLevel.INFO, "IsDocumentPendingListener state: ${change.status.activityLevel}")
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.CONNECTING ->
+                    ReplicatorActivityLevel.CONNECTING ->
                         if (!beforeSet) {
                             expectedPendingBefore = validatePending(change.replicator, expectedPending, true)
                             expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
                             beforeSet = true
                         }
 
-                    AbstractReplicator.ActivityLevel.BUSY ->
+                    ReplicatorActivityLevel.BUSY ->
                         if (!beforeSet) {
                             expectedPendingBefore = validatePending(change.replicator, expectedPending, true)
                             expectedNotPendingBefore = validatePending(change.replicator, expectedNotPending, false)
                             beforeSet = true
                         }
 
-                    AbstractReplicator.ActivityLevel.STOPPED -> {
+                    ReplicatorActivityLevel.STOPPED -> {
                         expectedPendingAfter = validatePending(change.replicator, expectedPending, false)
                         expectedNotPendingAfter = validatePending(change.replicator, expectedNotPending, false)
                         latch.countDown()
@@ -435,7 +434,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
             ?: true
 
     private fun pushPull() =
-        run(testReplicator(makeConfigTargetingOtherDb(AbstractReplicator.Type.PUSH_AND_PULL)))
+        run(testReplicator(makeConfigTargetingOtherDb(ReplicatorType.PUSH_AND_PULL)))
 
     private fun Database.getNonNullDoc(id: String) =
         this.getDocument(id) ?: throw IllegalStateException("document ${id} is null")

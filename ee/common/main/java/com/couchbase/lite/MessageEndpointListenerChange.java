@@ -24,11 +24,11 @@ import com.couchbase.lite.internal.core.C4ReplicatorStatus;
  */
 public class MessageEndpointListenerChange {
     private final MessageEndpointConnection connection;
-    private final Replicator.Status status;
+    private final ReplicatorStatus status;
 
     MessageEndpointListenerChange(MessageEndpointConnection connection, C4ReplicatorStatus c4Status) {
         this.connection = connection;
-        this.status = new Replicator.Status(c4Status);
+        this.status = new ReplicatorStatus(c4Status);
     }
 
     /**
@@ -45,5 +45,5 @@ public class MessageEndpointListenerChange {
      * @return status
      */
     @NonNull
-    public Replicator.Status getStatus() { return status; }
+    public ReplicatorStatus getStatus() { return status; }
 }

@@ -18,18 +18,18 @@ package com.couchbase.lite;
 
 public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
     protected final ReplicatorConfiguration pushConfig() {
-        return makeConfigTargetingOtherDb(Replicator.Type.PUSH);
+        return makeConfigTargetingOtherDb(ReplicatorType.PUSH);
     }
 
     protected final ReplicatorConfiguration pullConfig() {
-        return makeConfigTargetingOtherDb(Replicator.Type.PULL);
+        return makeConfigTargetingOtherDb(ReplicatorType.PULL);
     }
 
-    protected final ReplicatorConfiguration makeConfigTargetingOtherDb(Replicator.Type type) {
+    protected final ReplicatorConfiguration makeConfigTargetingOtherDb(ReplicatorType type) {
         return makeConfigTargetingOtherDb(type, null);
     }
 
-    protected final ReplicatorConfiguration makeConfigTargetingOtherDb(Replicator.Type type, ConflictResolver rsolv) {
+    protected final ReplicatorConfiguration makeConfigTargetingOtherDb(ReplicatorType type, ConflictResolver rsolv) {
         return makeConfig(baseTestDb, new DatabaseEndpoint(otherDB), type, false, null, rsolv);
     }
 }

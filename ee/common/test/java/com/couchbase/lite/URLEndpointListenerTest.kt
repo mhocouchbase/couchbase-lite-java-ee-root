@@ -733,7 +733,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl = run(makeReplConfig(listener.endpoint())) { repl: Replicator ->
             token = repl.addChangeListener { change ->
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY ->
+                    ReplicatorActivityLevel.BUSY ->
                         if (busyIdentity == null) {
                             busyIdentity = listener.tlsIdentity
                         }
@@ -761,7 +761,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             assertNull(repl.serverCertificates)
             token = repl.addChangeListener { change ->
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY ->
+                    ReplicatorActivityLevel.BUSY ->
                         if (busyCerts == null) {
                             busyCerts = repl.serverCertificates
                         }
@@ -792,7 +792,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             assertNull(repl.serverCertificates)
             token = repl.addChangeListener { change ->
                 when (change.status.activityLevel) {
-                    AbstractReplicator.ActivityLevel.BUSY ->
+                    ReplicatorActivityLevel.BUSY ->
                         if (busyCerts == null) {
                             busyCerts = repl.serverCertificates
                         }
@@ -842,8 +842,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl1 = testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
-                AbstractReplicator.ActivityLevel.IDLE -> idleLatch1.countDown()
-                AbstractReplicator.ActivityLevel.STOPPED -> stopLatch1.countDown()
+                ReplicatorActivityLevel.IDLE -> idleLatch1.countDown()
+                ReplicatorActivityLevel.STOPPED -> stopLatch1.countDown()
                 else -> Unit
             }
         }
@@ -855,8 +855,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl2 = testReplicator(makeReplConfig(listener.endpoint(), db2, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
-                AbstractReplicator.ActivityLevel.IDLE -> idleLatch2.countDown()
-                AbstractReplicator.ActivityLevel.STOPPED -> stopLatch2.countDown()
+                ReplicatorActivityLevel.IDLE -> idleLatch2.countDown()
+                ReplicatorActivityLevel.STOPPED -> stopLatch2.countDown()
                 else -> Unit
             }
         }
@@ -892,8 +892,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl1 = testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
-                AbstractReplicator.ActivityLevel.IDLE -> idleLatch1.countDown()
-                AbstractReplicator.ActivityLevel.STOPPED -> stopLatch1.countDown()
+                ReplicatorActivityLevel.IDLE -> idleLatch1.countDown()
+                ReplicatorActivityLevel.STOPPED -> stopLatch1.countDown()
                 else -> Unit
             }
         }
@@ -905,8 +905,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl2 = Replicator(makeReplConfig(listener.endpoint(), db2, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
-                AbstractReplicator.ActivityLevel.IDLE -> idleLatch2.countDown()
-                AbstractReplicator.ActivityLevel.STOPPED -> stopLatch2.countDown()
+                ReplicatorActivityLevel.IDLE -> idleLatch2.countDown()
+                ReplicatorActivityLevel.STOPPED -> stopLatch2.countDown()
                 else -> Unit
             }
         }
@@ -939,7 +939,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val repl = run(
             makeConfig(
                 listenHttp().endpoint(),
-                AbstractReplicator.Type.PUSH_AND_PULL,
+                ReplicatorType.PUSH_AND_PULL,
                 false
             )
         )
@@ -961,7 +961,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val latch = CountDownLatch(1)
         val token = repl.addChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) {
+            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
                 latch.countDown()
             }
         }
@@ -1022,7 +1022,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
 
         val changeListener = { change: ReplicatorChange ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) stopLatch.countDown()
+            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) stopLatch.countDown()
         }
 
         val docId = makeOneDoc("multi-repl", otherDB)
@@ -1103,7 +1103,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
 
         val changeListener = ReplicatorChangeListener { change ->
-            if (change.status.activityLevel == AbstractReplicator.ActivityLevel.STOPPED) stopLatch.countDown()
+            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) stopLatch.countDown()
         }
 
         val docId = makeOneDoc("repl_listener", otherDB)
@@ -1244,7 +1244,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val config = makeConfig(
             source,
             target,
-            AbstractReplicator.Type.PUSH_AND_PULL,
+            ReplicatorType.PUSH_AND_PULL,
             continuous,
             pinnedServerCert
         )

@@ -25,6 +25,7 @@ The top level in this workspace contains:
 * ee/common: code common to all Enterprise edition products
 * ee/android: the enterprise edition of the Couchbase Lite Android product
 * ee/java: the enterprise edition of the Couchbase Lite Java product
+* the GitHub repo couchbaselabs/couchbase-mobile-tools contains the source for the checkstyle tool
 
 Each of the four products has its own README
 

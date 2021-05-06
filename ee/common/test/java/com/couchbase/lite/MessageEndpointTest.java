@@ -463,7 +463,7 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
     public void changed(@NonNull MessageEndpointListenerChange change) {
         if (change.getStatus().getError() != null) { exceptions.add(change.getStatus().getError()); }
 
-        if (change.getStatus().getActivityLevel() != Replicator.ActivityLevel.STOPPED) { return; }
+        if (change.getStatus().getActivityLevel() != ReplicatorActivityLevel.STOPPED) { return; }
 
         listener.removeChangeListener(token);
         token = null;
@@ -518,7 +518,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH, false);
 
         run(config, 0, null);
 
@@ -542,7 +542,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH, false);
 
         run(config, 0, null);
 
@@ -566,7 +566,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH, true);
 
         run(config, 0, null);
 
@@ -590,7 +590,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH, true);
 
         run(config, 0, null);
 
@@ -614,7 +614,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PULL, false);
 
         run(config, 0, null);
 
@@ -638,7 +638,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PULL, false);
 
         run(config, 0, null);
 
@@ -662,7 +662,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PULL, true);
 
         run(config, 0, null);
 
@@ -686,7 +686,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        final ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, true);
+        final ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PULL, true);
 
         run(config, 0, null);
 
@@ -710,7 +710,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH_AND_PULL, false);
 
         run(config, 0, null);
 
@@ -737,7 +737,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH_AND_PULL, false);
 
         run(config, 0, null);
 
@@ -764,7 +764,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH_AND_PULL, true);
 
         run(config, 0, null);
 
@@ -791,7 +791,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH_AND_PULL, true);
 
         run(config, 0, null);
 
@@ -847,7 +847,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
 
-        Replicator replicator = testReplicator(makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true));
+        Replicator replicator = testReplicator(makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true));
 
         final CountDownLatch latch = new CountDownLatch(3);
         final AtomicBoolean didCloseListener = new AtomicBoolean(false);
@@ -906,7 +906,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         final MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest2", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(1));
-        final ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
+        final ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true);
         final Replicator repl = testReplicator(config);
         repl.addChangeListener(ch -> {
             switch (ch.getStatus().getActivityLevel()) {
@@ -930,8 +930,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         baseTestDb.close();
         assertTrue(replStopLatch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
-        final AbstractReplicator.Status status = repl.getStatus();
-        assertEquals(AbstractReplicator.ActivityLevel.STOPPED, status.getActivityLevel());
+        final ReplicatorStatus status = repl.getStatus();
+        assertEquals(ReplicatorActivityLevel.STOPPED, status.getActivityLevel());
         final CouchbaseLiteException err = status.getError();
         assertNotNull(err);
         assertEquals(CBLError.Code.WEB_SOCKET_GOING_AWAY, err.getCode());
@@ -954,7 +954,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 serverConnection1,
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)),
-            Replicator.Type.PUSH_AND_PULL,
+            ReplicatorType.PUSH_AND_PULL,
             true));
 
         final MockServerConnection serverConnection2 = getServerConnection("P2PPassiveCloseAll2", listener);
@@ -965,15 +965,15 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 serverConnection2,
                 ProtocolType.MESSAGE_STREAM,
                 new MockConnectionFactory(null)),
-            Replicator.Type.PUSH_AND_PULL,
+            ReplicatorType.PUSH_AND_PULL,
             true));
 
         final CountDownLatch closeWait1 = new CountDownLatch(1);
         final CountDownLatch closeWait2 = new CountDownLatch(1);
         listener.addChangeListener(change -> {
-            final Replicator.ActivityLevel activityLevel = change.getStatus().getActivityLevel();
+            final ReplicatorActivityLevel activityLevel = change.getStatus().getActivityLevel();
 
-            if (!Replicator.ActivityLevel.STOPPED.equals(activityLevel)) { return; }
+            if (!ReplicatorActivityLevel.STOPPED.equals(activityLevel)) { return; }
 
             final MessageEndpointConnection conn = change.getConnection();
             if (conn.equals(serverConnection1)) { closeWait1.countDown(); }
@@ -1035,7 +1035,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
     @Test
     public void testP2PChangeListener() throws InterruptedException {
-        final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
+        final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
         MockServerConnection serverConnection = getServerConnection("P2PChangeListener", listener);
@@ -1044,7 +1044,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             serverConnection,
             ProtocolType.BYTE_STREAM,
             new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true);
 
         listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
 
@@ -1059,7 +1059,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
-        final ArrayList<Replicator.ActivityLevel> statuses = new ArrayList<>();
+        final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
 
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
@@ -1069,7 +1069,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             serverConnection,
             ProtocolType.BYTE_STREAM,
             new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, Replicator.Type.PUSH_AND_PULL, true);
+        ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true);
 
         ListenerToken token = listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
         listener.removeChangeListener(token);
@@ -1100,7 +1100,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PushWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1128,7 +1128,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PullWithDocIDsFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PULL, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc3"));
 
         run(config, 0, null);
@@ -1160,7 +1160,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         MockServerConnection server = getServerConnection("PushPullWithFilter", ProtocolType.BYTE_STREAM);
         MessageEndpoint endpoint
             = new MessageEndpoint("UID:123", server, ProtocolType.BYTE_STREAM, new MockConnectionFactory(null));
-        ReplicatorConfiguration config = makeConfig(endpoint, Replicator.Type.PUSH_AND_PULL, false);
+        ReplicatorConfiguration config = makeConfig(endpoint, ReplicatorType.PUSH_AND_PULL, false);
         config.setDocumentIDs(Arrays.asList("doc1", "doc4"));
 
         run(config, 0, null);
@@ -1186,10 +1186,10 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         int expectedCode,
         CountDownLatch latch,
         ReplicatorChange change) {
-        final Replicator.Status status = change.getStatus();
-        final AbstractReplicator.ActivityLevel level = status.getActivityLevel();
+        final ReplicatorStatus status = change.getStatus();
+        final ReplicatorActivityLevel level = status.getActivityLevel();
         final CouchbaseLiteException error = status.getError();
-        final Replicator.Progress progress = status.getProgress();
+        final ReplicatorProgress progress = status.getProgress();
         final long completed = progress.getCompleted();
         final long total = progress.getTotal();
 
@@ -1229,10 +1229,10 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         int expectedCode,
         ReplicatorChange change)
         throws CouchbaseLiteException {
-        Replicator.Status status = change.getStatus();
+        ReplicatorStatus status = change.getStatus();
 
-        AbstractReplicator.ActivityLevel level = status.getActivityLevel();
-        if (level != Replicator.ActivityLevel.STOPPED) { return; }
+        ReplicatorActivityLevel level = status.getActivityLevel();
+        if (level != ReplicatorActivityLevel.STOPPED) { return; }
 
         CouchbaseLiteException error = status.getError();
         if (expectedCode == 0) {
@@ -1325,7 +1325,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         return makeConfig(
             baseTestDb,
             new MessageEndpoint("p2ptest0", server, protocolType, new MockConnectionFactory(errorLocation)),
-            Replicator.Type.PUSH,
+            ReplicatorType.PUSH,
             false);
     }
 }

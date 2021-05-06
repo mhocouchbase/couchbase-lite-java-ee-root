@@ -214,7 +214,7 @@ public class MessageEndpointListener {
     //---------------------------------------------
 
     void statusChanged(C4Replicator replicator, C4ReplicatorStatus status) {
-        final MessageEndpointConnection connection = (!AbstractReplicator.Status.isStopped(status))
+        final MessageEndpointConnection connection = (!AbstractReplicator.isStopped(status))
             ? getConnection(replicator)
             : removeConnection(replicator);
 

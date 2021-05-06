@@ -73,7 +73,7 @@ public final class Replicator extends AbstractReplicator {
     }
 
     @Override
-    protected void handleOffline(@NonNull ActivityLevel prevState, boolean nowOnline) {
+    protected void handleOffline(@NonNull ReplicatorActivityLevel prevState, boolean nowOnline) {
         if (connectivityObserver == null) { return; }
 
         Log.v(
