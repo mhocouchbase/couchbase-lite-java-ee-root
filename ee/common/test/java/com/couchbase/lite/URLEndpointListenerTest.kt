@@ -40,6 +40,7 @@ import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.regex.Pattern
 import kotlin.math.max
 
 class URLEndpointListenerTest : BaseReplicatorTest() {
@@ -640,21 +641,22 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // This test fails if no network is available
     @Test
     fun testNetworkInterfaces() {
+        val ipV6Pattern = Pattern.compile(".local|(([a-f0-9]{1,4}:{1,2})+)")
         val urlKey = "URL"
 
         val listener = listenTls()
         waitUntil(STD_TIMEOUT_MS) { 0 < listener.urls.count() }
 
-        val localUrls = listener.urls.filter {
-            val host = it.host
-            !(host.contains("fe80::") || host.contains(".local"))
-        }
+        val localUrls = listener.urls.filter { !ipV6Pattern.matcher(it.host).find() }
 
         localUrls.forEach {
+            val url =  it.toString()
+            Report.log("Testing interface: ${url}")
+
             val db = createDb(it.host)
 
             val doc = MutableDocument()
-            doc.setString(urlKey, it.toString())
+            doc.setString(urlKey, url)
             db.save(doc)
 
             run(makeReplConfig(URLEndpoint(it), db, null, false))
