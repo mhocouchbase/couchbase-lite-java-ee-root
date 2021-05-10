@@ -7,8 +7,10 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,6 +24,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.ClassUtils;
+import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.Report;
 import com.couchbase.lite.internal.utils.SlowTest;
 
@@ -54,13 +57,13 @@ abstract class MockConnection implements MessageEndpointConnection {
             new LinkedBlockingDeque<>(),
             runnable -> {
                 final Thread thread = new Thread(runnable, logName);
-                Report.log(LogLevel.DEBUG, "Created thread: " + thread);
+                Report.log(LogLevel.DEBUG, logPrefix() + " New thread: %s(%d)", thread.getName(), thread.getId());
                 thread.setUncaughtExceptionHandler((t, e) ->
-                    Report.log(LogLevel.WARNING, "Uncaught exception on " + t.getName(), e));
+                    Report.log(LogLevel.INFO, e, logPrefix() + " Uncaught exception"));
                 return thread;
             },
-            (r, e) -> Report.log(LogLevel.WARNING, "Rejected execution for " + logName, new Exception())
-        );
+            // if the executor is shut down, just dump the message on the floor.
+            (task, executor) -> { Report.log(LogLevel.INFO, new Exception(), logPrefix() + " Rejected execution"); });
     }
 
     abstract void openAsync(
@@ -82,23 +85,20 @@ abstract class MockConnection implements MessageEndpointConnection {
         @NonNull MessagingCloseCompletion completion);
 
     @Override
-    public void open(
-        @NonNull final ReplicatorConnection connection,
-        @NonNull final MessagingCompletion completion) {
+    public void open(@NonNull final ReplicatorConnection repl, @NonNull final MessagingCompletion completion) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".open *%s %s", ClassUtils.objId(repl), completion);
+
         List<Message> outstanding;
         synchronized (this) {
             closing = false;
-            replicatorConnection = connection;
+            replicatorConnection = repl;
             outstanding = new ArrayList<>(messageQueue);
             messageQueue.clear();
         }
 
         wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".open(%s)", connection);
-
-            openAsync(connection, completion);
-
-            for (Message message: outstanding) { deliver(message, connection); }
+            openAsync(repl, completion);
+            for (Message message: outstanding) { deliver(message, repl); }
         });
     }
 
@@ -108,10 +108,8 @@ abstract class MockConnection implements MessageEndpointConnection {
         final byte[] data = new byte[msg.length];
         System.arraycopy(msg, 0, data, 0, data.length);
 
-        wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".send(%d)", data.length);
-            sendAsync(data, completion);
-        });
+        Report.log(LogLevel.DEBUG, logPrefix() + ".send(%d) %s", data.length, completion);
+        wire.submit(() -> sendAsync(data, completion));
     }
 
     @Override
@@ -122,18 +120,14 @@ abstract class MockConnection implements MessageEndpointConnection {
             closeCompletion = onClose;
         }
 
-        wire.submit(() -> {
-            Report.log(
-                LogLevel.DEBUG,
-                logName + ".close(%s, %s)",
-                e,
-                (closeCompletion) != null);
-            closeAsync(completion, closeCompletion);
-        });
+        Report.log(LogLevel.DEBUG, e, logPrefix() + ".close %s", closeCompletion);
+        wire.submit(() -> closeAsync(completion, closeCompletion));
     }
 
     public void accept(@NonNull final byte[] data) {
         final byte[] msg = new byte[data.length];
+        Report.log(LogLevel.DEBUG, logPrefix() + ".accept(%d)", data.length);
+
         System.arraycopy(data, 0, msg, 0, msg.length);
         final Message message = Message.fromData(msg);
 
@@ -159,8 +153,8 @@ abstract class MockConnection implements MessageEndpointConnection {
             repl = replicatorConnection;
         }
 
+        Report.log(LogLevel.DEBUG, logPrefix() + ".disconnect(%s) %s, %s", disconnecting, error, completion);
         wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".disconnect(%s, %s)", disconnecting, error);
             if (disconnecting) { closeReplAsync(repl, error); }
             else { disconnectAsync(error, completion); }
         });
@@ -168,21 +162,23 @@ abstract class MockConnection implements MessageEndpointConnection {
 
     public void stop() { disconnect(null, this::terminate); }
 
-    @Override
-    protected void finalize() throws Throwable {
-        try { terminate(); }
-        finally { super.finalize(); }
+    public String toString() {
+        return "[" + ClassUtils.objId(this) + "]" + logName
+            + "(*" + ClassUtils.objId(replicatorConnection) + "," + closing + ")";
+    }
+
+    protected String logPrefix() {
+        final Thread t = Thread.currentThread();
+        return "MOCK CONNECTION " + t.getName() + "(" + t.getId() + ") " + this;
     }
 
     private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {
-        wire.submit(() -> {
-            Report.log(LogLevel.DEBUG, logName + ".deliver(%d, %s)", message.toData().length, ClassUtils.objId(repl));
-            deliverAsync(message, repl);
-        });
+        Report.log(LogLevel.DEBUG, logPrefix() + ".deliver(%d) *%s", message.toData().length, ClassUtils.objId(repl));
+        wire.submit(() -> deliverAsync(message, repl));
     }
 
     private void terminate() {
-        Report.log(LogLevel.DEBUG, logName + ".terminate");
+        Report.log(LogLevel.DEBUG, logPrefix() + ".terminate");
         wire.shutdown();
     }
 }
@@ -202,26 +198,19 @@ class MockServerConnection extends MockConnection {
 
         this.listener = listener;
 
-        Report.log(
-            LogLevel.DEBUG,
-            "MockServerConnection.<init>(%s, %s)",
-            listener.getConfig().getProtocolType(),
-            listener);
+        Report.log(LogLevel.DEBUG, logPrefix() + ".<init>(%s, %s)", listener.getConfig().getProtocolType(), listener);
     }
 
     public void clientOpened(MockClientConnection clientConnection) {
-        Report.log(
-            LogLevel.DEBUG,
-            "MockServerConnection.connected %s => %s",
-            ClassUtils.objId(this),
-            ClassUtils.objId(clientConnection));
+        Report.log(LogLevel.DEBUG, logPrefix() + ".clientOpened =>%s", ClassUtils.objId(clientConnection));
 
         synchronized (this) { client = clientConnection; }
         listener.accept(this);
     }
 
     @Override
-    void openAsync(@NonNull final ReplicatorConnection connection, @NonNull final MessagingCompletion completion) {
+    void openAsync(@NonNull final ReplicatorConnection repl, @NonNull final MessagingCompletion completion) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".openAsync *%s %s", ClassUtils.objId(repl), completion);
         completion.complete(true, null);
     }
 
@@ -229,15 +218,24 @@ class MockServerConnection extends MockConnection {
     void sendAsync(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
         final MockClientConnection clientConnection;
         synchronized (this) { clientConnection = client;}
+        Report.log(
+            LogLevel.DEBUG,
+            logPrefix() + ".sendAsync(%d) =>%s %s",
+            data.length,
+            ClassUtils.objId(clientConnection),
+            completion);
 
         if (clientConnection != null) { clientConnection.accept(data); }
         completion.complete(true, null);
     }
 
     @Override
-    void closeAsync(@NonNull MessagingCloseCompletion completion, @Nullable MessagingCloseCompletion closeCompletion) {
+    void closeAsync(
+        @NonNull MessagingCloseCompletion completion,
+        @Nullable MessagingCloseCompletion closeCompletion) {
         final MockClientConnection clientConnection;
         synchronized (this) { clientConnection = client; }
+        Report.log(LogLevel.DEBUG, logPrefix() + ".closeAsync =>%s %s", clientConnection, completion);
 
         if (closeCompletion != null) {
             closeCompletion.complete();
@@ -249,17 +247,22 @@ class MockServerConnection extends MockConnection {
     }
 
     @Override
-    void deliverAsync(@NonNull Message message, @NonNull ReplicatorConnection repl) {
-        repl.receive(message);
+    void deliverAsync(@NonNull Message msg, @NonNull ReplicatorConnection repl) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".deliverAsync(%d) *%s", msg.toData().length, ClassUtils.objId(repl));
+        repl.receive(msg);
     }
 
     @Override
     void disconnectAsync(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".disconnectAsync %s %s", error, completion);
         completion.complete();
     }
 
     @Override
-    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) { repl.close(error); }
+    void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".closeReplAsync *%s %s", ClassUtils.objId(repl), error);
+        repl.close(error);
+    }
 }
 
 
@@ -282,21 +285,22 @@ class MockClientConnection extends MockConnection {
     private MessagingError error;
 
     public MockClientConnection(@NonNull MessageEndpoint endpoint, @Nullable ErrorLogic errorLogic) {
-        super("MockClientConnection");
+        super("Client");
 
         server = (MockServerConnection) endpoint.getTarget();
         this.errorLogic = (errorLogic != null) ? errorLogic : new NoErrorLogic();
 
-        Report.log(LogLevel.DEBUG, "MockClientConnection.<init>(%s, %s)", endpoint, errorLogic);
+        Report.log(LogLevel.DEBUG, logPrefix() + ".<init>(%s, %s)", endpoint, errorLogic);
     }
 
     @Override
-    void openAsync(@NonNull ReplicatorConnection connection, @NonNull MessagingCompletion completion) {
+    void openAsync(@NonNull ReplicatorConnection ignore, @NonNull MessagingCompletion completion) {
         final MessagingError err;
         synchronized (this) {
             error = null;
             err = getLogicError(ErrorLogic.LifecycleLocation.CONNECT);
         }
+        Report.log(LogLevel.DEBUG, logPrefix() + ".openAsync %s %s", err, completion);
 
         final boolean succeeded = err == null;
         if (succeeded) { server.clientOpened(this); }
@@ -306,6 +310,7 @@ class MockClientConnection extends MockConnection {
     @Override
     void sendAsync(@NonNull byte[] data, @NonNull MessagingCompletion completion) {
         final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.SEND);
+        Report.log(LogLevel.DEBUG, logPrefix() + ".sendAsync(%d) %s %s", data.length, err, completion);
         final boolean succeeded = err == null;
         if (succeeded) { server.accept(data); }
         completion.complete(succeeded, err);
@@ -315,6 +320,7 @@ class MockClientConnection extends MockConnection {
     void closeAsync(
         @NonNull MessagingCloseCompletion completion,
         @Nullable MessagingCloseCompletion closeCompletion) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".closeAsync %s %s", completion, closeCompletion);
         if (closeCompletion != null) {
             closeCompletion.complete();
             completion.complete();
@@ -327,6 +333,13 @@ class MockClientConnection extends MockConnection {
     @Override
     void deliverAsync(@NonNull Message message, @NonNull ReplicatorConnection repl) {
         final MessagingError err = getLogicError(ErrorLogic.LifecycleLocation.RECEIVE);
+        Report.log(
+            LogLevel.DEBUG,
+            logPrefix() + ".deliverAsync(%d) *%s %s",
+            message.toData().length,
+            ClassUtils.objId(repl),
+            err);
+
         if (err != null) {
             repl.close(error);
             return;
@@ -338,24 +351,30 @@ class MockClientConnection extends MockConnection {
     @Override
     void disconnectAsync(@Nullable MessagingError error, @NonNull MessagingCloseCompletion completion) {
         setError(error);
+        Report.log(LogLevel.DEBUG, logPrefix() + ".disconnectAsycn %s %s", error, completion);
         completion.complete();
     }
 
     @Override
     void closeReplAsync(@NonNull ReplicatorConnection repl, @Nullable MessagingError error) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".closeReplAsync *%s %s", ClassUtils.objId(repl), error);
         setError(error);
         repl.close(error);
     }
 
     private void setError(@Nullable MessagingError error) {
+        Report.log(LogLevel.DEBUG, logPrefix() + ".closeReplAsync %s", error);
         synchronized (this) { this.error = error; }
     }
 
     private MessagingError getLogicError(ErrorLogic.LifecycleLocation loc) {
+        MessagingError err;
         synchronized (this) {
             if (errorLogic.shouldClose(loc)) { error = errorLogic.createError(); }
-            return error;
+            err = error;
         }
+        Report.log(LogLevel.DEBUG, logPrefix() + ".getLogicError @%s: %s", loc, err);
+        return err;
     }
 }
 
@@ -367,7 +386,11 @@ class MockConnectionFactory implements MessageEndpointDelegate {
     private final MockClientConnection.ErrorLogic errorLogic;
     private final int maxConnections;
 
-    public MockConnectionFactory(MockClientConnection.ErrorLogic errorLogic) { this(Integer.MAX_VALUE, errorLogic); }
+    public MockConnectionFactory(MockClientConnection.ErrorLogic errorLogic) {
+        this(
+            Integer.MAX_VALUE,
+            errorLogic);
+    }
 
     public MockConnectionFactory(int maxConnections) { this(maxConnections, null); }
 
@@ -382,7 +405,7 @@ class MockConnectionFactory implements MessageEndpointDelegate {
         final int connects = connections.incrementAndGet();
         if (connects > maxConnections) { throw new IllegalStateException("Too many connections: " + connects); }
         final MockClientConnection client = new MockClientConnection(endpoint, errorLogic);
-        MessageEndpointTest.CONNECTIONS.add(client);
+        MessageEndpointTest.addConnection(client);
         return client;
     }
 }
@@ -492,11 +515,26 @@ final class ListenerAwaiter implements MessageEndpointListenerChangeListener {
 /////////////////////////////////   T E S T   S U I T E   //////////////////////////////////////
 
 public class MessageEndpointTest extends BaseReplicatorTest {
-    static final List<MockConnection> CONNECTIONS = new ArrayList<>();
+    static final Set<MockConnection> CONNECTIONS = new HashSet<>();
+
+    static void addConnection(MockConnection connection) {
+        synchronized (CONNECTIONS) { CONNECTIONS.add(connection); }
+        Report.log(LogLevel.DEBUG, "Add connection: %s", connection);
+    }
+
+    static Set<MockConnection> getAndClearConnections() {
+        final Set<MockConnection> connections = new HashSet<>();
+        synchronized (CONNECTIONS) {
+            connections.addAll(CONNECTIONS);
+            CONNECTIONS.clear();
+        }
+        return connections;
+    }
 
     @After
     public void tearDownMessageEndpointTest() {
-        for (MockConnection connection: CONNECTIONS) {
+        Set<MockConnection> connections = getAndClearConnections();
+        for (MockConnection connection: connections) {
             try { connection.stop(); }
             catch (Exception e) { Report.log(LogLevel.WARNING, "failed closing connection", e); }
         }
@@ -802,19 +840,25 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
+    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringOpen() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
+    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
+    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
-        testP2PError("P2PRecoverableFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, true);
+        testP2PError(
+            "P2PRecoverableFailInReceive",
+            MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE,
+            true);
     }
 
     @Test
@@ -839,12 +883,14 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.MESSAGE_STREAM));
 
         MockServerConnection server = getServerConnection("P2PPassiveClose", listener);
-        CONNECTIONS.add(server);
-
         MessageEndpoint endpoint
             = new MessageEndpoint("p2ptest1", server, ProtocolType.MESSAGE_STREAM, new MockConnectionFactory(null));
 
-        Replicator replicator = testReplicator(makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true));
+        Replicator replicator = testReplicator(makeConfig(
+            baseTestDb,
+            endpoint,
+            ReplicatorType.PUSH_AND_PULL,
+            true));
 
         final CountDownLatch latch = new CountDownLatch(3);
         final AtomicBoolean didCloseListener = new AtomicBoolean(false);
@@ -1055,6 +1101,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
+    @FlakyTest
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
@@ -1069,7 +1116,8 @@ public class MessageEndpointTest extends BaseReplicatorTest {
             new MockConnectionFactory(null));
         ReplicatorConfiguration config = makeConfig(baseTestDb, endpoint, ReplicatorType.PUSH_AND_PULL, true);
 
-        ListenerToken token = listener.addChangeListener(change -> statuses.add(change.getStatus().getActivityLevel()));
+        ListenerToken token = listener.addChangeListener(change -> statuses
+            .add(change.getStatus().getActivityLevel()));
         listener.removeChangeListener(token);
 
         ListenerAwaiter awaiter = new ListenerAwaiter(listener);
@@ -1305,7 +1353,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     @NonNull
     private MockServerConnection getServerConnection(String testName, MessageEndpointListener listener) {
         MockServerConnection server = new MockServerConnection(testName, listener);
-        CONNECTIONS.add(server);
+        MessageEndpointTest.addConnection(server);
         return server;
     }
 

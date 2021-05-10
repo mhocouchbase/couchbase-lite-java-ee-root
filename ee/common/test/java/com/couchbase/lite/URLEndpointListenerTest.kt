@@ -16,29 +16,17 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.AbstractTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
-import com.couchbase.lite.internal.utils.Fn
-import com.couchbase.lite.internal.utils.PlatformUtils
-import com.couchbase.lite.internal.utils.Report
-import com.couchbase.lite.internal.utils.SlowTest
+import com.couchbase.lite.internal.utils.*
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
 import java.security.KeyStore
 import java.security.cert.Certificate
-import java.util.Arrays
-import java.util.Calendar
-import java.util.concurrent.BrokenBarrierException
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.CyclicBarrier
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
+import java.util.*
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 import kotlin.math.max
@@ -53,7 +41,9 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     private val listeners = mutableListOf<URLEndpointListener>()
 
     @Before
-    fun setupURLEndpointListenerTest() { SecurityBaseTest.deleteTestAliases() }
+    fun setupURLEndpointListenerTest() {
+        SecurityBaseTest.deleteTestAliases()
+    }
 
     @After
     fun cleanupURLEndpointListenerTest() {
@@ -650,7 +640,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val localUrls = listener.urls.filter { !ipV6Pattern.matcher(it.host).find() }
 
         localUrls.forEach {
-            val url =  it.toString()
+            val url = it.toString()
             Report.log("Testing interface: ${url}")
 
             val db = createDb(it.host)
@@ -1006,6 +996,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
+    @FlakyTest
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true
