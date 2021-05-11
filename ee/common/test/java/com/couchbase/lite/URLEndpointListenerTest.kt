@@ -16,17 +16,30 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.AbstractTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
-import com.couchbase.lite.internal.utils.*
+import com.couchbase.lite.internal.utils.FlakyTest
+import com.couchbase.lite.internal.utils.Fn
+import com.couchbase.lite.internal.utils.PlatformUtils
+import com.couchbase.lite.internal.utils.Report
+import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
 import java.security.KeyStore
 import java.security.cert.Certificate
-import java.util.*
-import java.util.concurrent.*
+import java.util.Arrays
+import java.util.Calendar
+import java.util.concurrent.BrokenBarrierException
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 import kotlin.math.max
@@ -165,7 +178,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        waitUntil(STD_TIMEOUT_MS) { 0 < listener.urls.count() }
+        assertTrue(0 < listener.urls.count());
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -518,6 +531,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents pinned credentials
+    @FlakyTest
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingClientCredentials() {
         val clientIdentity = createIdentity()
@@ -629,14 +643,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // This test fails if no network is available
+    @FlakyTest
     @Test
     fun testNetworkInterfaces() {
         val ipV6Pattern = Pattern.compile(".local|(([a-f0-9]{1,4}:{1,2})+)")
         val urlKey = "URL"
 
         val listener = listenTls()
-        waitUntil(STD_TIMEOUT_MS) { 0 < listener.urls.count() }
-
         val localUrls = listener.urls.filter { !ipV6Pattern.matcher(it.host).find() }
 
         localUrls.forEach {
@@ -996,7 +1009,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true

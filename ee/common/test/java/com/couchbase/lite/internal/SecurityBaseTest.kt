@@ -57,7 +57,7 @@ abstract class SecurityBaseTest : BaseTest() {
             TLSIdentity.CERT_ATTRIBUTE_EMAIL_ADDRESS to "lite@couchbase.com"
         )
 
-        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 12).toLowerCase()
+        fun newKeyAlias() = StringUtils.getUniqueName(BASE_KEY_ALIAS, 12).lowercase()
 
         fun createDigest(algorithm: Signature.SignatureDigestAlgorithm, data: ByteArray): ByteArray {
             if (algorithm == Signature.SignatureDigestAlgorithm.NONE) {
