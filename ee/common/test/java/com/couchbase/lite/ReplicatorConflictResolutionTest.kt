@@ -421,6 +421,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * #9
      * 1. Test that there could be multiple conflicts resolver running at the same time without blocking each other.
      */
+    // !!! Failing on Android 30
+    //     Probably for the same reason that testConflictResolverSameConflictsTwice is failing
     @Test
     fun testConflictResolversRunConcurrently() {
         val barrier = CyclicBarrier(2)
@@ -1040,6 +1042,10 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      *    This test, as currently written, documents expected behavior.
      *    See: https://issues.couchbase.com/browse/CBL-1050
      */
+
+    // !!! Failing on Android 30
+    // It appears that the resolver is the blocking execution of repl2
+    // AsyncTask's new executor is the direct cause, but the root cause is probably deeper.
     @Test
     fun testConflictResolverSameConflictsTwice() {
         val latch1 = CountDownLatch(1)

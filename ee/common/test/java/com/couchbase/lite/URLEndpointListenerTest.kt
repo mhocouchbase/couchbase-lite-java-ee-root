@@ -628,6 +628,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     ////////////////  C O N N E C T E D   F U N C T I O N A L I T Y   ////////////////
 
+    @FlakyTest
     @Test(expected = CouchbaseLiteException::class)
     fun testReadOnlyListener() {
         val config = URLEndpointListenerConfiguration(otherDB)

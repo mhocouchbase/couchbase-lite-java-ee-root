@@ -57,7 +57,8 @@ ext {
     CBL_ARTIFACT_ID = 'couchbase-lite-java-ee'
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
-    CBL_LICENSE_URL = "https://raw.githubusercontent.com/couchbase/product-texts/${getLicenseVersion()}/mobile/couchbase-lite/license/LICENSE_enterprise.txt"
+    CBL_LICENSE_FILE = "LICENSE_enterprise.txt"
+    CBL_LICENSE_URL = "https://raw.githubusercontent.com/couchbase/product-texts/${getLicenseVersion()}/mobile/couchbase-lite/license/${CBL_LICENSE_FILE}"
     CBL_PROJECT_URL = 'https://github.com/couchbaselabs/couchbase-lite-java-ee-root'
     CBL_ISSUES_URL = 'https://github.com/couchbaselabs/couchbase-lite-java-ee-root/issues'
     CBL_SITE_URL = 'https://developer.couchbase.com/mobile/'
@@ -68,6 +69,7 @@ ext {
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
     BUILD_COMMIT = getBuildId()
 
+    CBL_LICENSE_DIR = "${ROOT_DIR}/legal/mobile/couchbase-lite/license"
     CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
@@ -293,11 +295,11 @@ model {
                     cppCompiler.args "-I${CBL_JNI_INCLUDE_DIR}"
                     cppCompiler.args "-I${JAVA_INCLUDE}"
                     cppCompiler.args "-I${JAVA_INCLUDE}/win32"
-                    cppCompiler.args "/MD"
-                    cppCompiler.args "/EHsc"
-                    cppCompiler.args "/wd4068"
-                    cppCompiler.args "/std:c++17"
-                    cppCompiler.args "-DCOUCHBASE_ENTERPRISE"
+                    cppCompiler.args '/MD'
+                    cppCompiler.args '/EHsc'
+                    cppCompiler.args '/wd4068'
+                    cppCompiler.args '/std:c++17'
+                    cppCompiler.args '-DCOUCHBASE_ENTERPRISE'
                 }
                 else if (targetPlatform.operatingSystem.macOsX) {
                     cppCompiler.args '-I', CBL_JNI_INCLUDE_DIR
@@ -458,7 +460,6 @@ test {
         jvmArgs "-Djava.library.path=${System.env.LD_LIBRARY_PATH}"
     }
 
-
     workingDir = new File(workingDir, ".test-" + new Date().format('yyMMddHHmm'))
     if (!workingDir.exists()) { workingDir.mkdirs() }
 
@@ -523,21 +524,37 @@ distributions {
         contents {
             into("support") { from "${CBL_CORE_NATIVE_DIR}/support" }
 
+            def license = fileTree(CBL_LICENSE_DIR)
+            license.include CBL_LICENSE_FILE
+            into("license") { from license }
+
+            def javadoc = fileTree("${buildDir}/libs")
+            javadoc.include "*-javadoc.jar"
+            into("docs") { from javadoc }
+
             include {
                 def name = it.name
                 // allow it if it is a directory,
                 // it is nested in a folder (name != path)
-                // is our artifact
-                // is an explicit dependency
-                return it.isDirectory() || (!name.equals(it.getPath())) || name.startsWith(CBL_ARTIFACT_ID) || DEPENDENCIES.contains(name.split("-")[0])
+                // it is our artifact
+                // it is the license
+                // it is an explicit dependency
+                return it.isDirectory() ||
+                    (!name.equals(it.getPath())) ||
+                    name.startsWith(CBL_ARTIFACT_ID) ||
+                    name.startsWith(CBL_LICENSE_FILE) ||
+                    DEPENDENCIES.contains(name.split("-")[0])
             }
 
+            // Move the main jar file into lib folder
             eachFile {
-                // Move the main jar file into lib folder
-                if (it.name.startsWith("${CBL_ARTIFACT_ID}") &&
-                    it.name.endsWith(".jar") &&
-                    !it.path.contains("/lib/")) {
-                    it.path = it.path.replace("/${CBL_ARTIFACT_ID}", "/lib/${CBL_ARTIFACT_ID}")
+                def name = it.name
+                def path = it.path
+                if (name.startsWith("${CBL_ARTIFACT_ID}") &&
+                    name.endsWith(".jar") &&
+                    (!name.contains("javadoc")) &&
+                    (!path.contains("/lib/"))) {
+                    it.path = path.replace("/${CBL_ARTIFACT_ID}", "/lib/${CBL_ARTIFACT_ID}")
                 }
             }
         }
@@ -713,7 +730,7 @@ def createCopyNativeLibraryTask(library, targetPlatform) {
 def getNativeLibraryResourcePath(platform) {
     def os = ""
     if (platform.operatingSystem.isMacOsX())
-        os = "macos";
+        os = "macos"
     else if (platform.operatingSystem.isWindows())
         os = "windows"
     else if (platform.operatingSystem.isLinux())
