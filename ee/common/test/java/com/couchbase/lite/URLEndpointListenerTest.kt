@@ -1010,6 +1010,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
+    @FlakyTest
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true
