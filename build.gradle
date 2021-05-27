@@ -15,18 +15,18 @@
 // limitations under the License.
 //
 buildscript {
-    ext { KOTLIN_VERSION = '1.5.0' }
+    ext { KOTLIN_VERSION = '1.5.10' }
 
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     // Kotlin has to be here or its plugin throws a fit
     // Android has to be here or gradle thows a fit.
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$KOTLIN_VERSION"
-        classpath 'com.android.tools.build:gradle:4.1.2'
+        classpath 'com.android.tools.build:gradle:4.2.1'
     }
 }
 
