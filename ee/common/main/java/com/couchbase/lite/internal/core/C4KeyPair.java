@@ -32,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
+import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
 import com.couchbase.lite.internal.security.Signature;
@@ -219,7 +220,7 @@ public class C4KeyPair extends C4NativePeer {
 
     @Nullable
     private static C4KeyPair getKeyPairUnsafe(long token) {
-        Log.d(LogDomain.LISTENER, "get key pair @" + token);
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LogDomain.LISTENER, "Get key pair @%s", token); }
 
         return KEY_PAIR_CONTEXT.getObjFromContext(token);
     }

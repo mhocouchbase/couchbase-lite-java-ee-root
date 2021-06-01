@@ -102,7 +102,7 @@ public class MessageEndpointListener {
      * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
-        Log.v(LogDomain.LISTENER, "Accepting connection: " + connection);
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LogDomain.LISTENER, "Accepting connection: %s", connection); }
         Preconditions.assertNotNull(connection, "connection");
 
         if (stopped.get()) { return; }
@@ -150,7 +150,7 @@ public class MessageEndpointListener {
      * @param connection the connection to be closed
      */
     public void close(@NonNull MessageEndpointConnection connection) {
-        Log.v(LogDomain.LISTENER, "Closing connection: " + connection);
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LogDomain.LISTENER, "Closing connection: %s", connection); }
         Preconditions.assertNotNull(connection, "connection");
 
         C4Replicator replicator = null;

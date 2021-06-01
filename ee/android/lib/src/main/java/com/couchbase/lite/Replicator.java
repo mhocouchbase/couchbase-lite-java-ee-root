@@ -76,12 +76,14 @@ public final class Replicator extends AbstractReplicator {
     protected void handleOffline(@NonNull ReplicatorActivityLevel prevState, boolean nowOnline) {
         if (connectivityObserver == null) { return; }
 
-        Log.v(
-            LogDomain.NETWORK,
-            "Offline state change for %s: %s -> %b",
-            connectivityObserver,
-            prevState,
-            nowOnline);
+        if (CouchbaseLiteInternal.debugging()) {
+            Log.d(
+                LogDomain.NETWORK,
+                "Offline state change for %s: %s -> %b",
+                connectivityObserver,
+                prevState,
+                nowOnline);
+        }
 
         connectivityObserver.handleOffline(prevState, nowOnline);
     }
