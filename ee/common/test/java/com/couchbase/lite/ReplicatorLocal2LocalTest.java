@@ -1068,7 +1068,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         Replicator repl = testReplicator(makeConfig(ReplicatorType.PUSH_AND_PULL, true));
 
-        AbstractQuery query = QueryBuilder
+        BuilderQuery query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(baseTestDb));
 
@@ -1108,7 +1108,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
         Replicator repl = testReplicator(makeConfig(ReplicatorType.PUSH_AND_PULL, true));
 
-        AbstractQuery query = QueryBuilder
+        BuilderQuery query = QueryBuilder
             .select(SelectResult.expression(Meta.id))
             .from(DataSource.database(baseTestDb));
 
