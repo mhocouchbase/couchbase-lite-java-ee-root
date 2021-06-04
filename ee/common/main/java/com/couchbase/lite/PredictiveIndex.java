@@ -18,7 +18,10 @@ package com.couchbase.lite;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 /**
@@ -32,11 +35,39 @@ import java.util.List;
  * If the prediction output properties are not specified, the predictive index will only cache
  * the predictive result so that the predictive model will not be called again after indexing.
  */
-public class PredictiveIndex extends JsonPredictiveIndexDescriptor implements Index {
+public class PredictiveIndex extends Index {
+    @NonNull
+    private final String model;
+    @NonNull
+    private final Expression input;
+    @Nullable
+    private final List<String> properties;
+
     PredictiveIndex(
         @NonNull String model,
         @NonNull Expression input,
         @Nullable List<String> properties) {
-        super(model, input, properties);
+        super(IndexType.PREDICTIVE);
+        this.model = Preconditions.assertNotNull(model, "model");
+        this.input = Preconditions.assertNotNull(input, "input");
+        this.properties = properties;
+    }
+
+    @NonNull
+    @Override
+    List<Object> getJson() {
+        final List<Object> items = new ArrayList<>();
+        items.add("PREDICTION()");
+        items.add(model);
+        items.add(input.asJSON());
+
+        if (properties != null) {
+            for (String property: properties) { items.add("." + property); }
+        }
+
+        final List<Object> json = new ArrayList<>();
+        json.add(items);
+
+        return json;
     }
 }
