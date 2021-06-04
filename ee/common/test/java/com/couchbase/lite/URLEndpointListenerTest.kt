@@ -14,7 +14,7 @@
 //
 package com.couchbase.lite
 
-import com.couchbase.lite.internal.AbstractTLSIdentity
+import com.couchbase.lite.internal.BaseTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
 import com.couchbase.lite.internal.utils.FlakyTest
 import com.couchbase.lite.internal.utils.Fn
@@ -62,7 +62,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     fun cleanupURLEndpointListenerTest() {
         listeners.forEach {
             it.stop()
-            val alias = AbstractTLSIdentity.getAlias(it.tlsIdentity)
+            val alias = BaseTLSIdentity.getAlias(it.tlsIdentity)
             if (alias != null) {
                 PlatformSecurityTest.deleteEntries { a -> alias == a }
             }

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.BaseTLSIdentity;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.support.Log;
@@ -49,7 +49,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * URLEndpointListener to setup the TLS communication or by the Replicator to setup
  * the client certificate authentication.
  */
-public final class TLSIdentity extends AbstractTLSIdentity {
+public final class TLSIdentity extends BaseTLSIdentity {
     /**
      * Get a TLSIdentity object from the give KeyStore, key alias, and key password.
      * The KeyStore must contain the private key along with the certificate chain at

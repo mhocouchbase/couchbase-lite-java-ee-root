@@ -46,7 +46,7 @@ class TLSIdentityTest : PlatformSecurityTest() {
         assertNotNull(identity)
         validateCertificate(identity)
 
-        val abstractId = identity as AbstractTLSIdentity
+        val abstractId = identity as BaseTLSIdentity
 
         assertEquals(abstractId.alias, abstractId.alias)
     }
@@ -59,7 +59,7 @@ class TLSIdentityTest : PlatformSecurityTest() {
         assertNotNull(identity)
         validateCertificate(identity)
 
-        val abstractId = identity as AbstractTLSIdentity
+        val abstractId = identity as BaseTLSIdentity
 
         assertEquals(abstractId.alias, abstractId.alias)
     }
@@ -79,7 +79,7 @@ class TLSIdentityTest : PlatformSecurityTest() {
         assertNotNull(identity)
         validateCertificate(identity)
 
-        val abstractId = identity as AbstractTLSIdentity
+        val abstractId = identity as BaseTLSIdentity
         assertEquals(abstractId.alias, abstractId.alias)
 
         val cert = abstractId.cert as X509Certificate

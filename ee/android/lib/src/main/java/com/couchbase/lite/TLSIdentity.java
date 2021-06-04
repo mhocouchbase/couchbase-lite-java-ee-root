@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.BaseTLSIdentity;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.support.Log;
@@ -43,7 +43,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * The TLSIdentity is used by URLEndpointListeners and by Replicator, to set up
  * certificate authenticated TLS communication.
  */
-public final class TLSIdentity extends AbstractTLSIdentity {
+public final class TLSIdentity extends BaseTLSIdentity {
     /**
      * Get a TLSIdentity backed by the information for the passed alias.
      *

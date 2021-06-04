@@ -23,10 +23,10 @@ import java.util.List;
 
 /**
  * IndexBuilder used for building database index objects.
- * @deprecated Use Database.createIndex(IndexConfiguration, String)
+ * Use Database.createIndex(IndexConfiguration, String)
  */
-@Deprecated
 public final class IndexBuilder extends AbstractIndexBuilder {
+    private IndexBuilder() { } // Utility class
 
     /**
      * <b>ENTERPRISE EDITION API</b><br><br>
@@ -49,9 +49,7 @@ public final class IndexBuilder extends AbstractIndexBuilder {
      *                   specification given to the query prediction function.
      * @param properties The prediction result's properties to be indexed.
      * @return The predictive index.
-     * @deprecated Use PredictiveIndexConfiguration
      */
-    @Deprecated
     @NonNull
     public static PredictiveIndex predictiveIndex(
         @NonNull String model,

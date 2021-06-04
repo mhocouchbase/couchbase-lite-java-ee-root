@@ -27,8 +27,7 @@ import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
-public abstract class AbstractTLSIdentity {
+public class BaseTLSIdentity {
     public static final String CERT_ATTRIBUTE_COMMON_NAME = "CN";
     public static final String CERT_ATTRIBUTE_PSEUDONYM = "pseudonym";
     public static final String CERT_ATTRIBUTE_GIVEN_NAME = "GN";
@@ -47,12 +46,12 @@ public abstract class AbstractTLSIdentity {
     public static final String CERT_ATTRIBUTE_REGISTERED_ID = "registeredID";
 
     @Nullable
-    public static String getAlias(@Nullable AbstractTLSIdentity identity) {
+    public static String getAlias(@Nullable BaseTLSIdentity identity) {
         return (identity == null) ? null : identity.getAlias();
     }
 
     @Nullable
-    public static Certificate getCert(@Nullable AbstractTLSIdentity identity) {
+    public static Certificate getCert(@Nullable BaseTLSIdentity identity) {
         return (identity == null) ? null : identity.getCert();
     }
 
@@ -66,7 +65,7 @@ public abstract class AbstractTLSIdentity {
     @NonNull
     private final C4KeyPair keyPair;
 
-    protected AbstractTLSIdentity(
+    protected BaseTLSIdentity(
         @NonNull String keyAlias,
         @NonNull C4KeyPair keyPair,
         @NonNull List<Certificate> certificates) {

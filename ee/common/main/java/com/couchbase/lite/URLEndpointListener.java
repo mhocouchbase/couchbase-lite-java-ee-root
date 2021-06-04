@@ -25,7 +25,7 @@ import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.couchbase.lite.internal.AbstractTLSIdentity;
+import com.couchbase.lite.internal.BaseTLSIdentity;
 import com.couchbase.lite.internal.ImmutableURLEndpointListenerConfiguration;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Listener;
@@ -226,7 +226,7 @@ public class URLEndpointListener {
             id = identity;
         }
 
-        final Certificate serverCert = AbstractTLSIdentity.getCert(id);
+        final Certificate serverCert = BaseTLSIdentity.getCert(id);
         if (serverCert == null) { throw new IllegalStateException("Server cert is null"); }
 
         if ((auth == null) || (auth instanceof ListenerPasswordAuthenticator)) {
