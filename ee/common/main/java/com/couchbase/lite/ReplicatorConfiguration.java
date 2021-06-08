@@ -65,6 +65,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
         int maxRetries,
         int maxRetryWaitTime,
         int heartbeat,
+        boolean enableAutoPurge,
         @NonNull Endpoint target,
         boolean acceptOnlySelfSignedServerCertificate) {
         super(
@@ -82,6 +83,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
             maxRetries,
             maxRetryWaitTime,
             verifyHeartbeat(heartbeat),
+            enableAutoPurge,
             Preconditions.assertNotNull(target, "target"));
         this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
     }
