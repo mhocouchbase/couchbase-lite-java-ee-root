@@ -128,22 +128,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     @Test
     fun testLegalNetworkInterface() {
-        // this test fails on Windows because Java can't find accurate interface names
-        if (handlePlatformSpecially("windows")) {
-            Report.log(LogLevel.WARNING, "TEST IGNORED: Unable to get network interface names on Windows")
+        val config = makeLocalConfig()
+        if (config == null) {
+            Report.log(LogLevel.WARNING, "SKIPPING TEST testLegalNetworkInterface: Cannot find a local interface")
             return
         }
-
-        val config = URLEndpointListenerConfiguration(otherDB)
-
-        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence().filter { it.isLoopback }
-
-        val iface = ifaces.firstOrNull()?.name
-        if (iface == null) {
-            Report.log(LogLevel.INFO, "Cannot find a loopback interface for testLegalNetworkInterface")
-            return
-        }
-        config.networkInterface = iface
 
         val listener = URLEndpointListener(config)
         listeners.add(listener)
@@ -171,14 +160,18 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // This test fails if no network is available
     @Test
     fun testURLs() {
-        val config = URLEndpointListenerConfiguration(otherDB)
+        val config = makeLocalConfig()
+        if (config == null) {
+            Report.log(LogLevel.WARNING, "SKIPPING TEST testURLs: Cannot find a local interface")
+            return
+        }
 
         val listener = URLEndpointListener(config)
         listeners.add(listener)
         assertEquals(0, listener.urls.count())
 
         listener.start()
-        assertTrue(0 < listener.urls.count());
+        assertTrue(0 < listener.urls.count())
 
         listener.stop()
         assertEquals(0, listener.urls.count())
@@ -1260,6 +1253,20 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         if (auth != null) {
             config.setAuthenticator(auth)
         }
+        return config
+    }
+
+    private fun makeLocalConfig(): URLEndpointListenerConfiguration? {
+        val ifaces = NetworkInterface.getNetworkInterfaces().asSequence()
+            .flatMap { it.inetAddresses.asSequence() }
+            .filter { it.isSiteLocalAddress }
+            .map { it.hostAddress }
+
+        val iface = ifaces.firstOrNull() ?: return null
+
+        val config = URLEndpointListenerConfiguration(otherDB)
+        config.networkInterface = iface
+
         return config
     }
 

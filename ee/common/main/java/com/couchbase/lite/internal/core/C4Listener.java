@@ -433,7 +433,7 @@ public class C4Listener extends C4NativePeer {
         Preconditions.assertThat(
             authenticator,
             "authenticator must be a certificate authenticator",
-            auth -> auth instanceof InternalCertAuthenticator); // Not expect to happen
+            auth -> auth instanceof InternalCertAuthenticator); // shouldn't happen
 
         if ((clientCert == null) || (clientCert.length <= 0)) {
             Log.w(LogDomain.LISTENER, "Null/empty cert in authentication");
