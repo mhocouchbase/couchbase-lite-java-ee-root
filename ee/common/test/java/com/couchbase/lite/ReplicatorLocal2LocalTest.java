@@ -1096,7 +1096,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
     }
 
-    @FlakyTest
     @Test
     public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);

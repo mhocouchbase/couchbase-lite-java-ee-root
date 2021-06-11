@@ -27,6 +27,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import java.net.NetworkInterface
@@ -128,13 +129,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     @Test
     fun testLegalNetworkInterface() {
-        val config = makeLocalConfig()
-        if (config == null) {
-            Report.log(LogLevel.WARNING, "SKIPPING TEST testLegalNetworkInterface: Cannot find a local interface")
-            return
-        }
-
-        val listener = URLEndpointListener(config)
+        val listener = URLEndpointListener(makeLocalConfig())
         listeners.add(listener)
         listener.start()
     }
@@ -160,13 +155,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // This test fails if no network is available
     @Test
     fun testURLs() {
-        val config = makeLocalConfig()
-        if (config == null) {
-            Report.log(LogLevel.WARNING, "SKIPPING TEST testURLs: Cannot find a local interface")
-            return
-        }
-
-        val listener = URLEndpointListener(config)
+        val listener = URLEndpointListener(makeLocalConfig())
         listeners.add(listener)
         assertEquals(0, listener.urls.count())
 
@@ -524,7 +513,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents pinned credentials
-    @FlakyTest
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingClientCredentials() {
         val clientIdentity = createIdentity()
@@ -544,6 +532,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents a cert chain whose root is pinned
+    @FlakyTest(log = ["Java: 21/06/11"])
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingChainClientCredentials() {
         val clientIdentity = getTestChainIdentity()
@@ -621,7 +610,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     ////////////////  C O N N E C T E D   F U N C T I O N A L I T Y   ////////////////
 
-    @FlakyTest
     @Test(expected = CouchbaseLiteException::class)
     fun testReadOnlyListener() {
         val config = URLEndpointListenerConfiguration(otherDB)
@@ -636,8 +624,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         runRepl(listener.endpoint())
     }
 
-    // This test fails if no network is available
-    @FlakyTest
+    // This test fails when no network is available
     @Test
     fun testNetworkInterfaces() {
         val ipV6Pattern = Pattern.compile(".local|(([a-f0-9]{1,4}:{1,2})+)")
@@ -1003,7 +990,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true
@@ -1086,6 +1072,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         db1.close()
     }
 
+    @FlakyTest(log = ["Windows: 21/06/11"])
     @Test
     fun testReplicatorAndListenerOnSameDatabase() {
         var shouldWait = true
@@ -1256,13 +1243,14 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         return config
     }
 
-    private fun makeLocalConfig(): URLEndpointListenerConfiguration? {
+    private fun makeLocalConfig(): URLEndpointListenerConfiguration {
         val ifaces = NetworkInterface.getNetworkInterfaces().asSequence()
             .flatMap { it.inetAddresses.asSequence() }
             .filter { it.isSiteLocalAddress }
             .map { it.hostAddress }
 
-        val iface = ifaces.firstOrNull() ?: return null
+        val iface = ifaces.firstOrNull()
+        assumeTrue("Cannot find a local interface", iface != null)
 
         val config = URLEndpointListenerConfiguration(otherDB)
         config.networkInterface = iface

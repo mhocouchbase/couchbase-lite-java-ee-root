@@ -771,7 +771,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testPushPullDocWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -853,19 +852,16 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringOpen() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
-    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
-    @FlakyTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError(
@@ -884,6 +880,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PPermanentFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
+    @FlakyTest(log={"MacOs: 21/06/11"})
     @Test
     public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError("P2PPermanentFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
@@ -1114,7 +1111,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
-    @FlakyTest
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
