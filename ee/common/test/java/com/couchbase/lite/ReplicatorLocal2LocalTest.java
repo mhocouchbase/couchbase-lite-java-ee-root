@@ -623,15 +623,14 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     public void testPullBlob() throws CouchbaseLiteException, IOException {
         Database anotherDB = createDb("pull-blob-db");
         try {
+            MutableDocument doc1 = new MutableDocument("doc1");
+            doc1.setValue("name", "Tiger");
             try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
                 assertNotNull(is);
                 Blob blob = new Blob("image/jpg", is);
-                MutableDocument doc1 = new MutableDocument("doc1");
-                doc1.setValue("name", "Tiger");
                 doc1.setBlob("image.jpg", blob);
                 otherDB.save(doc1);
             }
-
             assertEquals(1, otherDB.getCount());
 
             run(makeConfig(anotherDB, new DatabaseEndpoint(otherDB), ReplicatorType.PULL, false));
