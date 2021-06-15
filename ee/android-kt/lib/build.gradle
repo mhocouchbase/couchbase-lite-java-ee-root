@@ -18,7 +18,6 @@
 // as is possible.
 //
 import com.android.build.gradle.tasks.LintGlobalTask
-import com.github.spotbugs.snom.SpotBugsTask
 
 import java.time.Instant
 import java.util.regex.Pattern
@@ -31,14 +30,7 @@ import java.util.regex.Pattern
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'checkstyle'
-    id 'pmd'
-    id 'com.github.spotbugs'
     id 'maven-publish'
-    id 'jacoco'
-
-    // handy plugin for discovering task dependencies
-    //id 'com.dorongold.task-tree' version "1.5"
 }
 
 
@@ -73,14 +65,8 @@ ext {
     REPORTS_DIR = "${buildDir}/reports"
     ETC_DIR = "${CBL_COMMON_ROOT_DIR}/etc"
 
-    DEPENDENCIES = ['okio', 'okhttp']
-    OKHTTP_VERSION = '3.14.7'
     SUPPORT_VERSION = '28.0.0'
 }
-
-// defining this property in the file ~/.gradle/gradle.properties
-// can dramatically reduce your build time.
-def TARGET_ABIS = (!hasProperty("targetAbis")) ? null : targetAbis.split(', *')
 
 // comma separated list of annotations for tests that should not be run.
 def TEST_FILTER = (!project.hasProperty("testFilter")) ? null : testFilter
@@ -109,22 +95,6 @@ android {
     compileSdkVersion COMPILE_SDK_VERSION
     buildToolsVersion BUILD_TOOLS_VERSION
 
-    // if you change this, be sure to update /etc/jenkins/build.sh
-    ndkVersion '22.0.7026061' // '21.3.6528147'
-
-    externalNativeBuild {
-        cmake {
-            // if you change this, be sure to update /etc/jenkins/build.sh
-            version "3.18.1"
-            path "${CBL_COMMON_DIR}/CMakeLists.txt"
-        }
-    }
-
-    compileOptions {
-        targetCompatibility 1.8
-        sourceCompatibility 1.8
-    }
-
     kotlinOptions { jvmTarget = '1.8' }
 
     // mumbo-jumbo to prevent "More than one file was found" message
@@ -136,15 +106,6 @@ android {
         versionCode 30000
         versionName BUILD_VERSION
         project.archivesBaseName = "${CBL_ARTIFACT_ID}-${versionName}"
-
-        // if no specific ABIs specified, build all supported.
-        if (TARGET_ABIS != null) {
-            ndk { abiFilters TARGET_ABIS }
-        }
-
-        externalNativeBuild {
-            cmake { targets 'LiteCoreJNI' }
-        }
 
         buildConfigField "String", "VERSION_NAME", "\"${BUILD_VERSION}\""
         buildConfigField "String", "BUILD_TIME", "\"${BUILD_TIME}\""
@@ -164,14 +125,7 @@ android {
             minifyEnabled false
             testCoverageEnabled COVERAGE
 
-            externalNativeBuild {
-                cmake {
-                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=Debug', '-DBUILD_ENTERPRISE=ON'
-                    cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
-                }
-            }
-
-            buildConfigField "boolean", "ENTERPRISE", "true"
+            buildConfigField "boolean", "ENTERPRISE", "false"
             buildConfigField "boolean", "CBL_DEBUG", "true"
         }
 
