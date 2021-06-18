@@ -542,10 +542,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val docId = makeOneDoc("auth", otherDB)
 
-        val listener = listenTls(
-            null,
-            ListenerCertificateAuthenticator(listOf(certs[1]))
-        )
+        val listener = listenTls(null, ListenerCertificateAuthenticator(listOf(certs[1])))
 
         assertEquals(0, baseTestDb.count)
         runRepl(listener.endpoint(), ClientCertificateAuthenticator(clientIdentity))

@@ -27,6 +27,8 @@ import org.junit.Test
 import java.net.URI
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 
@@ -1042,6 +1044,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      */
     @Test
     fun testConflictResolverSameConflictsTwice() {
+        val executor = ThreadPoolExecutor(16, 16, 1, TimeUnit.SECONDS, LinkedBlockingQueue())
         val latch1 = CountDownLatch(1)
         val latch2 = CountDownLatch(1)
         val latch3 = CountDownLatch(1)
@@ -1063,14 +1066,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         }
         val repl1 = testReplicator(pullConfigWitResolver(resolver1))
         // this is just here so that we can tell when this resolver is done.
-        val token1c = repl1.addChangeListener { change ->
-            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
+        val token1c = repl1.addChangeListener(executor) {
+            if (it.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
                 latch4.countDown()
             }
         }
         var doc1: ReplicatedDocument? = null
-        val token1e = repl1.addDocumentReplicationListener { repl ->
-            val docs = repl.documents
+        val token1e = repl1.addDocumentReplicationListener(executor) {
+            val docs = it.documents
             if (docs.size > 0) {
                 doc1 = docs[0]
             }
@@ -1093,13 +1096,13 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val pullConfig2 = pullConfigWitResolver(resolver2)
         val repl2 = testReplicator(pullConfig2)
         // Again, only here so that we know when this replicator is done
-        val token2c = repl2.addChangeListener { change ->
-            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
+        val token2c = repl2.addChangeListener(executor) {
+            if (it.status.activityLevel == ReplicatorActivityLevel.STOPPED) {
                 latch3.countDown()
             }
         }
         var doc2: ReplicatedDocument? = null
-        val token2e = repl2.addDocumentReplicationListener { repl ->
+        val token2e = repl2.addDocumentReplicationListener(executor) { repl ->
             val docs = repl.documents
             var doc: ReplicatedDocument? = null
             if (docs.size > 0) {

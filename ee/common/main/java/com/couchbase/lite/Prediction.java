@@ -23,6 +23,7 @@ import java.util.Map;
 import com.couchbase.lite.internal.DbContext;
 import com.couchbase.lite.internal.core.C4Prediction;
 import com.couchbase.lite.internal.core.C4PredictiveModel;
+import com.couchbase.lite.internal.exec.ClientTask;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.fleece.FLSliceResult;
 import com.couchbase.lite.internal.fleece.FLValue;
@@ -45,9 +46,18 @@ public final class Prediction {
         // This method is called by reflection.  Don't change its signature.
         @Override
         public long predict(long input, long c4db) {
-            return encode(model.predict(
-                (Dictionary) new MRoot(new DbContext(new ShellDb(c4db)), new FLValue(input), false).asNative()))
-                .getHandle();
+            final ClientTask<Dictionary> task = new ClientTask<>(() -> model.predict(
+                (Dictionary) new MRoot(new DbContext(new ShellDb(c4db)), new FLValue(input), false).asNative()));
+            task.execute();
+
+            final Dictionary prediction;
+            final Exception err = task.getFailure();
+            if (err == null) { prediction = task.getResult(); }
+            else {
+                prediction = null;
+                Log.w(LogDomain.QUERY, "Prediction model failed", err);
+            }
+            return encode(prediction).getHandle();
         }
 
         private FLSliceResult encode(Dictionary prediction) {
@@ -58,6 +68,7 @@ public final class Prediction {
                 }
                 catch (LiteCoreException e) { Log.w(LogDomain.QUERY, "Failed encoding a predictive result", e); }
             }
+
             return FLSliceResult.getUnmanagedSliceResult(); // Will be freed by the native code.
         }
     }

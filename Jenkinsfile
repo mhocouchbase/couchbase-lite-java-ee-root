@@ -11,7 +11,7 @@ def ANDROID_SDK = ""
 def SDK_MGR = ""
 
 pipeline {
-    agent { label 'mobile-lite-android-03' }
+    agent { label 'mobile-lite-android' }
     options { timestamps() }
 
     stages {
