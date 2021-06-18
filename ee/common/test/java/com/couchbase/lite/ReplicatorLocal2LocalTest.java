@@ -48,6 +48,8 @@ import static org.junit.Assert.assertTrue;
 
 
 public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
+
+    @FlakyTest(log = {"Linux: 21/06/18"})
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
