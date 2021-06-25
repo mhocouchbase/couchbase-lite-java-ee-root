@@ -17,8 +17,6 @@
 // Please try to keep this build file as similar to the other family build files
 // as is possible.
 //
-import com.android.build.gradle.tasks.LintGlobalTask
-
 import java.time.Instant
 import java.util.regex.Pattern
 
@@ -40,7 +38,7 @@ plugins {
 
 ext {
     CBL_GROUP = 'com.couchbase.lite'
-    CBL_ARTIFACT_ID = 'couchbase-lite-android-ee'
+    CBL_ARTIFACT_ID = 'couchbase-lite-android-ee-kt'
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
     CBL_LICENSE_URL = "https://raw.githubusercontent.com/couchbase/product-texts/${getLicenseVersion()}/mobile/couchbase-lite/license/LICENSE_enterprise.txt"
@@ -55,11 +53,12 @@ ext {
     BUILD_COMMIT = getBuildId()
 
     CBL_CORE_DIR = "${ROOT_DIR}/core"
-    CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
     CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
-    CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
+    CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
+    CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
+    CBL_EE_ANDROID_DIR = "${CBL_EE_ROOT_DIR}/android"
 
     LIB_MODULE_DIR = "${PROJECT_DIR}/lib"
     REPORTS_DIR = "${buildDir}/reports"
@@ -68,16 +67,8 @@ ext {
     SUPPORT_VERSION = '28.0.0'
 }
 
-// comma separated list of annotations for tests that should not be run.
-def TEST_FILTER = (!project.hasProperty("testFilter")) ? null : testFilter
-
 // Target repo for maven publish
 def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
-
-// Set true to enable coverage
-// The incantation for generating a coverage report is:
-//     ./gradlew -Pcoverage=true coverage
-def COVERAGE = project.hasProperty("coverage")
 
 // local.properties
 Properties properties = new Properties()
@@ -95,8 +86,6 @@ android {
     compileSdkVersion COMPILE_SDK_VERSION
     buildToolsVersion BUILD_TOOLS_VERSION
 
-    kotlinOptions { jvmTarget = '1.8' }
-
     // mumbo-jumbo to prevent "More than one file was found" message
     packagingOptions { exclude 'META-INF/library_release.kotlin_module' }
 
@@ -110,21 +99,12 @@ android {
         buildConfigField "String", "VERSION_NAME", "\"${BUILD_VERSION}\""
         buildConfigField "String", "BUILD_TIME", "\"${BUILD_TIME}\""
         buildConfigField "String", "BUILD_COMMIT", "\"${BUILD_COMMIT}\""
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        if (TEST_FILTER != null) {
-            testInstrumentationRunnerArguments notAnnotation: TEST_FILTER
-        }
     }
 
     buildTypes {
         debug {
-            ndk.debugSymbolLevel 'FULL'
-
             debuggable true
             minifyEnabled false
-            testCoverageEnabled COVERAGE
-
             buildConfigField "boolean", "ENTERPRISE", "false"
             buildConfigField "boolean", "CBL_DEBUG", "true"
         }
@@ -132,15 +112,6 @@ android {
         release {
             debuggable false
             minifyEnabled false
-            testCoverageEnabled false
-
-            externalNativeBuild {
-                cmake {
-                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBUILD_ENTERPRISE=ON'
-                    cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
-                }
-            }
-
             buildConfigField "boolean", "ENTERPRISE", "true"
             buildConfigField "boolean", "CBL_DEBUG", "false"
         }
@@ -149,15 +120,6 @@ android {
     sourceSets {
         main {
             manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/main/AndroidManifest.xml"
-            java.srcDirs = [
-                "${CBL_COMMON_DIR}/main/java",                   // Common
-                "${CBL_COMMON_ANDROID_DIR}/main/java",           // Common Android
-                "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
-                "src/main/java",
-            ]
-            res.srcDirs = [
-                "${CBL_COMMON_ANDROID_DIR}/main/res",            // Common resources
-            ]
         }
         debug {
             manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/debug/AndroidManifest.xml"
@@ -165,10 +127,14 @@ android {
         androidTest {
             manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/androidTest/AndroidManifest.xml"
             java.srcDirs = [
-                "${CBL_COMMON_DIR}/test/java",                   // Common tests
-                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
-                "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
-                "src/androidTest/java",                          // EE Android tests
+                "${CBL_COMMON_DIR}/test/java",                    // Common java tests
+                "${CBL_COMMON_DIR}/test/kotlin",                  // Common kotlin tests
+                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",     // Common Android java tests
+                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",     // Common Android kotlin tests
+                "${CBL_EE_COMMON_DIR}/test/java",                 // EE Common java tests
+                "${CBL_EE_COMMON_DIR}/test/kotlin",               // EE Common kotlin tests
+                "${CBL_EE_ANDROID_DIR}/lib/src/androidTest/java", // EE Android java tests
+                "src/androidTest/kotlin",                         // EE Android kotlin tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
@@ -193,190 +159,17 @@ repositories {
 
 dependencies {
     compileOnly "com.android.support:support-annotations:${SUPPORT_VERSION}"
-    compileOnly "com.github.spotbugs:spotbugs-annotations:${SPOTBUGS_VERSION}"
 
-    //noinspection GradleDependency
-    implementation "com.squareup.okhttp3:okhttp:${OKHTTP_VERSION}"
+    implementation project(path: ':ee:android')
 
-    testImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
-    testImplementation 'junit:junit:4.13.1'
-
-    androidTestImplementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
 }
 
-/////// JavaDoc
+/////// Static Analysis
 
-// Say something once, why say it again?  Because gradle.
-// This is the only way I could figure out, to get some of these things onto the javadoc classpath
-// This is just an extreme hack.  My apologies.
-configurations { javadocDeps }
-dependencies {
-    javadocDeps files("${buildDir}/generated/source/buildConfig/debug")
-    javadocDeps files("${buildDir}/generated/source/buildConfig/release")
-    //noinspection GradleDependency
-    javadocDeps "com.android.support:support-annotations:${SUPPORT_VERSION}"
-    javadocDeps "com.github.spotbugs:spotbugs-annotations:${SPOTBUGS_VERSION}"
-    //noinspection GradleDependency
-    javadocDeps "com.squareup.okhttp3:okhttp:${OKHTTP_VERSION}"
-}
+/////// Coverage Report
 
-task javadoc(type: Javadoc) {
-    failOnError false
-
-    source android.sourceSets.main.java.srcDirs
-
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    classpath += configurations.compile
-    classpath += configurations.javadocDeps
-
-    options {
-        title = "${CBL_LICENSE} ${BUILD_VERSION}"
-        memberLevel = JavadocMemberLevel.PUBLIC
-        docEncoding = 'UTF-8'
-        encoding = 'UTF-8'
-        charSet = 'UTF-8'
-        locale = 'en_US'
-        links "https://docs.oracle.com/javase/8/docs/api/"
-        linksOffline "https://developer.android.com/reference/", "${project.android.sdkDirectory}/docs/reference"
-        addStringOption('Xdoclint:none', '-quiet')
-    }
-}
-
-
-// ----------------------------------------------------------------
-// Static analysis
-// ----------------------------------------------------------------
-
-def FILE_FILTER = ['**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*', '**/*Test*.*', '**/gen/**', "okhttp3/**"]
-
-/////// Checkstyle
-checkstyle {
-    toolVersion = "8.42"
-    dependencies {
-        checkstyle "com.puppycrawl.tools:checkstyle:${toolVersion}"
-        checkstyle "com.github.sevntu-checkstyle:sevntu-checks:1.39.0"
-        checkstyle fileTree(dir: "${ETC_DIR}/checkstyle", include: ['kotlin-checks-0.8.jar'])
-    }
-
-    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
-    configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
-
-    showViolations true
-}
-task checkstyle(type: Checkstyle) {
-    description 'Checkstyle'
-    group 'verification'
-
-    source android.sourceSets.main.java.srcDirs
-    include '**/*.java'
-    exclude FILE_FILTER
-
-    classpath = files()
-
-    reports {
-        xml {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/checkstyle.xml"))
-        }
-        html {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/checkstyle.html"))
-        }
-    }
-}
-
-/////// PMD
-pmd {
-    toolVersion '6.26.0'
-    ruleSets = []
-}
-task pmd(type: Pmd) {
-    description 'PMD'
-    group 'verification'
-
-    ruleSetFiles = files("${ETC_DIR}/pmd/pmd.xml")
-
-    source = android.sourceSets.main.java.srcDirs
-    include '**/*.java'
-    exclude FILE_FILTER
-
-    reports {
-        xml {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/pmd.xml"))
-        }
-        html {
-            enabled = true
-            setDestination(file("${REPORTS_DIR}/pmd.html"))
-        }
-    }
-}
-
-/////// SpotBugs
-// If SpotBug is run on code generated with Java 11
-// it will generate quite a few extraneous NULLCHECK warnings.
-// Sadly the problem is Java 11 code generation: the only solution
-// is to disable the check.
-spotbugs { toolVersion = SPOTBUGS_VERSION }
-['Html', 'Xml'].each { reportType ->
-    task("spotbugs${reportType}", type: SpotBugsTask) {
-        description "Spotbugs with ${reportType} report"
-        group 'verification'
-
-        afterEvaluate { dependsOn tasks.find { t -> t.name.endsWith 'compileDebugSources' } }
-
-        effort = "max"
-        reportLevel = "medium"
-        ignoreFailures = false
-
-        sourceDirs = project.files(android.sourceSets.main.java.srcDirs)
-
-        classDirs = fileTree(dir: "${buildDir}/intermediates/javac/debug/classes", excludes: FILE_FILTER)
-
-        excludeFilter = file("${ETC_DIR}/spotbugs/spotbugs.xml")
-
-        reports {
-            xml {
-                enabled = (reportType == "Xml")
-                setDestination(file("${REPORTS_DIR}/spotbugs.xml"))
-            }
-            html {
-                enabled = (reportType == "Html")
-                setDestination(file("${REPORTS_DIR}/spotbugs.html"))
-            }
-        }
-    }
-}
-
-
-// ----------------------------------------------------------------
-// Coverage
-// ----------------------------------------------------------------
-
-// The incantation for generating a coverage report is:
-//     ./gradlew -Pcoverage=true coverage
-// The reason for this is that we want to be able to generate
-// binaries that have not been instrumented and do not require
-// the jacoco package when run
-task jacocoTestReport(type: JacocoReport) {
-    description = "Generate Jacoco coverage reports"
-    group = "reporting"
-
-    afterEvaluate {
-        sourceDirectories.setFrom(project.files(android.sourceSets.main.java.srcDirs))
-        classDirectories.setFrom("${buildDir}/intermediates/javac/debug/classes")
-
-        if (COVERAGE) { connectedDebugAndroidTest.finalizedBy jacocoTestReport }
-    }
-
-    executionData fileTree(dir: "${buildDir}/outputs/code_coverage", includes: ["**/*.ec"])
-    reports {
-        xml.enabled = true
-        html.enabled = true
-    }
-}
+/////// Documentation
 
 
 // ----------------------------------------------------------------
@@ -420,13 +213,6 @@ def pomConfig = {
     }
 }
 
-// Generate javadoc.jar
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    archiveBaseName = "${CBL_ARTIFACT_ID}"
-    archiveClassifier = 'javadoc'
-    from javadoc.destinationDir
-}
-
 // Generate source.jar
 task sourcesJar(type: Jar) {
     archiveBaseName = "${CBL_ARTIFACT_ID}"
@@ -435,7 +221,6 @@ task sourcesJar(type: Jar) {
 }
 
 artifacts {
-    archives javadocJar
     archives sourcesJar
 }
 
@@ -461,7 +246,6 @@ project.afterEvaluate {
 
                 artifact bundleReleaseAar
                 artifact sourcesJar
-                artifact javadocJar
 
                 // include dependencies
                 pom.withXml {
@@ -490,7 +274,6 @@ project.afterEvaluate {
 
                 artifact bundleDebugAar
                 artifact sourcesJar
-                artifact javadocJar
 
                 // include dependencies
                 pom.withXml {
@@ -524,10 +307,9 @@ project.afterEvaluate {
 task smokeTest(dependsOn: ['compileDebugSources', 'checkstyle', 'lint', 'pmd', 'spotbugsHtml'])
 task devTest(dependsOn: ['connectedDebugAndroidTest'])
 task fullTest(dependsOn: ['smokeTest', 'devTest'])
-if (COVERAGE) { task coverage(dependsOn: ['connectedDebugAndroidTest']) }
 
 ///////// CI tasks
-task ciCheck(dependsOn: ['checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
+task ciCheck(dependsOn: ['test'])
 task ciBuild(dependsOn: ['assembleRelease'])
 task ciPublish(dependsOn: ['javadocJar', 'generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
 
@@ -536,10 +318,6 @@ project.afterEvaluate {
     tasks.withType(Javadoc) { shouldRunAfter connectedDebugAndroidTest }
     connectedDebugAndroidTest.shouldRunAfter smokeTest
     testDebugUnitTest.shouldRunAfter smokeTest
-    tasks.withType(SpotBugsTask) { shouldRunAfter tasks.withType(Pmd) }
-    tasks.withType(Pmd) { shouldRunAfter tasks.withType(LintGlobalTask) }
-    tasks.withType(LintGlobalTask) { shouldRunAfter tasks.withType(Checkstyle) }
-    tasks.withType(Checkstyle) { shouldRunAfter compileDebugSources }
 }
 
 // Clean
@@ -558,7 +336,7 @@ def getLicenseVersion() { return getCommit("product-texts", "master") }
 def getBuildId() {
     def hostname = "rogue"
     try { hostname = "hostname".execute().text.trim() }
-    catch (Exception ignore) { }
+    catch (Exception ignore) {}
 
     return "${getCommit("couchbase-lite-java-ee-root", "unofficial").substring(0, 10)}@${hostname}"
 }
@@ -576,11 +354,11 @@ def getCommit(project, dflt) {
             if (m.find()) { return m.group(1) }
         }
     }
-    catch (Exception ignore) { }
+    catch (Exception ignore) {}
     finally {
         if (manifest != null) {
             try { manifest.close() }
-            catch (Exception ignore) { }
+            catch (Exception ignore) {}
         }
     }
 

@@ -12,6 +12,10 @@
 // for the test projects in sync
 //
 
+include ':ee:android:lib'
+project(':ee:android:lib').name = 'ee_android'
+project(':ee:android').projectDir = new File("${rootDir}/../android/lib")
+
 if (!hasProperty("automatedTests") || !automatedTests.toBoolean()) {
     // normal source development
     include ':lib'
