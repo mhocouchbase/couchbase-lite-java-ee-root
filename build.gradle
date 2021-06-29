@@ -15,7 +15,11 @@
 // limitations under the License.
 //
 buildscript {
-    ext { KOTLIN_VERSION = '1.5.10' }
+    ext {
+        KOTLIN_VERSION = '1.5.10'
+
+        PROPS_FILE = "${projectDir}/local.properties"
+     }
 
     repositories {
         google()

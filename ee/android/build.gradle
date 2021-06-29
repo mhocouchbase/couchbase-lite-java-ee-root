@@ -24,8 +24,8 @@ buildscript {
         ANDROID_MIN_SDK = 22
         ANDROID_TARGET_SDK = 30
 
-        PROJECT_DIR = "${projectDir}"
-        ROOT_DIR = "${PROJECT_DIR}/../.."
+        ROOT_DIR = "${projectDir}/../.."
+        PROPS_FILE = "${projectDir}/local.properties"
     }
 
     repositories {

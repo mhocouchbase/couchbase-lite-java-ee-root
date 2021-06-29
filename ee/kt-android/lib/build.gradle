@@ -52,17 +52,11 @@ ext {
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
     BUILD_COMMIT = getBuildId()
 
-    CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
     CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
-    CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
+    CBL_COMMON_KT_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/kt-android"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
-    CBL_EE_ANDROID_DIR = "${CBL_EE_ROOT_DIR}/android"
-
-    LIB_MODULE_DIR = "${PROJECT_DIR}/lib"
-    REPORTS_DIR = "${buildDir}/reports"
-    ETC_DIR = "${CBL_COMMON_ROOT_DIR}/etc"
 
     SUPPORT_VERSION = '28.0.0'
 }
@@ -72,7 +66,7 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 
 // local.properties
 Properties properties = new Properties()
-properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
+properties.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -105,7 +99,7 @@ android {
         debug {
             debuggable true
             minifyEnabled false
-            buildConfigField "boolean", "ENTERPRISE", "false"
+            buildConfigField "boolean", "ENTERPRISE", "true"
             buildConfigField "boolean", "CBL_DEBUG", "true"
         }
 
@@ -119,29 +113,28 @@ android {
 
     sourceSets {
         main {
-            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/main/AndroidManifest.xml"
+            manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/main/AndroidManifest.xml"
+            java.srcDirs = [
+                "${CBL_COMMON_DIR}/main/kotlin",
+                "${CBL_COMMON_KT_ANDROID_DIR}/main/kotlin",
+                "${CBL_EE_COMMON_DIR}/main/kotlin",
+                "${projectDir}/src/main/kotlin"
+            ]
         }
         debug {
-            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/debug/AndroidManifest.xml"
+            manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/debug/AndroidManifest.xml"
         }
         androidTest {
-            manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/androidTest/AndroidManifest.xml"
+            manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/AndroidManifest.xml"
             java.srcDirs = [
-                "${CBL_COMMON_DIR}/test/java",                    // Common java tests
-                "${CBL_COMMON_DIR}/test/kotlin",                  // Common kotlin tests
-                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",     // Common Android java tests
-                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",     // Common Android kotlin tests
-                "${CBL_EE_COMMON_DIR}/test/java",                 // EE Common java tests
-                "${CBL_EE_COMMON_DIR}/test/kotlin",               // EE Common kotlin tests
-                "${CBL_EE_ANDROID_DIR}/lib/src/androidTest/java", // EE Android java tests
-                "src/androidTest/kotlin",                         // EE Android kotlin tests
+                "${CBL_COMMON_DIR}/test/kotlin",
+                "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/kotlin",
+                "${CBL_EE_COMMON_DIR}/test/kotlin",
+                "${projectDir}/src/androidTest/kotlin"
             ]
             assets.srcDirs = [
-                "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
-                "${CBL_COMMON_DIR}/test/assets",                 // Common assets
             ]
             res.srcDirs = [
-                "${CBL_COMMON_ANDROID_DIR}/androidTest/res",     // Common test resources
             ]
         }
     }
@@ -324,7 +317,7 @@ project.afterEvaluate {
 // delete .externalNativeBuild and .cxx directories to force rerun of cmake.
 // This is necessary because 'clean' deletes the file 'zconf.h' which is in
 // .../build/intermediates, causing subsequent builds to fail.
-clean.doLast { project.delete "${LIB_MODULE_DIR}/.cxx" }
+clean.doLast { project.delete "${projectDir}/.cxx" }
 
 
 // ----------------------------------------------------------------

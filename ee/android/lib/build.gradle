@@ -69,7 +69,7 @@ ext {
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
-    LIB_MODULE_DIR = "${PROJECT_DIR}/lib"
+    LIB_MODULE_DIR = "${projectDir}"
     REPORTS_DIR = "${buildDir}/reports"
     ETC_DIR = "${CBL_COMMON_ROOT_DIR}/etc"
 
@@ -95,7 +95,7 @@ def COVERAGE = project.hasProperty("coverage")
 
 // local.properties
 Properties properties = new Properties()
-properties.load(project.rootProject.file("${PROJECT_DIR}/local.properties").newDataInputStream())
+properties.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -199,7 +199,7 @@ android {
                 "${CBL_COMMON_DIR}/main/java",                   // Common
                 "${CBL_COMMON_ANDROID_DIR}/main/java",           // Common Android
                 "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
-                "src/main/java",
+                "${LIB_MODULE_DIR}/src/main/java",
             ]
             res.srcDirs = [
                 "${CBL_COMMON_ANDROID_DIR}/main/res",            // Common resources
@@ -214,7 +214,7 @@ android {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
-                "src/androidTest/java",                          // EE Android tests
+                "${LIB_MODULE_DIR}/src/androidTest/java",        // EE Android tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
