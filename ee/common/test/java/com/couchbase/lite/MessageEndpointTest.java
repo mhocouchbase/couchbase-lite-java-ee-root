@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Test;
 
@@ -171,7 +170,7 @@ abstract class MockConnection implements MessageEndpointConnection {
 
     public void stop() { disconnect(null, this::terminate); }
 
-    @NotNull
+    @NonNull
     @Override
     public String toString() {
         return "[" + ClassUtils.objId(this) + "]" + logName
