@@ -1056,12 +1056,12 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         // It will choose the version of the doc with KEY1->VAL1
         val resolver1 = object : ConflictResolver {
             var calls = 0
-            override fun resolve(conflict: Conflict?): Document? {
+            override fun resolve(conflict: Conflict): Document? {
                 calls++
                 latch1.countDown()
                 // if the latch times out, return null
                 // which will delete the doc an cause the test to fail
-                return if (!latch2.stdWait()) null else conflict?.localDocument
+                return if (!latch2.stdWait()) null else conflict.localDocument
             }
         }
         val repl1 = testReplicator(pullConfigWitResolver(resolver1))
@@ -1088,9 +1088,9 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         // It will choose the version of the doc with KEY2->VAL2
         val resolver2 = object : ConflictResolver {
             var calls = 0
-            override fun resolve(conflict: Conflict?): Document? {
+            override fun resolve(conflict: Conflict): Document? {
                 calls++
-                return conflict?.remoteDocument
+                return conflict.remoteDocument
             }
         }
         val pullConfig2 = pullConfigWitResolver(resolver2)
