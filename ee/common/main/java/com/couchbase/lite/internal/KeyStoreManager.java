@@ -198,6 +198,7 @@ public abstract class KeyStoreManager {
     public abstract int deleteEntries(@Nullable KeyStore keyStore, Fn.Predicate<String> filter)
         throws CouchbaseLiteException;
 
+    @Nullable
     protected final byte[] getEncodedKey(KeyStore keyStore, @NonNull C4KeyPair keyPair) {
         final Certificate cert;
         try { cert = keyStore.getCertificate(keyPair.getKeyAlias()); }
@@ -219,8 +220,8 @@ public abstract class KeyStoreManager {
     @Nullable
     protected final PrivateKey getPrivateKey(
         @NonNull String alias,
-        KeyStore keyStore,
-        KeyStore.ProtectionParameter protectionParam) {
+        @NonNull KeyStore keyStore,
+        @NonNull KeyStore.ProtectionParameter protectionParam) {
         final KeyStore.Entry entry;
         try { entry = keyStore.getEntry(alias, protectionParam); }
         catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
@@ -243,7 +244,7 @@ public abstract class KeyStoreManager {
     }
 
     @Nullable
-    protected final List<Certificate> getCertificates(KeyStore keyStore, @NonNull String alias) {
+    protected final List<Certificate> getCertificates(@NonNull KeyStore keyStore, @NonNull String alias) {
         Certificate[] certs = null;
         try { certs = keyStore.getCertificateChain(alias); }
         catch (KeyStoreException e) { Log.i(LogDomain.LISTENER, "Certs: no cert chain for " + alias, e); }

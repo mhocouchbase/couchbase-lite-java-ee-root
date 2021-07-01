@@ -120,7 +120,7 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
 
     @NonNull
     @Override
-    public String nGetUriFromPath(String path) { return getUriFromPath(path); }
+    public String nGetUriFromPath(@NonNull String path) { return getUriFromPath(path); }
 
 
     //-------------------------------------------------------------------------
@@ -167,11 +167,14 @@ public class NativeC4Listener implements C4Listener.NativeImpl {
 
     private static native void unshareDb(long handle, long c4Db) throws LiteCoreException;
 
+    @NonNull
     private static native List<String> getUrls(long handle, long c4Db) throws LiteCoreException;
 
     private static native int getPort(long handle);
 
+    @NonNull
     private static native ConnectionStatus getConnectionStatus(long handle);
 
-    private static native String getUriFromPath(String path);
+    @NonNull
+    private static native String getUriFromPath(@NonNull String path);
 }

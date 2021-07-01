@@ -16,6 +16,7 @@
 package com.couchbase.lite.internal;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.security.cert.Certificate;
 import java.util.List;
@@ -35,7 +36,7 @@ public class SocketFactory extends AbstractSocketFactory {
         @NonNull Fn.Consumer<List<Certificate>> serverCertsListener) {
         super(config, cookieStore, serverCertsListener);
     }
-
+    @Nullable
     protected C4Socket createPlatformSocket(long handle) {
         return (!(endpoint instanceof MessageEndpoint)) ? null : new MessageSocket(handle, (MessageEndpoint) endpoint);
     }

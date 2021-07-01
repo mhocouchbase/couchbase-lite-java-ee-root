@@ -53,8 +53,9 @@ public final class Replicator extends AbstractReplicator {
             : new AndroidConnectivityObserver(mgr, Replicator.this::getC4Replicator);
     }
 
+    @NonNull
     @Override
-    protected C4Replicator createReplicatorForTarget(Endpoint target) throws LiteCoreException {
+    protected C4Replicator createReplicatorForTarget(@NonNull Endpoint target) throws LiteCoreException {
         if (target instanceof URLEndpoint) { return getRemoteC4Replicator(((URLEndpoint) target).getURL()); }
 
         if (target instanceof DatabaseEndpoint) {

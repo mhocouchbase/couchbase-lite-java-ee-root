@@ -42,34 +42,40 @@ public class CBLKeyManager implements X509KeyManager {
         this.identity = identity;
     }
 
+    @NonNull
     @Override
-    public String[] getClientAliases(String keyType, Principal[] issuers) {
+    public String[] getClientAliases(@NonNull String keyType, @NonNull Principal[] issuers) {
         return new String[] {identity.getKeyPair().getKeyAlias()};
     }
 
+    @NonNull
     @Override
-    public String chooseClientAlias(String[] keyType, Principal[] issuers, Socket socket) {
+    public String chooseClientAlias(@NonNull String[] keyType, @NonNull Principal[] issuers, @NonNull Socket socket) {
         return identity.getKeyPair().getKeyAlias();
     }
 
+    @NonNull
     @Override
-    public String[] getServerAliases(String keyType, Principal[] issuers) {
+    public String[] getServerAliases(@NonNull String keyType, @NonNull Principal[] issuers) {
         throw new UnsupportedOperationException("getServerAliases(String, Principal[]) not supported for client");
     }
 
+    @NonNull
     @Override
-    public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+    public String chooseServerAlias(@NonNull String keyType, @NonNull Principal[] issuers, @NonNull Socket socket) {
         throw new UnsupportedOperationException("chooseServerAlias(String, Principal[]) not supported for client");
     }
 
+    @NonNull
     @Override
-    public X509Certificate[] getCertificateChain(String alias) {
+    public X509Certificate[] getCertificateChain(@NonNull String alias) {
         final List<Certificate> certs = identity.getCerts();
         return certs.toArray(new X509Certificate[0]);
     }
 
+    @NonNull
     @Override
-    public PrivateKey getPrivateKey(String alias) {
+    public PrivateKey getPrivateKey(@NonNull String alias) {
         final C4KeyPair keyPair = identity.getKeyPair();
         return KeyStoreManager.getInstance().getKey(
             keyPair.getKeyStore(), keyPair.getKeyAlias(), keyPair.getKeyPassword());

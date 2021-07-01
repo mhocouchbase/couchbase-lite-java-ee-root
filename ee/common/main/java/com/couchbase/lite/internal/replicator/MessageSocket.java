@@ -57,7 +57,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // constructors
     // ---------------------------------------------------------------------------------------------
 
-    public MessageSocket(MessageEndpointConnection connection, ProtocolType protocolType) {
+    public MessageSocket(@NonNull MessageEndpointConnection connection, @NonNull ProtocolType protocolType) {
         super(
             "x-msg-conn",
             "",
@@ -70,7 +70,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         this.protocolType = protocolType;
     }
 
-    public MessageSocket(long peer, MessageEndpoint endpoint) {
+    public MessageSocket(long peer, @NonNull MessageEndpoint endpoint) {
         super(peer);
         this.connection = endpoint.getDelegate().createConnection(endpoint);
         this.protocolType = endpoint.getProtocolType();

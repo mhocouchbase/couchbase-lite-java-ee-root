@@ -201,7 +201,10 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
     @VisibleForTesting
     @Override
-    public int deleteEntries(@Nullable KeyStore ignore, Fn.Predicate<String> filter) throws CouchbaseLiteException {
+    public int deleteEntries(
+            @Nullable KeyStore ignore,
+            @NonNull Fn.Predicate<String> filter)
+            throws CouchbaseLiteException {
         final KeyStore keyStore = loadKeyStore();
         if (keyStore == null) { throw new IllegalStateException(ERROR_LOADING_KEYSTORE); }
         return deleteStoreEntries(keyStore, filter);
@@ -212,7 +215,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     private KeyPairGenerator initKeyFactoryPreM(
         @NonNull String alias,
         @NonNull Date expiration,
-        X500Principal subject)
+        @NonNull X500Principal subject)
         throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
         final KeyPairGenerator keyFactory = KeyPairGenerator.getInstance("RSA", ANDROID_KEY_STORE);
         keyFactory.initialize(new KeyPairGeneratorSpec.Builder(CouchbaseLiteInternal.getContext())
@@ -232,7 +235,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     private KeyPairGenerator initKeyFactoryM(
         @NonNull String alias,
         @NonNull Date expiration,
-        X500Principal subject)
+        @NonNull X500Principal subject)
         throws InvalidAlgorithmParameterException, NoSuchProviderException, NoSuchAlgorithmException {
         final KeyPairGenerator keyFactory
             = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, ANDROID_KEY_STORE);
@@ -271,10 +274,11 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
         return null;
     }
 
-    private PrivateKey getPrivateKey(KeyStore keyStore, String alias) {
+    @Nullable
+    private PrivateKey getPrivateKey(@NonNull KeyStore keyStore, @NonNull String alias) {
         final Key key;
         try { key = keyStore.getKey(alias, null); }
-        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
+        catch ( UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
             Log.w(LogDomain.LISTENER, "No key found for alias " + alias, e);
             return null;
         }

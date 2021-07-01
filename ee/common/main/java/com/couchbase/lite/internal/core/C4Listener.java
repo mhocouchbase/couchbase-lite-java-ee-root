@@ -105,7 +105,7 @@ public class C4Listener extends C4NativePeer {
         ConnectionStatus nGetConnectionStatus(long peer);
 
         @NonNull
-        String nGetUriFromPath(String path);
+        String nGetUriFromPath(@NonNull String path);
     }
 
     // Not final for testing.
@@ -375,7 +375,7 @@ public class C4Listener extends C4NativePeer {
     public ConnectionStatus getConnectionStatus() { return impl.nGetConnectionStatus(getPeer()); }
 
     @Nullable
-    public String getUriFromPath(String path) { return impl.nGetUriFromPath(path); }
+    public String getUriFromPath(@NonNull String path) { return impl.nGetUriFromPath(path); }
 
     //-------------------------------------------------------------------------
     // protected methods

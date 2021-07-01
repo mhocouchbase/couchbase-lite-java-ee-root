@@ -114,7 +114,7 @@ public final class TLSIdentity extends BaseTLSIdentity {
 
         return identity;
     }
-
+    @NonNull
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final String fullAlias = KeyStoreManager.ANON_IDENTITY_ALIAS + alias;
 

@@ -48,7 +48,7 @@ public class C4KeyPair extends C4NativePeer {
             long c4KeyPair,
             byte algorithm,
             int keyBits,
-            String[][] attributes,
+            @Nullable String[][] attributes,
             byte usage,
             long validityInSeconds)
             throws LiteCoreException;
@@ -102,12 +102,13 @@ public class C4KeyPair extends C4NativePeer {
      * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
      * @throws CouchbaseLiteException on error
      */
+    @NonNull
     public static C4KeyPair createKeyPair(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword,
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize) throws CouchbaseLiteException {
+        @NonNull KeyStoreManager.KeySize keySize) throws CouchbaseLiteException {
         return createKeyPair(keyStore, keyAlias, keyPassword, algorithm, keySize, null);
     }
 
@@ -123,12 +124,13 @@ public class C4KeyPair extends C4NativePeer {
      * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
      * @throws CouchbaseLiteException on error
      */
+    @NonNull
     public static C4KeyPair createKeyPair(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword,
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize,
+        @NonNull KeyStoreManager.KeySize keySize,
         @Nullable KeyPair keys)
         throws CouchbaseLiteException {
         char[] keyPwd = null;
@@ -160,10 +162,11 @@ public class C4KeyPair extends C4NativePeer {
      * @return a new C4KeyPair, representing the cert, public and private keys identified by the alias
      * @throws CouchbaseLiteException on error
      */
+    @NonNull
     public static C4KeyPair createKeyPair(
         @NonNull String keyAlias,
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize)
+        @NonNull KeyStoreManager.KeySize keySize)
         throws CouchbaseLiteException {
         return createKeyPair(null, keyAlias, null, algorithm, keySize, null);
     }
@@ -209,7 +212,7 @@ public class C4KeyPair extends C4NativePeer {
     //-------------------------------------------------------------------------
     // Private static methods
     //-------------------------------------------------------------------------
-
+    @Nullable
     private static C4KeyPair getKeyPair(long token) {
         final C4KeyPair keyPair = getKeyPairUnsafe(token);
         if (keyPair != null) { return keyPair; }
@@ -230,7 +233,7 @@ public class C4KeyPair extends C4NativePeer {
         if (c4Algorithm == null) { throw new IllegalArgumentException("Unrecognized encryption algorithm"); }
         return c4Algorithm;
     }
-
+    @NonNull
     private static Signature.SignatureDigestAlgorithm getDigestAlgorithm(int digestAlgorithm) {
         final Signature.SignatureDigestAlgorithm algorithm = C4_TO_DIGEST_ALGORITHM.get(digestAlgorithm);
         if (algorithm == null) {
@@ -303,7 +306,7 @@ public class C4KeyPair extends C4NativePeer {
     @NonNull
     public byte[] generateSelfSignedCertificate(
         @NonNull KeyStoreManager.KeyAlgorithm algorithm,
-        KeyStoreManager.KeySize keySize,
+        @NonNull KeyStoreManager.KeySize keySize,
         @NonNull Map<String, String> attributes,
         @NonNull KeyStoreManager.CertUsage usage,
         long expSecond)

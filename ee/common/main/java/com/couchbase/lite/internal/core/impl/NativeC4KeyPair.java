@@ -36,7 +36,7 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         long c4KeyPair,
         byte algorithm,
         int keyBits,
-        String[][] subjectName,
+        @NonNull String[][] subjectName,
         byte usage,
         long validityInSeconds)
         throws LiteCoreException {
@@ -56,7 +56,7 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         long c4KeyPair,
         byte algorithm,
         int keyBits,
-        String[][] nameComponents,
+        @NonNull String[][] nameComponents,
         byte usage,
         long validityInSeconds)
         throws LiteCoreException;
