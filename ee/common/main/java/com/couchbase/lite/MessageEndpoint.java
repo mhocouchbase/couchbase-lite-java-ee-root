@@ -15,6 +15,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.couchbase.lite.internal.utils.Preconditions;
 
@@ -26,15 +27,18 @@ import com.couchbase.lite.internal.utils.Preconditions;
  */
 public class MessageEndpoint implements Endpoint {
     // Unique ID required for calculating remote checkpoint id
+    @NonNull
     private final String uid;
 
     // Any object identifying the connecting peer
     private final Object target;
 
     // Protocol type of transmission
+    @NonNull
     private final ProtocolType protocolType;
 
     // Delegate
+    @NonNull
     private final MessageEndpointDelegate delegate;
 
     /**
@@ -47,7 +51,7 @@ public class MessageEndpoint implements Endpoint {
      */
     public MessageEndpoint(
         @NonNull String uid,
-        Object target,
+        @Nullable Object target,
         @NonNull ProtocolType protocolType,
         @NonNull MessageEndpointDelegate delegate) {
         Preconditions.assertNotNull(uid, "uid");
@@ -77,6 +81,7 @@ public class MessageEndpoint implements Endpoint {
      *
      * @return the target object.
      */
+    @NonNull
     public Object getTarget() { return target; }
 
     /**

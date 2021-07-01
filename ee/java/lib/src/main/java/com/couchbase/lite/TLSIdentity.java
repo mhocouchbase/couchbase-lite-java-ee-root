@@ -140,6 +140,7 @@ public final class TLSIdentity extends BaseTLSIdentity {
         return identity;
     }
 
+    @Nullable
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final KeyStore keyStore;
         try {
@@ -170,8 +171,9 @@ public final class TLSIdentity extends BaseTLSIdentity {
      */
     private static final AtomicReference<KeyStore> DEFAULT_KEY_STORE = new AtomicReference<>();
 
-    private static KeyStore getDefaultKeyStore() throws
-        KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+    @NonNull
+    private static KeyStore getDefaultKeyStore()
+        throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
         KeyStore keyStore = DEFAULT_KEY_STORE.get();
         if (keyStore != null) { return keyStore; }
 

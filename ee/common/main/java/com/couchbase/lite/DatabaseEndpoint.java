@@ -25,6 +25,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * Database based replication target endpoint.
  */
 public final class DatabaseEndpoint implements Endpoint {
+    @NonNull
     private final Database database;
 
     /**

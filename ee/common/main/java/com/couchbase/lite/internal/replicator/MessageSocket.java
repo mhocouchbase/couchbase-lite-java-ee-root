@@ -45,7 +45,9 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     // ---------------------------------------------------------------------------------------------;
     private final Executor finalizer = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
+    @NonNull
     private final MessageEndpointConnection connection;
+    @NonNull
     private final ProtocolType protocolType;
 
     @GuardedBy("getPeerLock()")
@@ -184,7 +186,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         connection.close(error, () -> connectionClosed(messagingError));
     }
 
-    private void connectionClosed(MessagingError error) {
+    private void connectionClosed(@Nullable MessagingError error) {
         synchronized (getPeerLock()) {
             if (isClosing()) { return; }
 
@@ -211,7 +213,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
         sendResponseStatus = false;
     }
 
-    private int getStatusCode(MessagingError error) {
+    private int getStatusCode(@Nullable MessagingError error) {
         if (error == null) { return C4Constants.WebSocketError.NORMAL; }
         return error.isRecoverable()
             ? C4Constants.WebSocketError.USER_TRANSIENT

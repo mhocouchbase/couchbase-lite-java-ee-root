@@ -52,7 +52,8 @@ public final class Database extends AbstractDatabase {
         AbstractDatabase.copy(path, name, config.getDirectory(), getEncryptionAlgorithm(key), getEncryptionKey(key));
     }
 
-    private static byte[] getEncryptionKey(EncryptionKey key) { return (key == null) ? null : key.getKey(); }
+    @Nullable
+    private static byte[] getEncryptionKey(@Nullable EncryptionKey key) { return (key == null) ? null : key.getKey(); }
 
     private static int getEncryptionAlgorithm(EncryptionKey key) {
         return (getEncryptionKey(key) == null)
@@ -126,9 +127,11 @@ public final class Database extends AbstractDatabase {
     @Override
     int getEncryptionAlgorithm() { return getEncryptionAlgorithm(config.getEncryptionKey()); }
 
+    @NonNull
     @Override
     byte[] getEncryptionKey() { return getEncryptionKey(config.getEncryptionKey()); }
 
+    @NonNull
     C4Replicator createTargetReplicator(
         @NonNull C4Socket openSocket,
         int push,
@@ -142,7 +145,7 @@ public final class Database extends AbstractDatabase {
         }
     }
 
-    void registerUrlListener(URLEndpointListener listener) {
+    void registerUrlListener(@NonNull URLEndpointListener listener) {
         synchronized (getDbLock()) {
             mustBeOpen();
             registerProcess(new ActiveProcess<URLEndpointListener>(listener) {
@@ -155,9 +158,9 @@ public final class Database extends AbstractDatabase {
         }
     }
 
-    void unregisterUrlListener(URLEndpointListener listener) { unregisterProcess(listener); }
+    void unregisterUrlListener(@NonNull URLEndpointListener listener) { unregisterProcess(listener); }
 
-    void registerMessageListener(MessageEndpointListener listener) {
+    void registerMessageListener(@NonNull MessageEndpointListener listener) {
         synchronized (getDbLock()) {
             mustBeOpen();
             registerProcess(new ActiveProcess<MessageEndpointListener>(listener) {
@@ -170,5 +173,5 @@ public final class Database extends AbstractDatabase {
         }
     }
 
-    void unregisterMessageListener(MessageEndpointListener listener) { unregisterProcess(listener); }
+    void unregisterMessageListener(@NonNull MessageEndpointListener listener) { unregisterProcess(listener); }
 }

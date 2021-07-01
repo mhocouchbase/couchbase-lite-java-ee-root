@@ -16,6 +16,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,9 +40,10 @@ import com.couchbase.lite.internal.utils.Preconditions;
  */
 public final class Prediction {
     private static class C4PredictiveModelImpl implements C4PredictiveModel {
+        @NonNull
         private final PredictiveModel model;
 
-        C4PredictiveModelImpl(PredictiveModel model) { this.model = model; }
+        C4PredictiveModelImpl(@NonNull PredictiveModel model) { this.model = model; }
 
         // This method is called by reflection.  Don't change its signature.
         @Override
@@ -60,7 +62,8 @@ public final class Prediction {
             return encode(prediction).getHandle();
         }
 
-        private FLSliceResult encode(Dictionary prediction) {
+        @NonNull
+        private FLSliceResult encode(@Nullable Dictionary prediction) {
             if (prediction != null) {
                 try (FLEncoder encoder = FLEncoder.getManagedEncoder()) {
                     prediction.encodeTo(encoder);

@@ -25,8 +25,10 @@ import com.couchbase.lite.internal.utils.Preconditions;
  */
 public class MessageEndpointListenerConfiguration {
     // Local database
+    @NonNull
     private final Database database;
     // Protocol type of the transmission
+    @NonNull
     private final ProtocolType protocolType;
 
     public MessageEndpointListenerConfiguration(@NonNull Database database, @NonNull ProtocolType protocolType) {

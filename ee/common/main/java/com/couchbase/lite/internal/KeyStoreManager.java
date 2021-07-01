@@ -46,6 +46,7 @@ import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
 
 
+
 public abstract class KeyStoreManager {
     public static final String ANON_IDENTITY_ALIAS = "CBL-ANON-";
 
@@ -66,12 +67,14 @@ public abstract class KeyStoreManager {
 
         final int len;
 
+        @NonNull
         private static final Map<Integer, KeySize> KEY_SIZES;
         static {
             final Map<Integer, KeySize> m = new HashMap<>();
             for (KeySize keySize: KeySize.values()) { m.put(keySize.len, keySize); }
             KEY_SIZES = Collections.unmodifiableMap(m);
         }
+        @NonNull
         public static KeySize getKeySize(int bitLen) {
             final KeySize keySize = KEY_SIZES.get(bitLen);
             if (keySize == null) {
@@ -107,6 +110,7 @@ public abstract class KeyStoreManager {
 
     // PMD is just not very clever...
     @SuppressWarnings("PMD.SingletonClassReturningNewInstance")
+    @NonNull
     public static KeyStoreManager getInstance() {
         final KeyStoreManager instance = INSTANCE.get();
         if (instance != null) { return instance; }
@@ -135,6 +139,7 @@ public abstract class KeyStoreManager {
      * @param keyPair The key pair
      * @return the raw key data or null failure.
      */
+    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] getKeyData(@NonNull C4KeyPair keyPair);
 
@@ -146,6 +151,7 @@ public abstract class KeyStoreManager {
      * @param data            The data to be signed.
      * @return the signature (length must be equal to the key size) or null on failure.
      */
+    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] sign(
         @NonNull C4KeyPair keyPair,
@@ -159,6 +165,7 @@ public abstract class KeyStoreManager {
      * @param data    The data to be encrypted.
      * @return the raw key data or null failure.
      */
+    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] decrypt(@NonNull C4KeyPair keyPair, @NonNull byte[] data);
 
@@ -177,12 +184,14 @@ public abstract class KeyStoreManager {
     public abstract boolean findAlias(@Nullable KeyStore keyStore, @NonNull String targetAlias)
         throws CouchbaseLiteException;
 
+    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract PrivateKey getKey(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword);
 
+    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract List<Certificate> getCertificateChain(@Nullable KeyStore keyStore, @NonNull String keyAlias);
 
@@ -199,7 +208,7 @@ public abstract class KeyStoreManager {
         throws CouchbaseLiteException;
 
     @Nullable
-    protected final byte[] getEncodedKey(KeyStore keyStore, @NonNull C4KeyPair keyPair) {
+    protected final byte[] getEncodedKey(@NonNull KeyStore keyStore, @NonNull C4KeyPair keyPair) {
         final Certificate cert;
         try { cert = keyStore.getCertificate(keyPair.getKeyAlias()); }
         catch (KeyStoreException e) { throw new IllegalStateException("Uninitialized key store", e); }
@@ -251,7 +260,7 @@ public abstract class KeyStoreManager {
         return ((certs == null) || (certs.length <= 0)) ? null : new ArrayList<>(Arrays.asList(certs));
     }
 
-    protected final int deleteStoreEntries(KeyStore keyStore, Fn.Predicate<String> filter)
+    protected final int deleteStoreEntries(@NonNull KeyStore keyStore, @NonNull Fn.Predicate<String> filter)
         throws CouchbaseLiteException {
         final Enumeration<String> aliases;
         try { aliases = keyStore.aliases(); }

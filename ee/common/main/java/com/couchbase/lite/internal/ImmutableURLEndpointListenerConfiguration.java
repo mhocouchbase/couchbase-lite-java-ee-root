@@ -24,6 +24,7 @@ import com.couchbase.lite.TLSIdentity;
 import com.couchbase.lite.URLEndpointListenerConfiguration;
 
 
+
 /**
  * A bit odd.  Why are these properties not simply properties on the AbstractDatabase object?
  * Because they are mandated by a spec:
@@ -55,7 +56,7 @@ public class ImmutableURLEndpointListenerConfiguration {
     //-------------------------------------------------------------------------
     // Constructors
     //-------------------------------------------------------------------------
-    public ImmutableURLEndpointListenerConfiguration(URLEndpointListenerConfiguration config) {
+    public ImmutableURLEndpointListenerConfiguration(@NonNull URLEndpointListenerConfiguration config) {
         this.database = config.getDatabase();
         this.networkInterface = config.getNetworkInterface();
         this.port = config.getPort();

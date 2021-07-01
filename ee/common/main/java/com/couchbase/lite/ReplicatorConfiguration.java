@@ -109,6 +109,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
      */
     public boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
 
+    @NonNull
     @Override
     ReplicatorConfiguration getReplicatorConfiguration() { return this; }
 }

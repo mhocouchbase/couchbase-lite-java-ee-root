@@ -67,6 +67,7 @@ public class C4KeyPair extends C4NativePeer {
     @VisibleForTesting
     static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
 
+    @NonNull
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
     static {
         final Map<KeyStoreManager.KeyAlgorithm, Byte> m = new HashMap<>();
@@ -74,6 +75,7 @@ public class C4KeyPair extends C4NativePeer {
         KEY_ALGORITHM_TO_C4 = Collections.unmodifiableMap(m);
     }
 
+    @NonNull
     private static final Map<Integer, Signature.SignatureDigestAlgorithm> C4_TO_DIGEST_ALGORITHM;
     static {
         final Map<Integer, Signature.SignatureDigestAlgorithm> m = new HashMap<>();

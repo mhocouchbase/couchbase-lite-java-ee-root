@@ -16,6 +16,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 
 /**
@@ -37,5 +38,6 @@ public interface PredictiveModel {
      * @param input The input dictionary.
      * @return The output dictionary.
      */
+    @Nullable
     Dictionary predict(@NonNull Dictionary input);
 }

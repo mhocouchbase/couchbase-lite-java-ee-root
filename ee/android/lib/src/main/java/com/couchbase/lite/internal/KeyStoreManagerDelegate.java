@@ -202,9 +202,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     @VisibleForTesting
     @Override
     public int deleteEntries(
-            @Nullable KeyStore ignore,
-            @NonNull Fn.Predicate<String> filter)
-            throws CouchbaseLiteException {
+        @Nullable KeyStore ignore,
+        @NonNull Fn.Predicate<String> filter)
+        throws CouchbaseLiteException {
         final KeyStore keyStore = loadKeyStore();
         if (keyStore == null) { throw new IllegalStateException(ERROR_LOADING_KEYSTORE); }
         return deleteStoreEntries(keyStore, filter);
@@ -278,7 +278,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     private PrivateKey getPrivateKey(@NonNull KeyStore keyStore, @NonNull String alias) {
         final Key key;
         try { key = keyStore.getKey(alias, null); }
-        catch ( UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
+        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
             Log.w(LogDomain.LISTENER, "No key found for alias " + alias, e);
             return null;
         }

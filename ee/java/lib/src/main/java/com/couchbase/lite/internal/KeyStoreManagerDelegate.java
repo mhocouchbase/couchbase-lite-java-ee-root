@@ -249,7 +249,8 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     }
 
     @Override
-    public int deleteEntries(@Nullable KeyStore store, Fn.Predicate<String> filter) throws CouchbaseLiteException {
+    public int deleteEntries(@Nullable KeyStore store, @NonNull Fn.Predicate<String> filter)
+        throws CouchbaseLiteException {
         final KeyStore keyStore = Preconditions.assertNotNull(store, "keystore");
         return deleteStoreEntries(keyStore, filter);
     }
@@ -273,10 +274,10 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     // Generate Self-Signed Cert
     @NonNull
     private Certificate generateCertificate(
-        C4KeyPair c4KeyPair,
-        boolean isServer,
-        @NonNull Map<String, String> attributes,
-        long expiration)
+            @NonNull C4KeyPair c4KeyPair,
+            boolean isServer,
+            @NonNull Map<String, String> attributes,
+            long expiration)
         throws CouchbaseLiteException {
         final byte[] certData = c4KeyPair.generateSelfSignedCertificate(
             KeyAlgorithm.RSA,

@@ -17,6 +17,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,17 +37,19 @@ public final class PredictionFunction extends Expression {
     // member variables
     //---------------------------------------------
 
+    @NonNull
     private final Expression model;
 
+    @Nullable
     private final Expression input;
 
     //---------------------------------------------
     // Constructor
     //---------------------------------------------
 
-    PredictionFunction(String model, Expression input) {
-        if (model == null) { throw new IllegalArgumentException("model cannot be null."); }
-        if (input == null) { throw new IllegalArgumentException("input cannot be null."); }
+    PredictionFunction(@Nullable String model, @Nullable Expression input) {
+        Preconditions.assertNotNull(model, "model");
+        Preconditions.assertNotNull(input, "input");
 
         this.model = Expression.string(model);
         this.input = input;
@@ -72,6 +75,7 @@ public final class PredictionFunction extends Expression {
     // Package level access
     //---------------------------------------------
 
+    @NonNull
     @Override
     Object asJSON() { return getPredictionFunction(Arrays.asList(model, input)).asJSON(); }
 
@@ -79,7 +83,8 @@ public final class PredictionFunction extends Expression {
     // Private level access
     //---------------------------------------------
 
-    FunctionExpression getPredictionFunction(List<Expression> params) {
+    @NonNull
+    FunctionExpression getPredictionFunction(@NonNull List<Expression> params) {
         return new FunctionExpression("PREDICTION()", params);
     }
 }

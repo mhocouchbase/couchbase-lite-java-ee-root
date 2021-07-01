@@ -59,7 +59,7 @@ public final class ClientCertificateAuthenticator extends Authenticator {
     public TLSIdentity getIdentity() { return identity; }
 
     @Override
-    void authenticate(Map<String, Object> options) {
+    void authenticate(@NonNull Map<String, Object> options) {
         final Map<String, Object> auth = new HashMap<>();
         auth.put(C4Replicator.REPLICATOR_AUTH_TYPE, C4Replicator.AUTH_TYPE_CLIENT_CERT);
         auth.put(

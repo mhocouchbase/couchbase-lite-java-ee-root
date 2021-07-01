@@ -28,6 +28,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * It should be stored either in the Keychain, or in the user's memory (hopefully not a sticky note.)
  */
 public final class EncryptionKey {
+    @NonNull
     private final byte[] key;
 
     /**
@@ -63,6 +64,7 @@ public final class EncryptionKey {
         this.key = key;
     }
 
+    @NonNull
     byte[] getKey() {
         final byte[] key = new byte[this.key.length];
         System.arraycopy(this.key, 0, key, 0, key.length);

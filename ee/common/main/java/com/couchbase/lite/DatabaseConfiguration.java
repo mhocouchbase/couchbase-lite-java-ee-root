@@ -27,6 +27,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     //---------------------------------------------
     // member variables
     //---------------------------------------------
+    @Nullable
     private EncryptionKey encryptionKey;
 
     //---------------------------------------------
@@ -83,6 +84,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
     //---------------------------------------------
     // protected methods
     //---------------------------------------------
+    @NonNull
     @Override
     protected DatabaseConfiguration getDatabaseConfiguration() { return this; }
 }

@@ -30,6 +30,7 @@ import com.couchbase.lite.internal.ImmutableURLEndpointListenerConfiguration;
 import com.couchbase.lite.internal.core.C4Database;
 import com.couchbase.lite.internal.core.C4Listener;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public class URLEndpointListener {
@@ -40,12 +41,12 @@ public class URLEndpointListener {
     @NonNull
     private final ImmutableURLEndpointListenerConfiguration config;
 
-    @Nullable
     @GuardedBy("lock")
+    @Nullable
     private TLSIdentity identity;
 
-    @Nullable
     @GuardedBy("lock")
+    @Nullable
     private C4Listener c4Listener;
 
     private int port;
@@ -265,9 +266,10 @@ public class URLEndpointListener {
         return port;
     }
 
+    @Nullable
     private String getDbUuid() {
         final String uuid = config.getDatabase().getUuid();
-        if (uuid == null) { throw new IllegalArgumentException("Configured database is not open"); }
+        Preconditions.assertNotNull(uuid, "uuid");
         return uuid;
     }
 }

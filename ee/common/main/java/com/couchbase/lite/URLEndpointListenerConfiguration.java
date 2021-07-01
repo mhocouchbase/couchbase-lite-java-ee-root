@@ -68,7 +68,7 @@ public class URLEndpointListenerConfiguration {
      *
      * @param config the configuration to duplicate
      */
-    public URLEndpointListenerConfiguration(URLEndpointListenerConfiguration config) {
+    public URLEndpointListenerConfiguration(@NonNull URLEndpointListenerConfiguration config) {
         this(
             config.getDatabase(),
             config.getNetworkInterface(),
@@ -80,7 +80,7 @@ public class URLEndpointListenerConfiguration {
             config.isDeltaSyncEnabled());
     }
 
-    URLEndpointListenerConfiguration(ImmutableURLEndpointListenerConfiguration config) {
+    URLEndpointListenerConfiguration(@NonNull ImmutableURLEndpointListenerConfiguration config) {
         this(
             config.getDatabase(),
             config.getNetworkInterface(),

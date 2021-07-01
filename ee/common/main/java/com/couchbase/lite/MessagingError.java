@@ -25,6 +25,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * The messaging error.
  */
 public class MessagingError {
+    @NonNull
     private final Exception error;
     private final boolean recoverable;
 
@@ -48,6 +49,7 @@ public class MessagingError {
      *
      * @return the error object
      */
+    @NonNull
     public Exception getError() { return error; }
 
     /**

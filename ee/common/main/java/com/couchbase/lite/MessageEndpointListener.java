@@ -78,6 +78,7 @@ public class MessageEndpointListener {
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
+    @NonNull
     private final MessageEndpointListenerConfiguration config;
 
     @GuardedBy("lock")
@@ -194,7 +195,9 @@ public class MessageEndpointListener {
      * @return listener identifier
      */
     @NonNull
-    public ListenerToken addChangeListener(Executor queue, @NonNull MessageEndpointListenerChangeListener listener) {
+    public ListenerToken addChangeListener(
+            @NonNull Executor queue,
+            @NonNull MessageEndpointListenerChangeListener listener) {
         Preconditions.assertNotNull(listener, "listener");
         return changeNotifier.addChangeListener(queue, listener);
     }
@@ -213,7 +216,7 @@ public class MessageEndpointListener {
     // Package visibility
     //---------------------------------------------
 
-    void statusChanged(C4Replicator replicator, C4ReplicatorStatus status) {
+    void statusChanged(@NonNull C4Replicator replicator, @NonNull C4ReplicatorStatus status) {
         final MessageEndpointConnection connection = (!AbstractReplicator.isStopped(status))
             ? getConnection(replicator)
             : removeConnection(replicator);
@@ -230,6 +233,7 @@ public class MessageEndpointListener {
         closeAll();
     }
 
+    @NonNull
     @VisibleForTesting
     MessageEndpointListenerConfiguration getConfig() { return config; }
 
@@ -237,6 +241,7 @@ public class MessageEndpointListener {
     // Private
     //---------------------------------------------
 
+    @NonNull
     private MessageEndpointConnection getConnection(@NonNull C4Replicator replicator) {
         synchronized (lock) { return replicators.get(replicator); }
     }
@@ -250,6 +255,7 @@ public class MessageEndpointListener {
         }
     }
 
+    @NonNull
     private MessageEndpointConnection removeConnection(@NonNull C4Replicator replicator) {
         final boolean mustUnregister;
         final MessageEndpointConnection connection;
@@ -263,6 +269,7 @@ public class MessageEndpointListener {
         return connection;
     }
 
+    @NonNull
     private byte[] getOptions() throws LiteCoreException {
         try (FLEncoder encoder = FLEncoder.getManagedEncoder()) {
             encoder.beginDict(1);

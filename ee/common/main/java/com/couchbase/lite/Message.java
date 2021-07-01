@@ -45,7 +45,7 @@ public class Message {
     // !!! This method stores a mutable array as private data
     @SuppressFBWarnings("EI_EXPOSE_REP")
     @SuppressWarnings("PMD.ArrayIsStoredDirectly")
-    Message(byte[] data) { this.data = data; }
+    Message(@NonNull byte[] data) { this.data = data; }
 
     /**
      * Gets the message as data.

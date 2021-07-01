@@ -17,6 +17,7 @@
 package com.couchbase.lite;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.util.List;
 
@@ -54,7 +55,7 @@ public final class IndexBuilder extends AbstractIndexBuilder {
     public static PredictiveIndex predictiveIndex(
         @NonNull String model,
         @NonNull Expression input,
-        List<String> properties) {
+        @Nullable List<String> properties) {
         return new PredictiveIndex(model, input, properties);
     }
 }
