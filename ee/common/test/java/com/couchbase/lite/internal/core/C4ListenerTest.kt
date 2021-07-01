@@ -86,7 +86,7 @@ class C4ListenerTest : PlatformSecurityTest() {
 
         override fun nGetConnectionStatus(handle: Long): ConnectionStatus = ConnectionStatus(0, 0)
 
-        override fun nGetUriFromPath(path: String?): String = ""
+        override fun nGetUriFromPath(path: String): String = ""
     }
 
     @Before
