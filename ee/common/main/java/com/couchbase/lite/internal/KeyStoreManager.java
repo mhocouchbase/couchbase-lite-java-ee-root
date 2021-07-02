@@ -139,7 +139,6 @@ public abstract class KeyStoreManager {
      * @param keyPair The key pair
      * @return the raw key data or null failure.
      */
-    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] getKeyData(@NonNull C4KeyPair keyPair);
 
@@ -151,7 +150,6 @@ public abstract class KeyStoreManager {
      * @param data            The data to be signed.
      * @return the signature (length must be equal to the key size) or null on failure.
      */
-    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] sign(
         @NonNull C4KeyPair keyPair,
@@ -165,7 +163,6 @@ public abstract class KeyStoreManager {
      * @param data    The data to be encrypted.
      * @return the raw key data or null failure.
      */
-    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract byte[] decrypt(@NonNull C4KeyPair keyPair, @NonNull byte[] data);
 
@@ -184,14 +181,12 @@ public abstract class KeyStoreManager {
     public abstract boolean findAlias(@Nullable KeyStore keyStore, @NonNull String targetAlias)
         throws CouchbaseLiteException;
 
-    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract PrivateKey getKey(
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,
         @Nullable char[] keyPassword);
 
-    @org.jetbrains.annotations.Nullable
     @Nullable
     public abstract List<Certificate> getCertificateChain(@Nullable KeyStore keyStore, @NonNull String keyAlias);
 
@@ -230,7 +225,7 @@ public abstract class KeyStoreManager {
     protected final PrivateKey getPrivateKey(
         @NonNull String alias,
         @NonNull KeyStore keyStore,
-        @NonNull KeyStore.ProtectionParameter protectionParam) {
+        @Nullable KeyStore.ProtectionParameter protectionParam) {
         final KeyStore.Entry entry;
         try { entry = keyStore.getEntry(alias, protectionParam); }
         catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {

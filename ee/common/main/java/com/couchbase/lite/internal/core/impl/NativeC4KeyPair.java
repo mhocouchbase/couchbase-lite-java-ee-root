@@ -16,6 +16,7 @@
 package com.couchbase.lite.internal.core.impl;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.internal.core.C4KeyPair;
@@ -36,7 +37,7 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         long c4KeyPair,
         byte algorithm,
         int keyBits,
-        @NonNull String[][] subjectName,
+        @Nullable String[][] subjectName,
         byte usage,
         long validityInSeconds)
         throws LiteCoreException {
@@ -56,7 +57,7 @@ public class NativeC4KeyPair implements C4KeyPair.NativeImpl {
         long c4KeyPair,
         byte algorithm,
         int keyBits,
-        @NonNull String[][] nameComponents,
+        @Nullable String[][] nameComponents,
         byte usage,
         long validityInSeconds)
         throws LiteCoreException;

@@ -55,7 +55,7 @@ public class BaseTLSIdentity {
         return (identity == null) ? null : identity.getCert();
     }
 
-    @Nullable
+    @NonNull
     protected static KeyStoreManager getManager() { return KeyStoreManager.getInstance(); }
 
 

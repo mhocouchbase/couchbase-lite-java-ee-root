@@ -196,7 +196,7 @@ public class MessageEndpointListener {
      */
     @NonNull
     public ListenerToken addChangeListener(
-            @NonNull Executor queue,
+            @Nullable Executor queue,
             @NonNull MessageEndpointListenerChangeListener listener) {
         Preconditions.assertNotNull(listener, "listener");
         return changeNotifier.addChangeListener(queue, listener);

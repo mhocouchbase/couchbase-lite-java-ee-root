@@ -678,8 +678,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val maxVals = mutableListOf(0, 0)
 
         var token: ListenerToken? = null
-        val repl = run(makeReplConfig(listener.endpoint(), otherDB)) { repl: Replicator ->
-            token = repl.addChangeListener {
+        val repl = run(makeReplConfig(listener.endpoint(), otherDB)) {
+            token = it!!.addChangeListener {
                 listener.status?.run {
                     // on Android < 24, we cannot use AtomicInteger.getAndAccumulate
                     synchronized(maxVals) {
@@ -714,8 +714,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         var busyIdentity: TLSIdentity? = null
         var token: ListenerToken? = null
-        val repl = run(makeReplConfig(listener.endpoint())) { repl: Replicator ->
-            token = repl.addChangeListener { change ->
+        val repl = run(makeReplConfig(listener.endpoint())) {
+            token = it!!.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
                         if (busyIdentity == null) {
@@ -742,13 +742,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         var busyCerts: List<Certificate>? = null
 
         var token: ListenerToken? = null
-        val repl = run(makeReplConfig(listener.endpoint())) { repl: Replicator ->
-            assertNull(repl.serverCertificates)
-            token = repl.addChangeListener { change ->
+        val repl = run(makeReplConfig(listener.endpoint())) {
+            assertNull(it!!.serverCertificates)
+            token = it.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
                         if (busyCerts == null) {
-                            busyCerts = repl.serverCertificates
+                            busyCerts = it.serverCertificates
                         }
                     else -> Unit
                 }
@@ -773,13 +773,13 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         var busyCerts: List<Certificate>? = null
 
         var token: ListenerToken? = null
-        val repl = run(makeReplConfig(listener.endpoint(), baseTestDb, cert, false)) { repl: Replicator ->
-            assertNull(repl.serverCertificates)
-            token = repl.addChangeListener { change ->
+        val repl = run(makeReplConfig(listener.endpoint(), baseTestDb, cert, false)) {
+            assertNull(it!!.serverCertificates)
+            token = it.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
                         if (busyCerts == null) {
-                            busyCerts = repl.serverCertificates
+                            busyCerts = it.serverCertificates
                         }
                     else -> Unit
                 }
@@ -804,8 +804,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             CBLError.Code.TLS_CERT_UNTRUSTED,
             CBLError.Domain.CBLITE,
             false
-        ) { repl: Replicator ->
-            assertNull(repl.serverCertificates)
+        ) {
+            assertNull(it!!.serverCertificates)
         }
 
         assertTrue(Arrays.equals(serverIdentity.certs[0].encoded, repl.serverCertificates!![0].encoded))

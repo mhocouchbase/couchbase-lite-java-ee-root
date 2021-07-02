@@ -474,16 +474,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val doc2 = MutableDocument(DOC3)
         doc2.setString(KEY3, VAL3)
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
-        run(pullConfigWitResolver(TestConflictResolver { doc2 })) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc2 })) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(0, errors.size)
 
@@ -508,16 +506,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         baseTestDb.save(doc)
         val doc3 = baseTestDb.getNonNullDoc(DOC3)
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
-        run(pullConfigWitResolver(TestConflictResolver { doc3 })) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc3 })) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(0, errors.size)
 
@@ -540,12 +536,10 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -559,7 +553,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertEquals(1, doc1.count())
         assertEquals(VAL1, doc1.getString(KEY1))
 
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
     }
 
     /**
@@ -576,19 +570,16 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val pullConfig =
-            pullConfigWitResolver(TestConflictResolver { throw IllegalStateException("freak out!") })
+        val pullConfig = pullConfigWitResolver(TestConflictResolver { throw IllegalStateException("freak out!") })
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(1, errors.size)
         val error = errors[0]
@@ -890,16 +881,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
             doc
         })
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(0, errors.size)
 
@@ -927,16 +916,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
             doc
         })
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(0, errors.size)
 
@@ -966,16 +953,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
             doc
         })
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) {
+            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(1, errors.size)
         val error = errors[0]
@@ -1170,16 +1155,14 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
             conflict.remoteDocument
         })
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        run(pullConfig) { r: Replicator ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        var replicator = run(pullConfig) {
+            token = it?.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         assertEquals(1, errors.size)
         val error = errors[0]
@@ -1357,19 +1340,17 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         val config = pullConfigWitResolver(resolver)
 
-        var replicator: Replicator? = null
         var token: ListenerToken? = null
 
         val docIds = mutableListOf<String>()
-        run(config) { r ->
-            replicator = r
-            token = r.addDocumentReplicationListener { docRepl ->
+        var replicator = run(config) {
+            token = it!!.addDocumentReplicationListener { docRepl ->
                 for (replDoc in docRepl.documents) {
                     docIds.add(replDoc.id)
                 }
             }
         }
-        replicator?.removeChangeListener(token!!)
+        replicator.removeChangeListener(token!!)
 
         run(pullConfig())
 

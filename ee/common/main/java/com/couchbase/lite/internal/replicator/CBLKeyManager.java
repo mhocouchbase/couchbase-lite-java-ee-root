@@ -15,6 +15,7 @@
 package com.couchbase.lite.internal.replicator;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.net.Socket;
 import java.security.Principal;
@@ -73,7 +74,7 @@ public class CBLKeyManager implements X509KeyManager {
         return certs.toArray(new X509Certificate[0]);
     }
 
-    @NonNull
+    @Nullable
     @Override
     public PrivateKey getPrivateKey(@NonNull String alias) {
         final C4KeyPair keyPair = identity.getKeyPair();

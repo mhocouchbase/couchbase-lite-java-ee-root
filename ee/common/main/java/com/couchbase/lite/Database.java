@@ -127,7 +127,7 @@ public final class Database extends AbstractDatabase {
     @Override
     int getEncryptionAlgorithm() { return getEncryptionAlgorithm(config.getEncryptionKey()); }
 
-    @NonNull
+    @Nullable
     @Override
     byte[] getEncryptionKey() { return getEncryptionKey(config.getEncryptionKey()); }
 
