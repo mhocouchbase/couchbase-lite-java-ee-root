@@ -63,13 +63,12 @@ ext {
     BUILD_COMMIT = getBuildId()
 
     CBL_CORE_DIR = "${ROOT_DIR}/core"
-    CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
     CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
 
-    LIB_MODULE_DIR = "${projectDir}"
     REPORTS_DIR = "${buildDir}/reports"
     ETC_DIR = "${CBL_COMMON_ROOT_DIR}/etc"
 
@@ -199,7 +198,7 @@ android {
                 "${CBL_COMMON_DIR}/main/java",                   // Common
                 "${CBL_COMMON_ANDROID_DIR}/main/java",           // Common Android
                 "${CBL_EE_COMMON_DIR}/main/java",                // EE Common
-                "${LIB_MODULE_DIR}/src/main/java",
+                "${projectDir}/src/main/java",
             ]
             res.srcDirs = [
                 "${CBL_COMMON_ANDROID_DIR}/main/res",            // Common resources
@@ -214,7 +213,7 @@ android {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
-                "${LIB_MODULE_DIR}/src/androidTest/java",        // EE Android tests
+                "${projectDir}/src/androidTest/java",        // EE Android tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
@@ -592,7 +591,7 @@ project.afterEvaluate {
 // delete .externalNativeBuild and .cxx directories to force rerun of cmake.
 // This is necessary because 'clean' deletes the file 'zconf.h' which is in
 // .../build/intermediates, causing subsequent builds to fail.
-clean.doLast { project.delete "${LIB_MODULE_DIR}/.cxx" }
+clean.doLast { project.delete "${projectDir}/.cxx" }
 
 
 // ----------------------------------------------------------------
