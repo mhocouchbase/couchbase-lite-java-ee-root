@@ -37,8 +37,8 @@ plugins {
 // ----------------------------------------------------------------
 
 ext {
-    CBL_GROUP = 'com.couchbase.lite'
-    CBL_ARTIFACT_ID = 'couchbase-lite-android-ee-kt'
+    CBL_GROUP = 'com.couchbase.lite.kotlin'
+    CBL_ARTIFACT_ID = 'couchbase-lite-kt-android-ee'
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
     CBL_LICENSE_URL = "https://raw.githubusercontent.com/couchbase/product-texts/${getLicenseVersion()}/mobile/couchbase-lite/license/LICENSE_enterprise.txt"
@@ -52,12 +52,19 @@ ext {
     BUILD_VERSION = "${BUILD_RELEASE}-${BUILD_NUMBER}"
     BUILD_COMMIT = getBuildId()
 
+    CBL_CORE_DIR = "${ROOT_DIR}/core"
     CBL_COMMON_ROOT_DIR = "${ROOT_DIR}/common"
     CBL_COMMON_DIR = "${CBL_COMMON_ROOT_DIR}/common"
+    CBL_COMMON_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/android"
     CBL_COMMON_KT_ANDROID_DIR = "${CBL_COMMON_ROOT_DIR}/kt-android"
     CBL_EE_ROOT_DIR = "${ROOT_DIR}/ee"
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
+    CBL_EE_ANDROID_DIR = "${CBL_EE_ROOT_DIR}/android"
 
+    LIB_MODULE_DIR = "${projectDir}"
+
+    DEPENDENCIES = ['couchbase-lite-android']
+    OKHTTP_VERSION = '3.14.7'
     SUPPORT_VERSION = '28.0.0'
 }
 
@@ -93,6 +100,8 @@ android {
         buildConfigField "String", "VERSION_NAME", "\"${BUILD_VERSION}\""
         buildConfigField "String", "BUILD_TIME", "\"${BUILD_TIME}\""
         buildConfigField "String", "BUILD_COMMIT", "\"${BUILD_COMMIT}\""
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -120,6 +129,9 @@ android {
                 "${CBL_EE_COMMON_DIR}/main/kotlin",
                 "${projectDir}/src/main/kotlin"
             ]
+            res.srcDirs = [
+                "${CBL_COMMON_KT_ANDROID_DIR}/main/res",
+            ]
         }
         debug {
             manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/debug/AndroidManifest.xml"
@@ -127,14 +139,20 @@ android {
         androidTest {
             manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/AndroidManifest.xml"
             java.srcDirs = [
+                "${CBL_COMMON_DIR}/test/java",
                 "${CBL_COMMON_DIR}/test/kotlin",
+                "${CBL_COMMON_ANDROID_DIR}/androidTest/java",
                 "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/kotlin",
+                "${CBL_EE_COMMON_DIR}/test/java",
                 "${CBL_EE_COMMON_DIR}/test/kotlin",
-                "${projectDir}/src/androidTest/kotlin"
+                "${CBL_EE_ANDROID_DIR}/lib/src/androidTest/java"
             ]
             assets.srcDirs = [
+                "${CBL_CORE_DIR}/C/tests/data",
+                "${CBL_COMMON_DIR}/test/assets",
             ]
             res.srcDirs = [
+                "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/res",
             ]
         }
     }
@@ -146,6 +164,7 @@ android {
 }
 
 repositories {
+    mavenLocal()
     google()
     mavenCentral()
 }
@@ -153,9 +172,15 @@ repositories {
 dependencies {
     compileOnly "com.android.support:support-annotations:${SUPPORT_VERSION}"
 
-    implementation project(path: ':ee:android')
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
+
+    //noinspection GradleDynamicVersion
+    implementation "com.couchbase.lite:couchbase-lite-android-ee:3+"
+
+    testImplementation 'junit:junit:4.13.1'
+
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
 
 /////// Static Analysis
@@ -251,6 +276,7 @@ project.afterEvaluate {
                     // Include only configured dependencies
                     configurations.implementation.allDependencies.each {
                         if (DEPENDENCIES.contains(it.name)) {
+                            println("#### ${it.group}${it.name}${it.version}")
                             def dep = dependenciesNode.appendNode('dependency')
                             dep.appendNode('groupId', it.group)
                             dep.appendNode('artifactId', it.name)
@@ -297,7 +323,7 @@ project.afterEvaluate {
 // ----------------------------------------------------------------
 
 ///////// Dev tasks
-task smokeTest(dependsOn: ['compileDebugSources', 'checkstyle', 'lint', 'pmd', 'spotbugsHtml'])
+task smokeTest(dependsOn: ['compileDebugSources', 'lint'])
 task devTest(dependsOn: ['connectedDebugAndroidTest'])
 task fullTest(dependsOn: ['smokeTest', 'devTest'])
 
@@ -308,16 +334,9 @@ task ciPublish(dependsOn: ['javadocJar', 'generatePomFileForLibReleasePublicatio
 
 // ordering (roughly last to first)
 project.afterEvaluate {
-    tasks.withType(Javadoc) { shouldRunAfter connectedDebugAndroidTest }
     connectedDebugAndroidTest.shouldRunAfter smokeTest
     testDebugUnitTest.shouldRunAfter smokeTest
 }
-
-// Clean
-// delete .externalNativeBuild and .cxx directories to force rerun of cmake.
-// This is necessary because 'clean' deletes the file 'zconf.h' which is in
-// .../build/intermediates, causing subsequent builds to fail.
-clean.doLast { project.delete "${projectDir}/.cxx" }
 
 
 // ----------------------------------------------------------------

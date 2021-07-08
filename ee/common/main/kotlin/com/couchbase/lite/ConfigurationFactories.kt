@@ -16,6 +16,15 @@
 package com.couchbase.lite
 
 
+val DatabaseConfigurationFactory: DatabaseConfiguration? = null
+fun DatabaseConfiguration?.create(
+    databasePath: String? = null,
+    encryptionKey: EncryptionKey? = null
+) = DatabaseConfiguration(
+    databasePath ?: this?.directory,
+    encryptionKey ?: this?.encryptionKey
+)
+
 val ReplicatorConfigurationFactory: ReplicatorConfiguration? = null
 fun ReplicatorConfiguration?.create(
     database: Database? = null,
@@ -83,14 +92,5 @@ fun URLEndpointListenerConfiguration?.create(
     authenticator ?: this?.authenticator,
     readOnly ?: this?.isReadOnly ?: false,
     enableDeltaSync ?: this?.isDeltaSyncEnabled ?: false
-)
-
-val DatabaseConfigurationFactory: DatabaseConfiguration? = null
-fun DatabaseConfiguration?.create(
-    databasePath: String? = null,
-    encryptionKey: EncryptionKey? = null
-) = DatabaseConfiguration(
-    databasePath ?: this?.directory,
-    encryptionKey ?: this?.encryptionKey
 )
 
