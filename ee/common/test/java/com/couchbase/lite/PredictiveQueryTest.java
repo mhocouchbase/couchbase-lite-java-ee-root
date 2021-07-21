@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -188,7 +187,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testRegisterAndUnregisterModel() throws Exception {
+    public void testRegisterAndUnregisterModel() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
 
         String model = AggregateModel.NAME;
@@ -217,7 +216,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testRegisterMultipleModelsWithSameName() throws Exception {
+    public void testRegisterMultipleModelsWithSameName() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
 
         String model = "TheModel";
@@ -250,7 +249,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testPredictionInputOutput() throws Exception {
+    public void testPredictionInputOutput() throws CouchbaseLiteException {
         // Register echo model:
         EchoModel echoModel = new EchoModel();
         echoModel.registerModel();
@@ -334,7 +333,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testPredictionWithBlobPropertyInput() throws Exception {
+    public void testPredictionWithBlobPropertyInput() throws CouchbaseLiteException {
         final String[] texts = new String[] {
             BLOB_CONTENT,
             "Clocks on fox tick. Clocks on Knox tock. Six sick bricks tick. Six sick chicks tock."
@@ -372,7 +371,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testPredictionWithBlobParameterInput() throws Exception {
+    public void testPredictionWithBlobParameterInput() throws CouchbaseLiteException {
         baseTestDb.save(new MutableDocument());
 
         TextModel textModel = new TextModel();
@@ -438,7 +437,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testQueryPredictionResultDictionary() throws Exception {
+    public void testQueryPredictionResultDictionary() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -470,7 +469,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testQueryPredictionValues() throws Exception {
+    public void testQueryPredictionValues() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -517,7 +516,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testWhereUsingPredictionValues() throws Exception {
+    public void testWhereUsingPredictionValues() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -555,7 +554,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testOrderByUsingPredictionValues() throws Exception {
+    public void testOrderByUsingPredictionValues() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -575,7 +574,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         int rows = verifyQuery(q, (n, result) -> {
             int sum = result.getInt(0);
             assertEquals((n == 1 ? 40 : 15), sum);
-
         });
         assertEquals(2, rows);
 
@@ -583,7 +581,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testPredictiveModelReturningNull() throws Exception {
+    public void testPredictiveModelReturningNull() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
 
         MutableDocument doc = new MutableDocument();
@@ -634,7 +632,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexPredictionValueUsingValueIndex() throws Exception {
+    public void testIndexPredictionValueUsingValueIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -665,7 +663,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexMultiplePredictionValuesUsingValueIndex() throws Exception {
+    public void testIndexMultiplePredictionValuesUsingValueIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -699,7 +697,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexCompoundPredictiveValuesUsingValueIndex() throws Exception {
+    public void testIndexCompoundPredictiveValuesUsingValueIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -739,7 +737,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexPredictionResultUsingPredictiveIndex() throws Exception {
+    public void testIndexPredictionResultUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -777,7 +775,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexPredictionValueUsingPredictiveIndex() throws Exception {
+    public void testIndexPredictionValueUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -812,7 +810,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexMultiplePredictionValuesUsingPredictiveIndex() throws Exception {
+    public void testIndexMultiplePredictionValuesUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -852,7 +850,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testIndexCompoundPredictiveValuesUsingPredictiveIndex() throws Exception {
+    public void testIndexCompoundPredictiveValuesUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -882,7 +880,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         int rows = verifyQuery(q, (n, result) -> {
             assertEquals(15, result.getInt(0));
             assertEquals(3, result.getInt(1));
-
         });
         assertEquals(1, rows);
         assertEquals(2, aggregateModel.getNumberOfCalls());
@@ -892,7 +889,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testDeletePredictiveIndex() throws Exception {
+    public void testDeletePredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -953,7 +950,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testDeletePredictiveIndexesSharingSameCacheTable() throws Exception {
+    public void testDeletePredictiveIndexesSharingSameCacheTable() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
         createDocument(new int[] {6, 7, 8, 9, 10});
 
@@ -1093,7 +1090,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testEuclideanDistance() throws Exception {
+    public void testEuclideanDistance() throws CouchbaseLiteException {
         Object[][] tests = {
             {Arrays.asList(10, 10), Arrays.asList(13, 14), 5},
             {Arrays.asList(1, 2, 3), Arrays.asList(1, 2, 3), 0},
@@ -1129,7 +1126,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testSquaredEuclideanDistance() throws Exception {
+    public void testSquaredEuclideanDistance() throws CouchbaseLiteException {
         Object[][] tests = {
             {Arrays.asList(10, 10), Arrays.asList(13, 14), 25},
             {Arrays.asList(1, 2, 3), Arrays.asList(1, 2, 3), 0},
@@ -1165,7 +1162,7 @@ public class PredictiveQueryTest extends BaseQueryTest {
     }
 
     @Test
-    public void testCosineDistance() throws Exception {
+    public void testCosineDistance() throws CouchbaseLiteException {
         Object[][] tests = {
             {Arrays.asList(10, 0), Arrays.asList(0, 99), 1.0},
             {Arrays.asList(1, 2, 3), Arrays.asList(1, 2, 3), 0},
