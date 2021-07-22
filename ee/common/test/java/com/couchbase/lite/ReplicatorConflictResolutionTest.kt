@@ -25,6 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.LinkedBlockingQueue
@@ -762,6 +763,10 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 1. Test that the blob objects in the resolved document can be saved to the database.
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Local has blob; Remote wins
+     *
+     * CBL-2180:
+     * There have been several reports of blobs not being correctly synched.
+     * Even after looking at the problemd for a while, I haven't been able to reproduce it.
      */
     @Test
     fun testConflictResolverRemoteWithLocalBlob() {
@@ -1306,11 +1311,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertEquals(expectedFlags, doc1.c4doc!!.selectedFlags)
     }
 
-    private fun makeConflict(
-        docId: String,
-        localData: Map<String, Any>?,
-        remoteData: Map<String, Any>?
-    ) {
+    private fun makeConflict(docId: String, localData: Map<String, Any>?, remoteData: Map<String, Any>?) {
         val doc = MutableDocument(docId)
         baseTestDb.save(doc)
 
