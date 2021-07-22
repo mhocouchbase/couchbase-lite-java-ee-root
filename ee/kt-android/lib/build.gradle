@@ -37,7 +37,7 @@ plugins {
 // ----------------------------------------------------------------
 
 ext {
-    CBL_GROUP = 'com.couchbase.lite.kotlin'
+    CBL_GROUP = 'com.couchbase.lite'
     CBL_ARTIFACT_ID = 'couchbase-lite-kt-android-ee'
     CBL_DESCRIPTION = 'Couchbase Lite is an embedded lightweight, document-oriented (NoSQL), syncable database engine.'
     CBL_LICENSE = 'Couchbase, Inc. Enterprise Edition License Agreement'
@@ -61,19 +61,16 @@ ext {
     CBL_EE_COMMON_DIR = "${CBL_EE_ROOT_DIR}/common"
     CBL_EE_ANDROID_DIR = "${CBL_EE_ROOT_DIR}/android"
 
-    LIB_MODULE_DIR = "${projectDir}"
-
-    DEPENDENCIES = ['couchbase-lite-android']
-    OKHTTP_VERSION = '3.14.7'
+    CBL_ANDROID_LIB = 'couchbase-lite-android-ee'
     SUPPORT_VERSION = '28.0.0'
 }
 
 // Target repo for maven publish
-def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
+def MAVEN_URL = (project.hasProperty("mavenUrl")) ? mavenUrl : "http://nowhere.void/"
 
 // local.properties
-Properties properties = new Properties()
-properties.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
+Properties PROPERTIES = new Properties()
+PROPERTIES.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -127,7 +124,7 @@ android {
                 "${CBL_COMMON_DIR}/main/kotlin",
                 "${CBL_COMMON_KT_ANDROID_DIR}/main/kotlin",
                 "${CBL_EE_COMMON_DIR}/main/kotlin",
-                "${projectDir}/src/main/kotlin"
+                "${projectDir}/src/main/kotlin",
             ]
             res.srcDirs = [
                 "${CBL_COMMON_KT_ANDROID_DIR}/main/res",
@@ -140,12 +137,13 @@ android {
             manifest.srcFile "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/AndroidManifest.xml"
             java.srcDirs = [
                 "${CBL_COMMON_DIR}/test/java",
-                "${CBL_COMMON_DIR}/test/kotlin",
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",
-                "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/kotlin",
+                "${CBL_COMMON_DIR}/test/kotlin",
                 "${CBL_EE_COMMON_DIR}/test/java",
                 "${CBL_EE_COMMON_DIR}/test/kotlin",
-                "${CBL_EE_ANDROID_DIR}/lib/src/androidTest/java"
+                "${CBL_EE_ANDROID_DIR}/lib/src/androidTest/java",
+                "${CBL_COMMON_KT_ANDROID_DIR}/androidTest/kotlin",
+                "${projectDir}/src/androidTest/kotlin",
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",
@@ -156,26 +154,21 @@ android {
             ]
         }
     }
-
-    lintOptions {
-        disable 'UseSparseArrays'
-        abortOnError false
-    }
 }
 
 repositories {
-    mavenLocal()
     google()
     mavenCentral()
+    maven { url "http://proget.build.couchbase.com/maven2/cimaven/" }
+    mavenLocal()
 }
 
 dependencies {
     compileOnly "com.android.support:support-annotations:${SUPPORT_VERSION}"
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${KOTLIN_VERSION}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1"
 
-    //noinspection GradleDynamicVersion
-    implementation "com.couchbase.lite:couchbase-lite-android-ee:3+"
+    implementation "com.couchbase.lite:${CBL_ANDROID_LIB}:${BUILD_VERSION}"
 
     testImplementation 'junit:junit:4.13.1'
 
@@ -197,8 +190,8 @@ dependencies {
 /////// Maven Publishing
 // https://docs.gradle.org/current/userguide/publishing_maven.html
 
-def mavenRepoUser = properties.getProperty('maven.repo.user')
-def mavenRepoPass = properties.getProperty('maven.repo.pass')
+def mavenRepoUser = PROPERTIES.getProperty('maven.repo.user')
+def mavenRepoPass = PROPERTIES.getProperty('maven.repo.pass')
 
 // Annoying workaround for Android POM generation
 def pomConfig = {
@@ -233,14 +226,12 @@ def pomConfig = {
 
 // Generate source.jar
 task sourcesJar(type: Jar) {
-    archiveBaseName = "${CBL_ARTIFACT_ID}"
-    archiveClassifier = 'sources'
+    setArchiveBaseName("${CBL_ARTIFACT_ID}")
+    setArchiveClassifier('sources')
     from android.sourceSets.main.java.srcDirs
 }
 
-artifacts {
-    archives sourcesJar
-}
+artifacts { archives sourcesJar }
 
 publishing {
     repositories {
@@ -257,6 +248,10 @@ publishing {
 project.afterEvaluate {
     publishing {
         publications {
+
+            // Note that the these two publications deploy to
+            // identical maven coordinates: one will overwrite the other
+
             libRelease(MavenPublication) {
                 groupId CBL_GROUP
                 artifactId CBL_ARTIFACT_ID
@@ -272,17 +267,10 @@ project.afterEvaluate {
                     root.children().last() + pomConfig
 
                     def dependenciesNode = root.appendNode('dependencies')
-
-                    // Include only configured dependencies
-                    configurations.implementation.allDependencies.each {
-                        if (DEPENDENCIES.contains(it.name)) {
-                            println("#### ${it.group}${it.name}${it.version}")
-                            def dep = dependenciesNode.appendNode('dependency')
-                            dep.appendNode('groupId', it.group)
-                            dep.appendNode('artifactId', it.name)
-                            dep.appendNode('version', it.version)
-                        }
-                    }
+                    def dep = dependenciesNode.appendNode('dependency')
+                    dep.appendNode('groupId', CBL_GROUP)
+                    dep.appendNode('artifactId', CBL_ANDROID_LIB)
+                    dep.appendNode('version', BUILD_VERSION)
                 }
             }
 
@@ -301,16 +289,10 @@ project.afterEvaluate {
                     root.children().last() + pomConfig
 
                     def dependenciesNode = root.appendNode('dependencies')
-
-                    // Include only configured dependencies
-                    configurations.implementation.allDependencies.each {
-                        if (DEPENDENCIES.contains(it.name)) {
-                            def dep = dependenciesNode.appendNode('dependency')
-                            dep.appendNode('groupId', it.group)
-                            dep.appendNode('artifactId', it.name)
-                            dep.appendNode('version', it.version)
-                        }
-                    }
+                    def dep = dependenciesNode.appendNode('dependency')
+                    dep.appendNode('groupId', CBL_GROUP)
+                    dep.appendNode('artifactId', CBL_ANDROID_LIB)
+                    dep.appendNode('version', BUILD_VERSION)
                 }
             }
         }
@@ -330,7 +312,7 @@ task fullTest(dependsOn: ['smokeTest', 'devTest'])
 ///////// CI tasks
 task ciCheck(dependsOn: ['test'])
 task ciBuild(dependsOn: ['assembleRelease'])
-task ciPublish(dependsOn: ['javadocJar', 'generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
+task ciPublish(dependsOn: ['generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
 
 // ordering (roughly last to first)
 project.afterEvaluate {

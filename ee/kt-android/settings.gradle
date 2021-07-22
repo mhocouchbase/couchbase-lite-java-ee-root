@@ -15,7 +15,8 @@
 if (!hasProperty("automatedTests") || !automatedTests.toBoolean()) {
     // normal source development
     include ':lib'
-} else {
+}
+else {
     // the test application
     include ':test'
 }

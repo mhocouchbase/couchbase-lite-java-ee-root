@@ -38,7 +38,7 @@ plugins {
     id 'jacoco'
 
     // handy plugin for discovering task dependencies
-    //id 'com.dorongold.task-tree' version "1.5"
+    // id 'com.dorongold.task-tree' version "1.5"
 }
 
 
@@ -165,7 +165,11 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=Debug', '-DBUILD_ENTERPRISE=ON'
+                    arguments '-DANDROID_STL=c++_static',
+                        '-DANDROID_TOOLCHAIN=clang',
+                        '-DANDROID_PLATFORM=android-22',
+                        '-DCMAKE_BUILD_TYPE=Debug',
+                        '-DBUILD_ENTERPRISE=ON'
                     cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
                 }
             }
@@ -181,7 +185,11 @@ android {
 
             externalNativeBuild {
                 cmake {
-                    arguments '-DANDROID_STL=c++_static', '-DANDROID_TOOLCHAIN=clang', '-DANDROID_PLATFORM=android-22', '-DCMAKE_BUILD_TYPE=RelWithDebInfo', '-DBUILD_ENTERPRISE=ON'
+                    arguments '-DANDROID_STL=c++_static',
+                        '-DANDROID_TOOLCHAIN=clang',
+                        '-DANDROID_PLATFORM=android-22',
+                        '-DCMAKE_BUILD_TYPE=RelWithDebInfo',
+                        '-DBUILD_ENTERPRISE=ON'
                     cppFlags "-std=c++11 -frtti -fexceptions -fPIC"
                 }
             }
@@ -576,6 +584,12 @@ task ciCheck(dependsOn: ['checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
 task ciBuild(dependsOn: ['assembleRelease'])
 task ciPublish(dependsOn: ['javadocJar', 'generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
 
+task printConfigurations {
+    doLast { task ->
+        println "Project Name: $project.name configurations:"
+        configurations.each { println "    $it.name" }
+    }
+}
 // ordering (roughly last to first)
 project.afterEvaluate {
     tasks.withType(Javadoc) { shouldRunAfter connectedDebugAndroidTest }
@@ -603,7 +617,7 @@ def getLicenseVersion() { return getCommit("product-texts", "master") }
 def getBuildId() {
     def hostname = "rogue"
     try { hostname = "hostname".execute().text.trim() }
-    catch (Exception ignore) { }
+    catch (Exception ignore) {}
 
     return "${getCommit("couchbase-lite-java-ee-root", "unofficial").substring(0, 10)}@${hostname}"
 }
@@ -621,11 +635,11 @@ def getCommit(project, dflt) {
             if (m.find()) { return m.group(1) }
         }
     }
-    catch (Exception ignore) { }
+    catch (Exception ignore) {}
     finally {
         if (manifest != null) {
             try { manifest.close() }
-            catch (Exception ignore) { }
+            catch (Exception ignore) {}
         }
     }
 
