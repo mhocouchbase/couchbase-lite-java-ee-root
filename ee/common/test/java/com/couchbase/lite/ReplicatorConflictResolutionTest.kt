@@ -15,6 +15,7 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.internal.core.C4Constants
 import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -25,7 +26,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Ignore
 import org.junit.Test
 import java.net.URI
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.LinkedBlockingQueue
@@ -763,10 +763,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 1. Test that the blob objects in the resolved document can be saved to the database.
      * 2. We should test blob for all returning cases including localDoc, remoteDoc, and new doc with a blob object.
      * Case: Local has blob; Remote wins
-     *
-     * CBL-2180:
-     * There have been several reports of blobs not being correctly synched.
-     * Even after looking at the problemd for a while, I haven't been able to reproduce it.
      */
     @Test
     fun testConflictResolverRemoteWithLocalBlob() {
@@ -780,6 +776,10 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertNull(doc.getBlob(KEY5)) // redundant check to verify no blob
         assertEquals(1, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
+        // !!! CBL-2193: This seems wrong.
+        // Core thinks that this document has never had an attachment.
+        // CBL-2180: verify that the document knows it doesn't have attachments
+        assertTrue((doc.c4doc?.flags ?: -1).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) == 0)
     }
 
     /**
@@ -800,6 +800,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertEquals(2, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
         assertEquals(blob, doc.getBlob(KEY5))
+        // CBL-2180: verify that the document knows it has attachments
+        assertTrue((doc.c4doc?.flags ?: 0).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) != 0)
     }
 
     /**
@@ -820,8 +822,9 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertEquals(2, doc.count())
         assertEquals(VAL2, doc.getString(KEY2))
         assertEquals(blob, doc.getBlob(KEY5))
+        // CBL-2180: verify that the document knows it has attachments
+        assertTrue((doc.c4doc?.flags ?: 0).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) != 0)
     }
-
 
     /**
      * #15
@@ -841,7 +844,11 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertNull(doc.getBlob(KEY5)) // redundant check to verify no blob
         assertEquals(1, doc.count())
         assertEquals(VAL1, doc.getString(KEY1))
-    }
+        // !!! CBL-2193: This seems wrong.
+        // Core thinks that this document has an attachment in one of its revisions
+        // CBL-2180: verify that the document knows it has attachments
+        assertTrue((doc.c4doc?.flags ?: 0).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) != 0)
+     }
 
     /**
      * #15
@@ -866,6 +873,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val doc = baseTestDb.getNonNullDoc(DOC1)
         assertEquals(1, doc.count())
         assertEquals(blob, doc.getBlob(KEY5))
+        // CBL-2180: verify that the document knows it has attachments
+        assertTrue((doc.c4doc?.flags ?: 0).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) != 0)
     }
 
     /**
