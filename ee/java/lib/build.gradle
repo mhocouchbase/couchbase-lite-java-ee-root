@@ -361,7 +361,7 @@ checkstyle {
     }
 
 
-    configFile file("${ETC_DIR}/checkstyle/checkstyle.xml")
+    configFile = file("${ETC_DIR}/checkstyle/checkstyle.xml")
     configProperties = ['configDir': file("${ETC_DIR}/checkstyle")]
 
     showViolations true

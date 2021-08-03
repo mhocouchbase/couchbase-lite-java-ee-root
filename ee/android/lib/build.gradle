@@ -38,7 +38,7 @@ plugins {
     id 'jacoco'
 
     // handy plugin for discovering task dependencies
-    // id 'com.dorongold.task-tree' version "1.5"
+    //id 'com.dorongold.task-tree' version "1.5"
 }
 
 
@@ -85,7 +85,7 @@ def TARGET_ABIS = (!hasProperty("targetAbis")) ? null : targetAbis.split(', *')
 def TEST_FILTER = (!project.hasProperty("testFilter")) ? null : testFilter
 
 // Target repo for maven publish
-def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
+def MAVEN_URL = (project.hasProperty("mavenUrl")) ? mavenUrl : "http://nowhere.void/"
 
 // Set true to enable coverage
 // The incantation for generating a coverage report is:
@@ -93,8 +93,8 @@ def MAVEN_URL = (!project.hasProperty("mavenUrl")) ? null : mavenUrl
 def COVERAGE = project.hasProperty("coverage")
 
 // local.properties
-Properties properties = new Properties()
-properties.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
+Properties PROPERTIES = new Properties()
+PROPERTIES.load(project.rootProject.file("${PROPS_FILE}").newDataInputStream())
 
 
 // ----------------------------------------------------------------
@@ -221,7 +221,7 @@ android {
                 "${CBL_COMMON_DIR}/test/java",                   // Common tests
                 "${CBL_COMMON_ANDROID_DIR}/androidTest/java",    // Common Android tests
                 "${CBL_EE_COMMON_DIR}/test/java",                // EE Common tests
-                "${projectDir}/src/androidTest/java",        // EE Android tests
+                "${projectDir}/src/androidTest/java",            // EE Android tests
             ]
             assets.srcDirs = [
                 "${CBL_CORE_DIR}/C/tests/data",                  // lite-core test assets
@@ -439,8 +439,8 @@ task jacocoTestReport(type: JacocoReport) {
 /////// Maven Publishing
 // https://docs.gradle.org/current/userguide/publishing_maven.html
 
-def mavenRepoUser = properties.getProperty('maven.repo.user')
-def mavenRepoPass = properties.getProperty('maven.repo.pass')
+def mavenRepoUser = PROPERTIES.getProperty('maven.repo.user')
+def mavenRepoPass = PROPERTIES.getProperty('maven.repo.pass')
 
 // Annoying workaround for Android POM generation
 def pomConfig = {
@@ -584,12 +584,6 @@ task ciCheck(dependsOn: ['checkstyle', 'lint', 'pmd', 'spotbugsXml', 'test'])
 task ciBuild(dependsOn: ['assembleRelease'])
 task ciPublish(dependsOn: ['javadocJar', 'generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
 
-task printConfigurations {
-    doLast { task ->
-        println "Project Name: $project.name configurations:"
-        configurations.each { println "    $it.name" }
-    }
-}
 // ordering (roughly last to first)
 project.afterEvaluate {
     tasks.withType(Javadoc) { shouldRunAfter connectedDebugAndroidTest }
@@ -617,7 +611,7 @@ def getLicenseVersion() { return getCommit("product-texts", "master") }
 def getBuildId() {
     def hostname = "rogue"
     try { hostname = "hostname".execute().text.trim() }
-    catch (Exception ignore) {}
+    catch (Exception ignore) { }
 
     return "${getCommit("couchbase-lite-java-ee-root", "unofficial").substring(0, 10)}@${hostname}"
 }
@@ -635,11 +629,11 @@ def getCommit(project, dflt) {
             if (m.find()) { return m.group(1) }
         }
     }
-    catch (Exception ignore) {}
+    catch (Exception ignore) { }
     finally {
         if (manifest != null) {
             try { manifest.close() }
-            catch (Exception ignore) {}
+            catch (Exception ignore) { }
         }
     }
 

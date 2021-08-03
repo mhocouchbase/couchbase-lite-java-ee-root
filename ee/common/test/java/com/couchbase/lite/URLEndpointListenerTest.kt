@@ -515,7 +515,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents pinned credentials
-    @FlakyTest(log = ["Linux: 21/06/18"])
+    @FlakyTest(log = ["Linux: 21/06/18", "Linux: 21/07/30"])
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingClientCredentials() {
         val clientIdentity = createIdentity()
@@ -573,6 +573,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a callback client authenticator
     // should accept a client that presents credentials that cause the authenticator to return true.
+    @FlakyTest(log = ["Windows: 21/07/30"])
     @Test
     fun testCertAuthenticatorWithCallbackSucceeds() {
         val clientIdentity = createIdentity(false)
@@ -990,7 +991,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest(log = ["Window: 21/07/06"])
+    @FlakyTest(log = ["Window: 21/07/06", "Window: 21/07/30"])
     @Test
     fun testMultipleReplicatorsToListener() {
         var shouldWait = true

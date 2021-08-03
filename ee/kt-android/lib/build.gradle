@@ -157,10 +157,10 @@ android {
 }
 
 repositories {
+    mavenLocal()
+    maven { url "http://proget.build.couchbase.com/maven2/cimaven/" }
     google()
     mavenCentral()
-    maven { url "http://proget.build.couchbase.com/maven2/cimaven/" }
-    mavenLocal()
 }
 
 dependencies {
@@ -226,8 +226,8 @@ def pomConfig = {
 
 // Generate source.jar
 task sourcesJar(type: Jar) {
-    setArchiveBaseName("${CBL_ARTIFACT_ID}")
-    setArchiveClassifier('sources')
+    archiveBaseName = "${CBL_ARTIFACT_ID}"
+    archiveClassifier = 'sources'
     from android.sourceSets.main.java.srcDirs
 }
 
@@ -310,7 +310,6 @@ task devTest(dependsOn: ['connectedDebugAndroidTest'])
 task fullTest(dependsOn: ['smokeTest', 'devTest'])
 
 ///////// CI tasks
-task ciCheck(dependsOn: ['test'])
 task ciBuild(dependsOn: ['assembleRelease'])
 task ciPublish(dependsOn: ['generatePomFileForLibReleasePublication', 'publishLibReleasePublicationToMavenRepository'])
 
