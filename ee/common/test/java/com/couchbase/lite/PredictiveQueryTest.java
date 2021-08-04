@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.JSONUtils;
@@ -737,7 +736,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.reset();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testIndexPredictionResultUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
@@ -776,7 +774,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testIndexPredictionValueUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
@@ -812,7 +809,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testIndexMultiplePredictionValuesUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
@@ -853,7 +849,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testIndexCompoundPredictiveValuesUsingPredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
@@ -893,7 +888,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testDeletePredictiveIndex() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});
@@ -955,7 +949,6 @@ public class PredictiveQueryTest extends BaseQueryTest {
         aggregateModel.unregisterModel();
     }
 
-    @Ignore("CBL-2182")
     @Test
     public void testDeletePredictiveIndexesSharingSameCacheTable() throws CouchbaseLiteException {
         createDocument(new int[] {1, 2, 3, 4, 5});

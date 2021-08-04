@@ -29,7 +29,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
@@ -154,7 +153,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     }
 
     // This test fails if no network is available
-    @Ignore("CBL-2182")
     @Test
     fun testURLs() {
         val listener = URLEndpointListener(makeLocalConfig())
