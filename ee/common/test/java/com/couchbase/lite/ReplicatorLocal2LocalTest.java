@@ -80,7 +80,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             revIds.add(document.getRevisionID());
 
             return flags.isEmpty()
-                || !flags.contains(DocumentFlag.DocumentFlagsAccessRemoved)
+                || !flags.contains(DocumentFlag.ACCESS_REMOVED)
                 || !document.getId().equals("doc1");
         });
 
@@ -147,7 +147,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             docIds.add(document.getId());
             revIds.add(document.getRevisionID());
 
-            boolean isDeleted = flags.contains(DocumentFlag.DocumentFlagsDeleted);
+            boolean isDeleted = flags.contains(DocumentFlag.DELETED);
             if (isDeleted) {
                 assertEquals(document.getContent(), new Dictionary());
             }
@@ -227,7 +227,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             docIds.add(docId);
             revIds.add(document.getRevisionID());
 
-            boolean isDeleted = flags.contains(DocumentFlag.DocumentFlagsDeleted);
+            boolean isDeleted = flags.contains(DocumentFlag.DELETED);
             if (!isDeleted) {
                 // Check content
                 assertNotNull(document.getString("pattern"));
@@ -859,24 +859,24 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         final ReplicatedDocument rDoc1 = docs.get("doc1");
         assertNotNull("missing doc1", rDoc1);
         assertNull("wrong error for doc1", rDoc1.getError());
-        final EnumSet<DocumentFlag> rDoc1Flags = rDoc1.flags();
+        final EnumSet<DocumentFlag> rDoc1Flags = rDoc1.getFlags();
         assertFalse(
             "missing DocumentFlagsDeleted for doc1",
-            rDoc1Flags.contains(DocumentFlag.DocumentFlagsDeleted));
+            rDoc1Flags.contains(DocumentFlag.DELETED));
         assertFalse(
             "missing DocumentFlagsAccessRemoved for doc1",
-            rDoc1Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
+            rDoc1Flags.contains(DocumentFlag.ACCESS_REMOVED));
 
         final ReplicatedDocument rDoc2 = docs.get("doc2");
         assertNotNull("missing doc2", rDoc2);
         assertNull("wrong error for doc2", rDoc2.getError());
-        final EnumSet<DocumentFlag> rDoc2Flags = rDoc1.flags();
+        final EnumSet<DocumentFlag> rDoc2Flags = rDoc1.getFlags();
         assertFalse(
             "missing DocumentFlagsDeleted for doc2",
-            rDoc2Flags.contains(DocumentFlag.DocumentFlagsDeleted));
+            rDoc2Flags.contains(DocumentFlag.DELETED));
         assertFalse(
             "missing DocumentFlagsAccessRemoved for doc2",
-            rDoc2Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
+            rDoc2Flags.contains(DocumentFlag.ACCESS_REMOVED));
 
         // Add another doc
         MutableDocument doc3 = new MutableDocument("doc3");
@@ -907,13 +907,13 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         final ReplicatedDocument rDoc3 = docs.get("doc1");
         assertNotNull("missing doc3", rDoc3);
         assertNull("wrong error for doc3", rDoc3.getError());
-        final EnumSet<DocumentFlag> rDoc3Flags = rDoc1.flags();
+        final EnumSet<DocumentFlag> rDoc3Flags = rDoc1.getFlags();
         assertFalse(
             "missing DocumentFlagsDeleted for doc3",
-            rDoc3Flags.contains(DocumentFlag.DocumentFlagsDeleted));
+            rDoc3Flags.contains(DocumentFlag.DELETED));
         assertFalse(
             "missing DocumentFlagsAccessRemoved for doc3",
-            rDoc3Flags.contains(DocumentFlag.DocumentFlagsAccessRemoved));
+            rDoc3Flags.contains(DocumentFlag.ACCESS_REMOVED));
 
         // Add another doc
         MutableDocument doc4 = new MutableDocument("doc4");
@@ -978,8 +978,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(docs.size(), 1);
         assertEquals(docs.get(0).getID(), "doc1");
         assertNull(docs.get(0).getError());
-        assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsDeleted));
-        assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+        assertFalse(docs.get(0).getFlags().contains(DocumentFlag.DELETED));
+        assertFalse(docs.get(0).getFlags().contains(DocumentFlag.ACCESS_REMOVED));
     }
 
     @Test
@@ -1022,8 +1022,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(docs.get(0).getError());
         assertEquals(docs.get(0).getError().getDomain(), CBLError.Domain.CBLITE);
         assertEquals(docs.get(0).getError().getCode(), CBLError.Code.HTTP_CONFLICT);
-        assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsDeleted));
-        assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+        assertFalse(docs.get(0).getFlags().contains(DocumentFlag.DELETED));
+        assertFalse(docs.get(0).getFlags().contains(DocumentFlag.ACCESS_REMOVED));
     }
 
     @Test
@@ -1059,8 +1059,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(docs.size(), 1);
         assertEquals(docs.get(0).getID(), "doc1");
         assertNull(docs.get(0).getError());
-        assertTrue(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsDeleted));
-        assertFalse(docs.get(0).flags().contains(DocumentFlag.DocumentFlagsAccessRemoved));
+        assertTrue(docs.get(0).getFlags().contains(DocumentFlag.DELETED));
+        assertFalse(docs.get(0).getFlags().contains(DocumentFlag.ACCESS_REMOVED));
     }
 
     @Test
@@ -1201,7 +1201,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             docIds.add(docId);
             revIds.add(document.getRevisionID());
 
-            boolean isDeleted = flags.contains(DocumentFlag.DocumentFlagsDeleted);
+            boolean isDeleted = flags.contains(DocumentFlag.DELETED);
             assertEquals(document.getId().equals("doc3"), isDeleted);
             if (isDeleted) { assertEquals(document.getContent(), new Dictionary()); }
             else {
@@ -1278,7 +1278,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             docIds.add(docId);
             revIds.add(document.getRevisionID());
 
-            boolean isDeleted = flags.contains(DocumentFlag.DocumentFlagsDeleted);
+            boolean isDeleted = flags.contains(DocumentFlag.DELETED);
             assertEquals(document.getId().equals("doc3"), isDeleted);
             if (isDeleted) { assertEquals(document.getContent(), new Dictionary()); }
             else {

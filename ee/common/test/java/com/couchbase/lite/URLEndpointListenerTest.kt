@@ -936,7 +936,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         var deleted = 0
         repl.addDocumentReplicationListener { replication ->
             for (doc in replication.documents) {
-                if (doc.flags().contains(DocumentFlag.DocumentFlagsDeleted)) {
+                if (doc.flags.contains(DocumentFlag.DELETED)) {
                     deleted++
                 }
             }
