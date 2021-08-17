@@ -135,14 +135,14 @@ class EEFlowTest : BaseEEReplicatorTest() {
 
         var doc = allDocs["doc-1"]!!
         Assert.assertNull(doc.error)
-        var flags = doc.flags()
-        Assert.assertFalse(flags.contains(DocumentFlag.DocumentFlagsDeleted))
-        Assert.assertFalse(flags.contains(DocumentFlag.DocumentFlagsAccessRemoved))
+        var flags = doc.flags
+        Assert.assertFalse(flags.contains(DocumentFlag.DELETED))
+        Assert.assertFalse(flags.contains(DocumentFlag.ACCESS_REMOVED))
 
         doc = allDocs["doc-2"]!!
         Assert.assertNull(doc.error)
-        flags = doc.flags()
-        Assert.assertTrue(flags.contains(DocumentFlag.DocumentFlagsDeleted))
-        Assert.assertFalse(flags.contains(DocumentFlag.DocumentFlagsAccessRemoved))
+        flags = doc.flags
+        Assert.assertTrue(flags.contains(DocumentFlag.DELETED))
+        Assert.assertFalse(flags.contains(DocumentFlag.ACCESS_REMOVED))
     }
 }
