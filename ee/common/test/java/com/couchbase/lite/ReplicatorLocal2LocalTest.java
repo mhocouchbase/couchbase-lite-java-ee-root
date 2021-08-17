@@ -114,6 +114,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNull(baseTestDb.getDocument("doc2"));
     }
 
+    @FlakyTest(log = {"Android: 21/08/17"})
     @Test
     public void testRestartPullFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -194,6 +195,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
+    @FlakyTest(log = {"Android: 21/08/17"})
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();

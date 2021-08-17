@@ -533,7 +533,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents a cert chain whose root is pinned
-    @FlakyTest(log = ["Linux: 21/06/11"])
+    @FlakyTest(log = ["Linux: 21/06/11", "MacOS: 21/08/17"])
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingChainClientCredentials() {
         val clientIdentity = getTestChainIdentity()
