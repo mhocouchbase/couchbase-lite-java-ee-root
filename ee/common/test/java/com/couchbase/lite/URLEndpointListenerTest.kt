@@ -41,6 +41,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 import kotlin.math.max
@@ -995,6 +996,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         var shouldWait = true
         val barrier = CyclicBarrier(2) { shouldWait = false }
         val stopLatch = CountDownLatch(2)
+        val alreadyStopped1 = AtomicBoolean(false)
+        val alreadyStopped2 = AtomicBoolean(false)
 
         // filters can actually hang the replication
         val filter = ReplicationFilter { _, _ ->
@@ -1006,10 +1009,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
                 }
             }
             true
-        }
-
-        val changeListener = { change: ReplicatorChange ->
-            if (change.status.activityLevel == ReplicatorActivityLevel.STOPPED) stopLatch.countDown()
         }
 
         val docId = makeOneDoc("multi-repl", otherDB)
@@ -1024,7 +1023,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val config1 = makeReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
         config1.pullFilter = filter
         val repl1 = testReplicator(config1)
-        val token1 = repl1.addChangeListener(changeListener)
+        val token1 = repl1.addChangeListener { c ->
+            if ((c.status.activityLevel == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped1.getAndSet(true))) {
+                stopLatch.countDown()
+            }
+        }
 
         val db2 = createDb("db2")
         val docId2 = makeOneDoc("db2", db2)
@@ -1033,22 +1036,27 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val config2 = makeReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
         config2.pullFilter = filter
         val repl2 = testReplicator(config2)
-        val token2 = repl2.addChangeListener(changeListener)
+        val token2 = repl2.addChangeListener { c ->
+            if ((c.status.activityLevel == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped2.getAndSet(true))) {
+                stopLatch.countDown()
+            }
+        }
 
         assertEquals(1, db1.count)
         assertEquals(1, db2.count)
         assertEquals(1, otherDB.count)
 
-        repl1.start(false)
-        repl2.start(false)
+        try {
+            repl1.start(false)
+            repl2.start(false)
+            assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
+        } finally {
+            repl1.stop()
+            repl1.removeChangeListener(token1)
 
-        assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
-
-        repl1.stop()
-        repl1.removeChangeListener(token1)
-
-        repl2.stop()
-        repl2.removeChangeListener(token2)
+            repl2.stop()
+            repl2.removeChangeListener(token2)
+        }
 
         assertFalse(barrier.isBroken)
 

@@ -47,4 +47,8 @@ public class MessageEndpointListenerChange {
      */
     @NonNull
     public ReplicatorStatus getStatus() { return status; }
+
+    @Override
+    @NonNull
+    public String toString() { return "MessageEndpointListenerChange{" + connection + ", " + status + "}"; }
 }

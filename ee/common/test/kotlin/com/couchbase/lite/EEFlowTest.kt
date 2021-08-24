@@ -15,6 +15,8 @@
 //
 package com.couchbase.lite
 
+import com.couchbase.lite.mock.MockConnectionFactory
+import com.couchbase.lite.mock.MockServerConnection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -76,7 +78,6 @@ class EEFlowTest : BaseEEReplicatorTest() {
             collector.cancel()
         }
 
-        Assert.assertEquals(3, levels.size)
         Assert.assertTrue(levels.contains(ReplicatorActivityLevel.CONNECTING))
         Assert.assertTrue(levels.contains(ReplicatorActivityLevel.BUSY))
         Assert.assertTrue(levels.contains(ReplicatorActivityLevel.STOPPED))
@@ -144,5 +145,68 @@ class EEFlowTest : BaseEEReplicatorTest() {
         flags = doc.flags
         Assert.assertTrue(flags.contains(DocumentFlag.DELETED))
         Assert.assertFalse(flags.contains(DocumentFlag.ACCESS_REMOVED))
+    }
+
+
+    @ExperimentalCoroutinesApi
+    @Test
+    fun testMessageEndpointChangeFlow() {
+        val levels = mutableSetOf<ReplicatorActivityLevel>()
+
+        val listener = MessageEndpointListener(
+            MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM)
+        )
+
+        val server = MockServerConnection("testMessageEndpointChangeFlow", listener)
+
+        val repl = Replicator(
+            makeConfig(
+                baseTestDb,
+                MessageEndpoint(
+                    "p2ptest5",
+                    server,
+                    ProtocolType.BYTE_STREAM,
+                    MockConnectionFactory(Integer.MAX_VALUE, null, null)
+                ),
+                ReplicatorType.PUSH_AND_PULL,
+                false
+            )
+        )
+
+        runBlocking {
+            val latch = CountDownLatch(1)
+
+            val collector = launch(Dispatchers.Default) {
+                listener.messageEndpointChangeFlow(testSerialExecutor)
+                    .map { change -> change.status.activityLevel }
+                    .onEach { level ->
+                        levels.add(level)
+                        if (level == ReplicatorActivityLevel.STOPPED) {
+                            latch.countDown()
+                        }
+                    }
+                    .catch {
+                        latch.countDown()
+                        throw it
+                    }
+                    .collect()
+            }
+
+            launch(Dispatchers.Default) {
+                // Hate this: wait until the collector starts
+                delay(20L)
+
+                run(repl)
+            }
+
+            Assert.assertTrue("Timeout", latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
+
+            collector.cancel()
+            server.stop()
+        }
+
+        Assert.assertTrue(levels.contains(ReplicatorActivityLevel.CONNECTING))
+        Assert.assertTrue(levels.contains(ReplicatorActivityLevel.BUSY))
+        Assert.assertTrue(levels.contains(ReplicatorActivityLevel.STOPPED))
     }
 }

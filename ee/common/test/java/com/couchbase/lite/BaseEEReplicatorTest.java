@@ -16,7 +16,15 @@
 package com.couchbase.lite;
 
 
+import android.support.annotation.NonNull;
+
+
 public abstract class BaseEEReplicatorTest extends BaseReplicatorTest {
+    // here because getProtocolType is only visible in this package
+    public static ProtocolType getListenerProtocol(@NonNull MessageEndpointListener listener) {
+        return listener.getConfig().getProtocolType();
+    }
+
     protected final ReplicatorConfiguration pushConfig() {
         return makeConfigTargetingOtherDb(ReplicatorType.PUSH);
     }
