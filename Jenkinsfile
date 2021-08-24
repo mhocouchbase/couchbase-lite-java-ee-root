@@ -28,7 +28,7 @@ pipeline {
                     currentBuild.displayName = "cbl-java-verify-${env.JOB_BASE_NAME} #${env.CHANGE_ID}"
                     currentBuild.description = "${CHANGE_TITLE}"
                     ANDROID_SDK = "${env.ANDROID_HOME}"
-                    SDK_MGR="${ANDROID_SDK}/tools/bin/sdkmanager --channel=1 --install"
+                    SDK_MGR="${ANDROID_SDK}/cmdline-tools/latest/bin/sdkmanager --channel=1 --install"
                 }
             }
         }
