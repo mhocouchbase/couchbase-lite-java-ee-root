@@ -36,7 +36,7 @@ import java.security.KeyStore
 import java.security.cert.Certificate
 import java.util.Arrays
 import java.util.Calendar
-import java.util.concurrent.BrokenBarrierException
+import java.util.EnumSet
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
@@ -990,54 +990,58 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest(log = ["Window: 21/07/06", "Window: 21/07/30"])
     @Test
     fun testMultipleReplicatorsToListener() {
-        var shouldWait = true
-        val barrier = CyclicBarrier(2) { shouldWait = false }
+        // A filter can actually hang the replication
+        class DelayFilter(val name: String, val barrier: CyclicBarrier) : ReplicationFilter {
+            val shouldWait = AtomicBoolean(true)
+            override fun filtered(doc: Document, flags: EnumSet<DocumentFlag>): Boolean {
+                if (shouldWait.getAndSet(false)) {
+                    Report.log("%s waiting with doc %s", name, doc.id)
+                    barrier.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
+                }
+                Report.log("%s filtered doc %s", name, doc.id)
+                return true
+            }
+        }
+
+        val barrier = CyclicBarrier(2)
         val stopLatch = CountDownLatch(2)
         val alreadyStopped1 = AtomicBoolean(false)
         val alreadyStopped2 = AtomicBoolean(false)
 
-        // filters can actually hang the replication
-        val filter = ReplicationFilter { _, _ ->
-            if (shouldWait) {
-                try {
-                    barrier.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS)
-                } catch (_: TimeoutException) {
-                } catch (_: BrokenBarrierException) {
-                }
-            }
-            true
-        }
-
         val docId = makeOneDoc("multi-repl", otherDB)
-
-        val serverIdentity = createIdentity()
-        val listener = listenTls(serverIdentity)
 
         val db1 = createDb("db1")
         val docId1 = makeOneDoc("db1", db1)
 
+        val db2 = createDb("db2")
+        val docId2 = makeOneDoc("db2", db2)
+
+        val serverIdentity = createIdentity()
+        // listens for otherDB
+        val listener = listenTls(serverIdentity)
+
         // Replicator#1 (DB#1 <-> Listener(otherDB))
         val config1 = makeReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
-        config1.pullFilter = filter
+        config1.pullFilter = DelayFilter("Repl #1", barrier)
         val repl1 = testReplicator(config1)
         val token1 = repl1.addChangeListener { c ->
-            if ((c.status.activityLevel == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped1.getAndSet(true))) {
+            val level = c.status.activityLevel
+            Report.log("Repl #1: %s", level)
+            if ((level == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped1.getAndSet(true))) {
                 stopLatch.countDown()
             }
         }
 
-        val db2 = createDb("db2")
-        val docId2 = makeOneDoc("db2", db2)
-
         // Replicator#2 (DB#2 <-> Listener(otherDB))
         val config2 = makeReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
-        config2.pullFilter = filter
+        config2.pullFilter = DelayFilter("Repl #2", barrier)
         val repl2 = testReplicator(config2)
         val token2 = repl2.addChangeListener { c ->
-            if ((c.status.activityLevel == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped2.getAndSet(true))) {
+            val level = c.status.activityLevel
+            Report.log("Repl #2: %s", level)
+            if ((level == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped2.getAndSet(true))) {
                 stopLatch.countDown()
             }
         }
@@ -1048,8 +1052,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         try {
             repl1.start(false)
+            Report.log("Repl #1 started")
             repl2.start(false)
+            Report.log("Repl #2 started")
             assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
+            Report.log("Repls stopped")
         } finally {
             repl1.stop()
             repl1.removeChangeListener(token1)

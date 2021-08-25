@@ -99,6 +99,7 @@ public abstract class MockConnection implements MessageEndpointConnection {
         }
 
         wire.submit(() -> {
+            Report.log(LogLevel.DEBUG, logPrefix() + " deliver open *%s %s", ClassUtils.objId(repl), completion);
             openAsync(repl, completion);
             for (Message message: outstanding) { deliver(message, repl); }
         });
@@ -111,7 +112,10 @@ public abstract class MockConnection implements MessageEndpointConnection {
         System.arraycopy(msg, 0, data, 0, data.length);
 
         Report.log(LogLevel.DEBUG, logPrefix() + ".send(%d) %s", data.length, completion);
-        wire.submit(() -> sendAsync(data, completion));
+        wire.submit(() -> {
+            Report.log(LogLevel.DEBUG, logPrefix() + " deliver send(%d) %s", data.length, completion);
+            sendAsync(data, completion);
+        });
     }
 
     @Override
@@ -123,7 +127,10 @@ public abstract class MockConnection implements MessageEndpointConnection {
         }
 
         Report.log(LogLevel.DEBUG, e, logPrefix() + ".close %s", closeCompletion);
-        wire.submit(() -> closeAsync(completion, closeCompletion));
+        wire.submit(() -> {
+            Report.log(LogLevel.DEBUG, e, logPrefix() + " deliver close %s", closeCompletion);
+            closeAsync(completion, closeCompletion);
+        });
     }
 
     public void accept(@NonNull final byte[] data) {
@@ -163,6 +170,13 @@ public abstract class MockConnection implements MessageEndpointConnection {
             error,
             completion);
         wire.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                new Exception("DISCONNECT"),
+                logPrefix() + "deliver disconnect(%s) %s, %s",
+                disconnecting,
+                error,
+                completion);
             if (disconnecting) { closeReplAsync(repl, error); }
             else { disconnectAsync(error, completion); }
         });
@@ -184,7 +198,14 @@ public abstract class MockConnection implements MessageEndpointConnection {
 
     private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {
         Report.log(LogLevel.DEBUG, logPrefix() + ".deliver(%d) *%s", message.toData().length, ClassUtils.objId(repl));
-        wire.submit(() -> deliverAsync(message, repl));
+        wire.submit(() -> {
+            Report.log(
+                LogLevel.DEBUG,
+                logPrefix() + "deliver message (%d) *%s",
+                message.toData().length,
+                ClassUtils.objId(repl));
+            deliverAsync(message, repl);
+        });
     }
 
     private void terminate() {

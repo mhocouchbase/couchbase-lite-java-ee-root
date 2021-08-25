@@ -147,7 +147,7 @@ public class MessageSocket extends C4Socket implements ReplicatorConnection {
     protected final void completedReceive(long byteCount) { }
 
     @Override // socket_requestClose
-    protected final void requestClose(final int status, String msg) {
+    protected final void requestClose(int status, String msg) {
         final Exception error = (status == C4Constants.WebSocketError.NORMAL)
             ? null
             : CouchbaseLiteException.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, status, msg, null);
