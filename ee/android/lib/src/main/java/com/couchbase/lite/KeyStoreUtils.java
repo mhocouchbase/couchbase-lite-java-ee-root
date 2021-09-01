@@ -44,8 +44,8 @@ public final class KeyStoreUtils {
      * TLSIdentity by calling TLSIdentity.get(String alias) method.
      * <p>
      * NOTE:
-     * The key data including the private key data will be temporarily in memory during the import operation.
-     * * Android 9 (API 28) or higher has an alternative method to import keys more securely.
+     * The key data including the private key data will be in memory, temporarily, during the import operation!
+     * Android 9 (API 28) or higher has an alternative method that will import keys more securely.
      * Check the documentation here:
      * <a href="https://developer.android.com/training/articles/keystore#ImportingEncryptedKeys" />
      * for more info.
