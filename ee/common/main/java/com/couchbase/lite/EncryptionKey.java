@@ -14,7 +14,7 @@
 //
 package com.couchbase.lite;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.couchbase.lite.internal.core.C4Constants;
 import com.couchbase.lite.internal.core.C4Key;

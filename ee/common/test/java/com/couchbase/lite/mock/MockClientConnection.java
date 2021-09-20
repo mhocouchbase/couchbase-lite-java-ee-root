@@ -15,8 +15,8 @@
 //
 package com.couchbase.lite.mock;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.couchbase.lite.LogLevel;
 import com.couchbase.lite.Message;
