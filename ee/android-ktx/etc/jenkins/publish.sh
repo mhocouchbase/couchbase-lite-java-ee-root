@@ -7,7 +7,7 @@ EDITION='enterprise'
 
 MAVEN_URL="http://proget.build.couchbase.com/maven2/internalmaven"
 
-COMMON_ETC="../../common/etc"
+COMMON_ETC="`pwd`/../../common/etc"
 
 
 function usage() {
