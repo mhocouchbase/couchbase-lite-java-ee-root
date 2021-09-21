@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Publish Couchbase Lite Kotlin Android, Enterprise Edition
+# Publish Couchbase Lite Android Kotlin Extensions, Enterprise Edition
 #
 PRODUCT='couchbase-lite-android-ee-ktx'
 EDITION='enterprise'
@@ -46,7 +46,7 @@ fi
 
 STATUS=0
 
-echo "======== PUBLISH Couchbase Lite Kotlin Android, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
+echo "======== PUBLISH Couchbase Lite Android Kotlin Extensions, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
 
 ## Really should promote the existing package, instead of re-publishing
 ## Something like this:
@@ -55,7 +55,7 @@ echo "======== PUBLISH Couchbase Lite Kotlin Android, Enterprise Edition v`cat .
 ##      http://proget.build.couchbase.com/api/promotions/promote
 ## At present that call fails to promote the entire package (bad PK copying the source tar)
 ## so, for now, just republish the same bits.
-./gradlew ciPublish -PbuildNumber="${BUILD_NUMBER}" -PmavenUrl="${MAVEN_URL}" --info || STATUS=7
+./gradlew ciPublish -PbuildNumber="${BUILD_NUMBER}" -PmavenUrl="${MAVEN_URL}" || STATUS=7
 
 echo "======== Copy artifacts to staging directory"
 POM_FILE='pom-ee-ktx.xml'
@@ -82,12 +82,12 @@ pushd "${ZIP_STAGING}"
 mkdir license lib docs
 cp "${WORKSPACE}/cbl-java/legal/mobile/couchbase-lite/license/LICENSE_${EDITION}.txt" license/LICENSE.TXT
 cp "${DEPS_DIR}/target/dependency/"*.jar lib
-cp "${ARTIFACTS}/"*-javadoc.jar "docs/${PRODUCT}-${VERSION}-javadoc.jar"
+cp "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-javadoc.jar" "docs/${PRODUCT}-${VERSION}-javadoc.jar"
 cp "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-release.aar" "lib/${PRODUCT}-${VERSION}.aar"
 zip -r "${ARTIFACTS}/${PRODUCT}-${VERSION}-android_${EDITION}.zip" *
 popd
 
 find "${ARTIFACTS}"
-echo "======== PUBLICATION COMPLETE (${STATUS}) Couchbase Lite Kotlin Android, Enterprise Edition"
+echo "======== PUBLICATION COMPLETE (${STATUS}) Couchbase Lite Android Kotlin Extensions, Enterprise Edition"
 exit $STATUS
 
