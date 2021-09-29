@@ -20,6 +20,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.concurrent.Executor
 
+/**
+ * A Flow of message endpoint state changes.
+ *
+ * @param executor Optional executor on which to run the change listener: default is the main executor
+ *
+ * @see com.couchbase.lite.MessageEndpointListener.addChangeListener
+ */
 @ExperimentalCoroutinesApi
 fun MessageEndpointListener.messageEndpointChangeFlow(executor: Executor? = null) = callbackFlow {
     val token = this@messageEndpointChangeFlow.addChangeListener(executor) { trySend(it) }
