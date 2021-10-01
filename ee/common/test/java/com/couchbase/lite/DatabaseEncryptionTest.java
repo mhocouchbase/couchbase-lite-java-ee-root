@@ -280,7 +280,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     @Test
     public void testReOpenExistingEncrypted2Dot8DotOhDb() throws CouchbaseLiteException {
         final String dbName = getUniqueName("test-db");
-        final String twoDot8DotOhDirPath = CouchbaseLiteInternal.getRootDir() + "/.couchbase";
+        final String twoDot8DotOhDirPath = CouchbaseLiteInternal.getDefaultDbDir() + "/.couchbase";
 
         Database db = null;
         try {
