@@ -1,5 +1,5 @@
 
-# Couchbase Lite 2.8
+# Couchbase Lite 3.x
 
 **Couchbase Lite** is an embedded lightweight, document-oriented (NoSQL), syncable database engine.
 
@@ -13,7 +13,7 @@ outside Couchbase.
 
 - Java 8+
 - Android SDK
-- Android Studio 3.4+
+- Android Studio
 - git and repo
 
 ## Setup
