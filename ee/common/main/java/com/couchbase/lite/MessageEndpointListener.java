@@ -33,6 +33,7 @@ import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.C4ReplicatorMode;
 import com.couchbase.lite.internal.core.C4ReplicatorStatus;
 import com.couchbase.lite.internal.fleece.FLEncoder;
+import com.couchbase.lite.internal.listener.ChangeNotifier;
 import com.couchbase.lite.internal.replicator.MessageSocket;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
