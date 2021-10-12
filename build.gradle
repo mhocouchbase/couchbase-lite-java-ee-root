@@ -16,7 +16,7 @@
 //
 buildscript {
     ext {
-        KOTLIN_VERSION = '1.5.21'
+        KOTLIN_VERSION = '1.5.31'
 
         // !!!
         // Attempts to update the toolchain will fail!
