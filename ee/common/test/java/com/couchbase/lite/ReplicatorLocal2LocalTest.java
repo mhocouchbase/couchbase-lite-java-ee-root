@@ -1085,7 +1085,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
             assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-            assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+            assertNotEquals(query.isLive(queryToken), false);
 
             baseTestDb.close();
             otherDB.close();
@@ -1096,7 +1096,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
 
         assertEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-        assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+        assertEquals(query.isLive(queryToken),false);
     }
 
     @Test
@@ -1124,7 +1124,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
             assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-            assertNotEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
+            assertNotEquals(query.isLive(queryToken),false);
 
             baseTestDb.delete();
             otherDB.delete();
@@ -1135,8 +1135,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
 
         assertEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-        assertEquals(LiveQuery.State.STOPPED, query.getLiveQuery().getState());
-
+        assertEquals(query.isLive(queryToken), false);
         assertFalse(baseDbPath.exists());
         assertFalse(otherDbPath.exists());
     }
