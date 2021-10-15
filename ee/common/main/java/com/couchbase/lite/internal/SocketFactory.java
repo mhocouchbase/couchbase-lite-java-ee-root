@@ -36,6 +36,7 @@ public class SocketFactory extends AbstractSocketFactory {
         @NonNull Fn.Consumer<List<Certificate>> serverCertsListener) {
         super(config, cookieStore, serverCertsListener);
     }
+
     @Nullable
     protected C4Socket createPlatformSocket(long handle) {
         return (!(endpoint instanceof MessageEndpoint)) ? null : new MessageSocket(handle, (MessageEndpoint) endpoint);

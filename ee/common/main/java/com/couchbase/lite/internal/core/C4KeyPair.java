@@ -34,6 +34,7 @@ import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.KeyStoreManager;
 import com.couchbase.lite.internal.core.impl.NativeC4KeyPair;
+import com.couchbase.lite.internal.core.peers.TaggedWeakPeerBinding;
 import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
@@ -64,7 +65,7 @@ public class C4KeyPair extends C4NativePeer {
 
     @NonNull
     @VisibleForTesting
-    static final NativeContext<C4KeyPair> KEY_PAIR_CONTEXT = new NativeContext<>();
+    static final TaggedWeakPeerBinding<C4KeyPair> KEY_PAIR_CONTEXT = new TaggedWeakPeerBinding<>();
 
     @NonNull
     private static final Map<KeyStoreManager.KeyAlgorithm, Byte> KEY_ALGORITHM_TO_C4;
@@ -140,7 +141,7 @@ public class C4KeyPair extends C4NativePeer {
             System.arraycopy(keyPassword, 0, keyPwd, 0, keyPwd.length);
         }
 
-        final int token = KEY_PAIR_CONTEXT.reserveKey();
+        final long token = KEY_PAIR_CONTEXT.reserveKey();
         final C4KeyPair keyPair = new C4KeyPair(token, nativeImpl, keyStore, keyAlias, keyPwd, keys);
         KEY_PAIR_CONTEXT.bind(token, keyPair);
 
@@ -226,7 +227,7 @@ public class C4KeyPair extends C4NativePeer {
     private static C4KeyPair getKeyPairUnsafe(long token) {
         Log.d(LogDomain.LISTENER, "Get key pair @%s", token);
 
-        return KEY_PAIR_CONTEXT.getObjFromContext(token);
+        return KEY_PAIR_CONTEXT.getBinding(token);
     }
 
     private static byte getC4KeyAlgorithm(KeyStoreManager.KeyAlgorithm algorithm) {
@@ -248,7 +249,7 @@ public class C4KeyPair extends C4NativePeer {
     // Data members
     //-------------------------------------------------------------------------
 
-    private final int token;
+    private final long token;
     @NonNull
     private final NativeImpl impl;
     @SuppressFBWarnings("SE_BAD_FIELD")
@@ -267,7 +268,7 @@ public class C4KeyPair extends C4NativePeer {
 
     @SuppressWarnings("PMD.ArrayIsStoredDirectly")
     C4KeyPair(
-        int token,
+        long token,
         @NonNull NativeImpl impl,
         @Nullable KeyStore keyStore,
         @NonNull String keyAlias,

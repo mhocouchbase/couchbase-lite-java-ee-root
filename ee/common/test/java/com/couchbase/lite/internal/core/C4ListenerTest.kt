@@ -133,7 +133,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertFalse(C4Listener.httpAuthCallback(key.toLong(), ""))
     }
@@ -152,7 +152,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertFalse(C4Listener.httpAuthCallback(key.toLong(), "Foo"))
     }
@@ -171,7 +171,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertFalse(
             C4Listener.httpAuthCallback(
@@ -195,7 +195,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertFalse(
             C4Listener.httpAuthCallback(
@@ -226,7 +226,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertTrue(C4Listener.httpAuthCallback(key.toLong(), C4Listener.AUTH_MODE_BASIC))
 
@@ -255,7 +255,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         assertTrue(C4Listener.httpAuthCallback(key.toLong(), "${C4Listener.AUTH_MODE_BASIC}    "))
 
@@ -283,7 +283,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         val creds = "${USER_NAME}:${PASSWORD}".toByteArray(Charsets.UTF_8)
         assertTrue(
@@ -317,7 +317,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         val creds = ":${PASSWORD}".toByteArray(Charsets.UTF_8)
         assertTrue(
@@ -351,7 +351,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         val creds = USER_NAME.toByteArray(Charsets.UTF_8)
         assertTrue(
@@ -385,7 +385,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         val creds = "${USER_NAME}:".toByteArray(Charsets.UTF_8)
         assertTrue(
@@ -476,7 +476,7 @@ class C4ListenerTest : PlatformSecurityTest() {
         assertNotNull(listener)
 
         assertEquals(1, C4Listener.LISTENER_CONTEXT.size())
-        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next() as Int
+        val key = C4Listener.LISTENER_CONTEXT.keySet().iterator().next()
 
         C4Listener.certAuthCallback(key.toLong(), cert.encoded)
 

@@ -40,6 +40,7 @@ import com.couchbase.lite.ListenerPasswordAuthenticator;
 import com.couchbase.lite.LiteCoreException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.internal.core.impl.NativeC4Listener;
+import com.couchbase.lite.internal.core.peers.TaggedWeakPeerBinding;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.PlatformUtils;
@@ -115,7 +116,7 @@ public class C4Listener extends C4NativePeer {
 
     @NonNull
     @VisibleForTesting
-    static final NativeContext<C4Listener> LISTENER_CONTEXT = new NativeContext<>();
+    static final TaggedWeakPeerBinding<C4Listener> LISTENER_CONTEXT = new TaggedWeakPeerBinding<>();
 
     //-------------------------------------------------------------------------
     // Static Factory Methods
@@ -132,7 +133,7 @@ public class C4Listener extends C4NativePeer {
         boolean pull,
         boolean deltaSync)
         throws CouchbaseLiteException {
-        final int token = LISTENER_CONTEXT.reserveKey();
+        final long token = LISTENER_CONTEXT.reserveKey();
 
         // There is a race here.  It is possible that the native call will
         // generate a call back, before this method completes.  Fortunately,
@@ -182,7 +183,7 @@ public class C4Listener extends C4NativePeer {
         Preconditions.assertNotNull(dbPath, "database path");
         Preconditions.assertNotNull(serverCert, "server cert");
         final C4KeyPair keyPair = Preconditions.assertNotNull(keys, "key pair");
-        final int token = LISTENER_CONTEXT.reserveKey();
+        final long token = LISTENER_CONTEXT.reserveKey();
 
         // There is a race here.  It is possible that the native call will
         // generate a call back, before this method completes.  Fortunately,
@@ -242,7 +243,7 @@ public class C4Listener extends C4NativePeer {
         throws CouchbaseLiteException {
         if (keyPair == null) { throw new IllegalArgumentException("keyPair must not be null"); }
 
-        final int token = LISTENER_CONTEXT.reserveKey();
+        final long token = LISTENER_CONTEXT.reserveKey();
 
         // There is a race here.  It is possible that the native call will
         // generate a call back, before this method completes.  Fortunately,
@@ -295,7 +296,7 @@ public class C4Listener extends C4NativePeer {
 
     // This method is called by reflection.  Don't change its signature.
     static boolean httpAuthCallback(long token, @Nullable String authHeader) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
+        final C4Listener listener = LISTENER_CONTEXT.getBinding(token);
         if (listener == null) {
             Log.w(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
@@ -305,7 +306,7 @@ public class C4Listener extends C4NativePeer {
 
     // This method is called by reflection.  Don't change its signature.
     static boolean certAuthCallback(long token, @Nullable byte[] clientCertData) {
-        final C4Listener listener = LISTENER_CONTEXT.getObjFromContext(token);
+        final C4Listener listener = LISTENER_CONTEXT.getBinding(token);
         if (listener == null) {
             Log.w(LogDomain.LISTENER, "No listener for token: " + token);
             return false;
@@ -318,7 +319,7 @@ public class C4Listener extends C4NativePeer {
     // Data members
     //-------------------------------------------------------------------------
 
-    private final int token;
+    private final long token;
     @NonNull
     private final NativeImpl impl;
     @Nullable
@@ -328,7 +329,7 @@ public class C4Listener extends C4NativePeer {
     // Constructors
     //-------------------------------------------------------------------------
 
-    C4Listener(int token, @NonNull NativeImpl impl, @Nullable ListenerAuthenticator authenticator) {
+    C4Listener(long token, @NonNull NativeImpl impl, @Nullable ListenerAuthenticator authenticator) {
         Preconditions.assertNotZero(token, "token");
         this.token = token;
         this.impl = Preconditions.assertNotNull(impl, "native impl");
