@@ -29,6 +29,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
@@ -46,6 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 import kotlin.math.max
 
+@Ignore("CBL 2502")
 class URLEndpointListenerTest : BaseReplicatorTest() {
     companion object {
         @JvmStatic
