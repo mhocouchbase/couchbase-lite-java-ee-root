@@ -1097,10 +1097,10 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
 
         assertEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-        assertEquals(query.isLive(queryToken),false);
+        assertEquals(query.isLive(queryToken), false);
     }
 
-    @Ignore("Flaky test")
+    @Ignore("Fails on Core error")
     @Test
     public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);
@@ -1126,7 +1126,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
             assertTrue(latch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS));
             assertNotEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-            assertNotEquals(query.isLive(queryToken),false);
+            assertNotEquals(query.isLive(queryToken), false);
 
             baseTestDb.delete();
             otherDB.delete();
