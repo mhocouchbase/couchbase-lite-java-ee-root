@@ -323,6 +323,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // A client with a pinned certificate
     // should refuse a server that presents a non-matching certificate (explicit, self signed)
     // this is a redundant test...
+    @FlakyTest(log = ["Android: 21/11/04"])
     @Test
     fun testTLSPinnedCertClientAuthenticatorWithNonMatchingSelfSignedServerCredentials() {
         val serverIdentity = createIdentity()

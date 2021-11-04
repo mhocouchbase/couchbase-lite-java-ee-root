@@ -279,8 +279,9 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
     private PrivateKey getPrivateKey(@NonNull KeyStore keyStore, @NonNull String alias) {
         final Key key;
         try { key = keyStore.getKey(alias, null); }
-        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "No key found for alias " + alias, e);
+        // Conscript may throw a RuntimeException.
+        catch (Exception e) {
+            Log.w(LogDomain.LISTENER, "Failed retrieving key for alias " + alias, e);
             return null;
         }
 

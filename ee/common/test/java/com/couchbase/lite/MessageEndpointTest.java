@@ -461,6 +461,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
+    @FlakyTest(log = {"MacOs: 21/11/04"})
     @Test
     public void testPushPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -528,6 +529,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PPermanentFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
     }
 
+    @FlakyTest(log = {"MacOs: 21/11/04"})
     @SlowTest
     @Test
     public void testP2PPassiveClose() throws InterruptedException {
@@ -778,6 +780,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
+    @FlakyTest(log = {"MacOs: 21/11/04"})
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
