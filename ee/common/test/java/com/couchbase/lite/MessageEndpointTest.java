@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.FlakyTest;
@@ -117,7 +116,6 @@ class TestErrorLogic implements MockClientConnection.ErrorLogic {
 /////////////////////////////////   T E S T   S U I T E   //////////////////////////////////////
 
 @SuppressWarnings("ConstantConditions")
-@Ignore("CBL-2502")
 public class MessageEndpointTest extends BaseReplicatorTest {
     static final Set<MockConnection> CONNECTIONS = new HashSet<>();
 

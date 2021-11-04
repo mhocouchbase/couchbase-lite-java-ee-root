@@ -17,20 +17,10 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.core.C4Constants
 import com.couchbase.lite.internal.utils.SlowTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Ignore
+import org.junit.Assert.*
 import org.junit.Test
 import java.net.URI
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.CyclicBarrier
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 
 
 private const val DOC1 = "doc1"
@@ -49,7 +39,8 @@ private const val VAL4 = "Pleasant"
 private const val KEY5 = "Oakland"
 private const val VAL5 = "Bay Forest"
 
-private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) : ConflictResolver {
+private open class TestConflictResolver(private var resolver: (Conflict) -> Document?) :
+    ConflictResolver {
     override fun resolve(conflict: Conflict): Document? {
         return resolver(conflict)
     }
@@ -477,8 +468,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
-        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc2 })) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc2 })) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -509,8 +500,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
-        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc3 })) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfigWitResolver(TestConflictResolver { doc3 })) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -539,11 +530,12 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        val replicator = run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
-                docRepl.documents[0].error?.let { errors.add(it) }
+        val replicator =
+            run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) { repl ->
+                token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+                    docRepl.documents[0].error?.let { errors.add(it) }
+                }
             }
-        }
 
         assertEquals(1, errors.size)
         val error = errors[0]
@@ -571,12 +563,13 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
 
-        val pullConfig = pullConfigWitResolver(TestConflictResolver { throw IllegalStateException("freak out!") })
+        val pullConfig =
+            pullConfigWitResolver(TestConflictResolver { throw IllegalStateException("freak out!") })
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        val replicator = run(pullConfig) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -674,7 +667,9 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        assertTrue(baseTestDb.getNonNullDoc(DOC1).generation() > otherDB.getNonNullDoc(DOC1).generation())
+        assertTrue(
+            baseTestDb.getNonNullDoc(DOC1).generation() > otherDB.getNonNullDoc(DOC1).generation()
+        )
     }
 
     /**
@@ -694,7 +689,10 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         run(pullConfig())
 
-        assertEquals(baseTestDb.getNonNullDoc(DOC1).generation(), otherDB.getNonNullDoc(DOC1).generation())
+        assertEquals(
+            baseTestDb.getNonNullDoc(DOC1).generation(),
+            otherDB.getNonNullDoc(DOC1).generation()
+        )
     }
 
     /**
@@ -848,7 +846,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         // Core thinks that this document has an attachment in one of its revisions
         // CBL-2180: verify that the document knows it has attachments
         assertTrue((doc.c4doc?.flags ?: 0).and(C4Constants.DocumentFlags.HAS_ATTACHMENTS) != 0)
-     }
+    }
 
     /**
      * #15
@@ -897,8 +895,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        val replicator = run(pullConfig) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -932,8 +930,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        val replicator = run(pullConfig) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -969,8 +967,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        val replicator = run(pullConfig) {
-            token = it!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) { repl ->
+            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -994,7 +992,6 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
      * 2. Try to do a database operation from inside the conflict resolver.
      *    Make sure the document operation is successful before the custom conflict is resolved.
      */
-    @Ignore("CBL-1190")
     @Test
     fun testConflictResolverDoesntBlockTransactions() {
         makeConflict(DOC1, hashMapOf(KEY1 to VAL1), hashMapOf(KEY2 to VAL2))
@@ -1171,8 +1168,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        var replicator = run(pullConfig) {
-            token = it?.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        var replicator = run(pullConfig) { repl ->
+            token = repl?.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -1320,7 +1317,11 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         assertEquals(expectedFlags, doc1.c4doc!!.selectedFlags)
     }
 
-    private fun makeConflict(docId: String, localData: Map<String, Any>?, remoteData: Map<String, Any>?) {
+    private fun makeConflict(
+        docId: String,
+        localData: Map<String, Any>?,
+        remoteData: Map<String, Any>?
+    ) {
         val doc = MutableDocument(docId)
         baseTestDb.save(doc)
 

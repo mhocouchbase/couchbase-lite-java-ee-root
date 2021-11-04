@@ -33,7 +33,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.FlakyTest;
@@ -48,6 +47,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
+@SuppressWarnings("ConstantConditions")
 public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @FlakyTest(log = {"Linux: 21/06/18"})
@@ -730,7 +730,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     }
 
     @Test
-    public void testReplicationOnExpiredDocs() throws CouchbaseLiteException, InterruptedException {
+    public void testReplicationOnExpiredDocs() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
         doc1.setInt("answer", 42);
         doc1.setString("expired", "string");
@@ -1097,10 +1097,9 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
 
         assertEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-        assertEquals(query.isLive(queryToken), false);
+        assertFalse(query.isLive(queryToken));
     }
 
-    @Ignore("Fails on Core error")
     @Test
     public void testDeleteDatabaseWithActiveQueryAndReplicator() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch latch = new CountDownLatch(2);
@@ -1137,7 +1136,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         }
 
         assertEquals(ReplicatorActivityLevel.STOPPED, repl.getStatus().getActivityLevel());
-        assertEquals(query.isLive(queryToken), false);
+        assertFalse(query.isLive(queryToken));
         assertFalse(baseDbPath.exists());
         assertFalse(otherDbPath.exists());
     }

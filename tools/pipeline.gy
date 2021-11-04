@@ -82,10 +82,10 @@ pipeline {
                         skipDefaultCheckout(true)
                     }
                     stages {
-                        stage('Clean Workspace') {
+                        stage('OSX: Clean Workspace') {
                             steps { cleanWs(deleteDirs: true) }
                         }
-                        stage('Download and explode the source') {
+                        stage('OSX: Download and explode the source') {
                             steps {
                                 sh '''#!/bin/bash
 echo "======== OSX: Download source: ${SOURCE}"
@@ -97,7 +97,7 @@ rm *-source.tar.gz
 '''
                             }
                         }
-                        stage('Prep Workspace') {
+                        stage('OSX: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 sh '''#!/bin/bash
@@ -110,7 +110,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
 '''
                             }
                         }
-                        stage('Build') {
+                        stage('OSX: Build') {
                             steps {
                                 sh '''#!/bin/bash
 echo "======== OSX: Environment"
@@ -124,7 +124,7 @@ echo "======== OSX: Building in `pwd`"
 '''
                             }
                         }
-                        stage('Test') {
+                        stage('OSX: Test') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
@@ -140,7 +140,7 @@ mkdir -p "${REPORTS_DIR}"
                                 }
                             }
                         }
-                        stage('Upload test artifacts') {
+                        stage('OSX: Upload test artifacts') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sshPublisher(
@@ -163,7 +163,7 @@ mkdir -p "${REPORTS_DIR}"
                                 }
                             }
                         }
-                        stage('Publish') {
+                        stage('OSX: Publish') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
@@ -179,7 +179,7 @@ mkdir -p "${ARTIFACTS_DIR}"
                                 }
                             }
                         }
-                        stage('Upload build artifacts') {
+                        stage('OSX: Upload build artifacts') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
@@ -222,7 +222,7 @@ mkdir -p "${ARTIFACTS_DIR}"
                         skipDefaultCheckout(true)
                     }
                     stages {
-                        stage('Clean Workspace') {
+                        stage('Win: Clean Workspace') {
                             steps { cleanWs(deleteDirs: true) }
                         }
                         stage('Download and explode the source') {
@@ -243,7 +243,7 @@ exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Prep Workspace') {
+                        stage('Win: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 bat '''
@@ -260,7 +260,7 @@ echo maven.repo.pass=%MAVEN_REPO_PSW%>> %BUILD_DIR%/local.properties
 '''
                             }
                         }
-                        stage('Build') {
+                        stage('Win: Build') {
                             steps {
                                 bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
@@ -279,7 +279,7 @@ exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Test') {
+                        stage('Win: Test') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     bat '''
@@ -301,7 +301,7 @@ exit /b %ERRORLEVEL%
                                 }
                             }
                         }
-                        stage('Upload test artifacts') {
+                        stage('Win: Upload test artifacts') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sshPublisher(
@@ -324,7 +324,7 @@ exit /b %ERRORLEVEL%
                                 }
                             }
                         }
-                        stage('Publish') {
+                        stage('Win: Publish') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     bat '''
@@ -346,7 +346,7 @@ exit /b %ERRORLEVEL%
                                 }
                             }
                         }
-                        stage('Upload build artifacts') {
+                        stage('Win: Upload build artifacts') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
@@ -394,10 +394,10 @@ exit /b %ERRORLEVEL%
                 // use cbdep to install jdk 11 on centos6: rebuilding the centos6 docker iamge is too much of
                 // hack.
                 // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
-                stage('Clean Workspace') {
+                stage('Linux: Clean Workspace') {
                     steps { cleanWs(deleteDirs: true) }
                 }
-                stage('Download and explode the source') {
+                stage('Linux: Download and explode the source') {
                     steps {
                         sh '''#!/bin/bash
 echo "======== Linux: Download source: ${SOURCE}"
@@ -409,7 +409,7 @@ rm *-source.tar.gz
 '''
                     }
                 }
-                stage('Prepare Workspace') {
+                stage('Linux: Prep Workspace') {
                     environment { MAVEN_REPO = credentials('ProgetApiKey') }
                     steps {
                         script {
@@ -427,7 +427,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
 '''
                     }
                 }
-                stage('Build') {
+                stage('Linux: Build') {
                     steps {
                         sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
@@ -446,7 +446,7 @@ echo "======== Linux: Building in `pwd`"
 '''
                     }
                 }
-                stage('Test') {
+                stage('Linux: Test') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh '''#!/bin/bash
@@ -462,7 +462,7 @@ mkdir -p "${REPORTS_DIR}"
                         }
                     }
                 }
-                stage('Upload test artifacts') {
+                stage('Linux: Upload test artifacts') {
                     steps {
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sshPublisher(
@@ -485,7 +485,7 @@ mkdir -p "${REPORTS_DIR}"
                         }
                     }
                 }
-                stage('Publish') {
+                stage('Linux: Publish') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh '''#!/bin/bash
@@ -501,7 +501,7 @@ mkdir -p "${ARTIFACTS_DIR}"
                         }
                     }
                 }
-                stage('Upload build artifacts') {
+                stage('Linux: Upload build artifacts') {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sshPublisher(

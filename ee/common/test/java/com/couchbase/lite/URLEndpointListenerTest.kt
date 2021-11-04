@@ -16,28 +16,17 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.BaseTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
-import com.couchbase.lite.internal.utils.FlakyTest
-import com.couchbase.lite.internal.utils.Fn
-import com.couchbase.lite.internal.utils.PlatformUtils
-import com.couchbase.lite.internal.utils.Report
-import com.couchbase.lite.internal.utils.SlowTest
+import com.couchbase.lite.internal.utils.*
 import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
 import java.security.KeyStore
 import java.security.cert.Certificate
-import java.util.Arrays
-import java.util.Calendar
-import java.util.EnumSet
+import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.TimeUnit
@@ -47,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.regex.Pattern
 import kotlin.math.max
 
-@Ignore("CBL 2502")
 class URLEndpointListenerTest : BaseReplicatorTest() {
     companion object {
         @JvmStatic
@@ -196,7 +184,10 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = listenHttp()
 
         assertEquals(0, baseTestDb.count)
-        runRepl(listener.endpoint(), BasicAuthenticator("Bandersnatch", "twas brillig".toCharArray()))
+        runRepl(
+            listener.endpoint(),
+            BasicAuthenticator("Bandersnatch", "twas brillig".toCharArray())
+        )
 
         assertOneDoc(docId, baseTestDb)
     }
@@ -239,7 +230,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = listenHttp(
             ListenerPasswordAuthenticator { user, pwd -> ("daniel" == user) && ("123" == String(pwd)) }
         )
-        runReplWithError(CBLError.Code.HTTP_AUTH_REQUIRED, CBLError.Domain.CBLITE, listener.endpoint())
+        runReplWithError(
+            CBLError.Code.HTTP_AUTH_REQUIRED,
+            CBLError.Domain.CBLITE,
+            listener.endpoint()
+        )
     }
 
     // A listener with TLS disabled and a password client authenticator
@@ -490,7 +485,11 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = listenTls(
             null,
             ListenerPasswordAuthenticator { user, pwd -> (user == "daniel") && (String(pwd) == "123") })
-        runReplWithError(CBLError.Code.HTTP_AUTH_REQUIRED, CBLError.Domain.CBLITE, listener.endpoint())
+        runReplWithError(
+            CBLError.Code.HTTP_AUTH_REQUIRED,
+            CBLError.Domain.CBLITE,
+            listener.endpoint()
+        )
     }
 
     // A listener with TLS enabled and a password client authenticator
@@ -599,7 +598,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         assertEquals(0, baseTestDb.count)
 
-        val listener = listenTls(null, ListenerCertificateAuthenticator { certs -> certs[0] == null })
+        val listener =
+            listenTls(null, ListenerCertificateAuthenticator { certs -> certs[0] == null })
 
         runReplWithError(
             CBLError.Code.TLS_HANDSHAKE_FAILED,
@@ -812,7 +812,12 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             assertNull(it!!.serverCertificates)
         }
 
-        assertTrue(Arrays.equals(serverIdentity.certs[0].encoded, repl.serverCertificates!![0].encoded))
+        assertTrue(
+            Arrays.equals(
+                serverIdentity.certs[0].encoded,
+                repl.serverCertificates!![0].encoded
+            )
+        )
     }
 
     // Closing a database should shutdown all listeners
@@ -828,7 +833,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val idleLatch1 = CountDownLatch(1)
         val stopLatch1 = CountDownLatch(1)
-        val repl1 = testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
+        val repl1 =
+            testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
                 ReplicatorActivityLevel.IDLE -> idleLatch1.countDown()
@@ -878,7 +884,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         val idleLatch1 = CountDownLatch(1)
         val stopLatch1 = CountDownLatch(1)
-        val repl1 = testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
+        val repl1 =
+            testReplicator(makeReplConfig(listener.endpoint(), baseTestDb, serverId.certs[0]))
         repl1.addChangeListener { change ->
             when (change.status.activityLevel) {
                 ReplicatorActivityLevel.IDLE -> idleLatch1.countDown()
@@ -992,6 +999,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
+    @FlakyTest(log = ["MacOS: 21/11/3"])
     @Test
     fun testMultipleReplicatorsToListener() {
         // A filter can actually hang the replication

@@ -276,7 +276,7 @@ task javadoc(type: Javadoc) {
     afterEvaluate {
         classpath += files(
             android.libraryVariants.collect { variant ->
-                if (variant.name.equals("release")) { variant.javaCompileProvider.get().classpath.files }
+                if (variant.name == "release") { variant.javaCompileProvider.get().classpath.files }
             })
     }
 
@@ -290,7 +290,7 @@ task javadoc(type: Javadoc) {
         links "https://docs.oracle.com/javase/8/docs/api/"
         linksOffline "https://developer.android.com/reference/", "${project.android.sdkDirectory}/docs/reference"
         addStringOption('Xdoclint:none', '-quiet')
-        if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_8) > 0) {
+        if (JavaVersion.current() > JavaVersion.VERSION_1_8) {
             addBooleanOption('-ignore-source-errors', true)
         }
     }
