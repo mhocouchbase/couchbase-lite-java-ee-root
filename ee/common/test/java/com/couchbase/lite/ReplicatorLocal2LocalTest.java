@@ -50,7 +50,7 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings("ConstantConditions")
 public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
-    @FlakyTest(log = {"Linux: 21/06/18"})
+    @FlakyTest(log = {"Android: 21/11/04", "Linux: 21/06/18"})
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
