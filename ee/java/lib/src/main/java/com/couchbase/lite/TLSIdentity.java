@@ -143,9 +143,7 @@ public final class TLSIdentity extends BaseTLSIdentity {
     @Nullable
     static TLSIdentity getAnonymousIdentity(@NonNull String alias) throws CouchbaseLiteException {
         final KeyStore keyStore;
-        try {
-            keyStore = getDefaultKeyStore();
-        }
+        try { keyStore = getDefaultKeyStore(); }
         catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
             throw new IllegalStateException("Cannot get default KeyStore", e);
         }

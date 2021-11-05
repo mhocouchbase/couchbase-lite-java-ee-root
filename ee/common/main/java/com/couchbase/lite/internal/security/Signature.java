@@ -64,10 +64,10 @@ public final class Signature {
 
 
     /**
-     * Signs hash data. The method will doing as follows:
-     * 1. Encode the object identifier of the digest algorithm and the hash data
-     * in DER format if the SignatureDigestAlgorithm is not NONE.
-     * 2. Signed the encoded data with "NONEwithRSA" algorithm.
+     * Signs hash data. The method:
+     * 1. Encodes the object identifier of the digest algorithm and the hash data
+     *        in DER format, unless the SignatureDigestAlgorithm is NONE.
+     * 2. Signs the encoded data with "NONEwithRSA" algorithm.
      */
     @NonNull
     public static byte[] signHashData(
@@ -89,17 +89,17 @@ public final class Signature {
     /**
      * Format:
      * DigestInfo ::= SEQUENCE {
-     * digestAlgorithm AlgorithmIdentifier,
-     * digest OCTET STRING
+     *     digestAlgorithm AlgorithmIdentifier,
+     *     digest OCTET STRING
      * }
      * <p>
      * Code Reference using private API:
-     * DerOutputStream out = new DerOutputStream();
-     * new AlgorithmId(SHA256_oid).encode(out);
-     * out.putOctetString(data);
-     * byte[] derValue = out.toByteArray();
-     * DerValue der = new DerValue(tag_Sequence, derValue);
-     * data = der.toByteArray();
+     *   DerOutputStream out = new DerOutputStream();
+     *   new AlgorithmId(SHA256_oid).encode(out);
+     *   out.putOctetString(data);
+     *   byte[] derValue = out.toByteArray();
+     *   DerValue der = new DerValue(tag_Sequence, derValue);
+     *   data = der.toByteArray();
      */
     @NonNull
     private static byte[] encode(

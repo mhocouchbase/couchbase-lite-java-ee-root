@@ -225,9 +225,9 @@ public class C4KeyPair extends C4NativePeer {
 
     @Nullable
     private static C4KeyPair getKeyPairUnsafe(long token) {
-        Log.d(LogDomain.LISTENER, "Get key pair @%s", token);
-
-        return KEY_PAIR_CONTEXT.getBinding(token);
+        final C4KeyPair ctxt = KEY_PAIR_CONTEXT.getBinding(token);
+        Log.d(LogDomain.LISTENER, "Get key pair @%s => %s", token, ctxt);
+        return ctxt;
     }
 
     private static byte getC4KeyAlgorithm(KeyStoreManager.KeyAlgorithm algorithm) {

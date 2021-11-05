@@ -1194,10 +1194,8 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         return listener
     }
 
-    private fun listenTls(
-        identity: TLSIdentity? = null,
-        auth: ListenerAuthenticator? = null
-    ): URLEndpointListener {
+    private fun listenTls(identity: TLSIdentity? = null, auth: ListenerAuthenticator? = null)
+            : URLEndpointListener {
         // Listener:
         val config = URLEndpointListenerConfiguration(otherDB)
         config.port = getPort()

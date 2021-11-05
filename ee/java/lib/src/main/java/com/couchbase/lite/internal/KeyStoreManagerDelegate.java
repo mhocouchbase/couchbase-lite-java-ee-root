@@ -93,9 +93,7 @@ public class KeyStoreManagerDelegate extends KeyStoreManager {
 
         final Key key;
         final KeyPair keys = keyPair.getKeys();
-        if (keys != null) {
-            key = keys.getPrivate();
-        }
+        if (keys != null) { key = keys.getPrivate(); }
         else {
             final KeyStore keyStore = keyPair.getKeyStore();
             if (keyStore == null) {
