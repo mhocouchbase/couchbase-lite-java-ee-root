@@ -1000,7 +1000,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest(log = ["MacOS: 21/11/3"])
+    @FlakyTest(log = ["MacOS: 21/11/3", "Android: 21/11/4"])
     @Test
     fun testMultipleReplicatorsToListener() {
         // A filter can actually hang the replication
