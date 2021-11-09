@@ -36,6 +36,9 @@ static boolean isNewWorkspace(version) {
     return (majorVersion >= 3) || ((majorVersion == 2) && (v[1].toInteger >= 8))
 }
 
+static String uName(credentials) { return credentials.split(":")[0] }
+static String pwd(credentials) { return credentials.split(":")[1] }
+
 static String getRootDir(ws, version) { return (!isNewWorkspace(version)) ? ws : "${ws}/cbl-java" }
 
 static String getBuildDir(rootDir, version, edition) {
@@ -100,24 +103,28 @@ rm *-source.tar.gz
                         stage('OSX: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
+                                script {
+                                    env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
+                                    env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
+                                }
                                 sh '''#!/bin/bash
 echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                                 sh '''#!/bin/bash
-echo 'maven.repo.user=$MAVEN_REPO_USR' > "${BUILD_DIR}/local.properties"
-echo 'maven.repo.pass=$MAVEN_REPO_PSW' >> "${BUILD_DIR}/local.properties"
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
 '''
                             }
                         }
                         stage('OSX: Build') {
                             steps {
                                 sh '''#!/bin/bash
+cd "${BUILD_DIR}"
+
 echo "======== OSX: Environment"
 javac -version
-env | sort
-
-cd "${BUILD_DIR}"
+env | sort | grep -v 'MAVEN_REPO'
 
 echo "======== OSX: Building in `pwd`"
 ./etc/jenkins/build_macos.sh ${BLD_NUM} || exit $?
@@ -126,7 +133,7 @@ echo "======== OSX: Building in `pwd`"
                         }
                         stage('OSX: Test') {
                             steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
 cd "${BUILD_DIR}"
 
@@ -142,7 +149,7 @@ mkdir -p "${REPORTS_DIR}"
                         }
                         stage('OSX: Upload test artifacts') {
                             steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
                                         continueOnError: true,
                                         failOnError: false,
@@ -246,6 +253,10 @@ exit /b %ERRORLEVEL%
                         stage('Win: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
+                                script {
+                                    env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
+                                    env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
+                                }
                                 bat '''
 curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
 cbdep.exe install -d %WORKSPACE% java 11.0.3
@@ -255,8 +266,8 @@ echo "======== Windows: Force version "%VERSION%
 echo %VERSION% > %CBL_ROOT%/version.txt
 '''
                                 bat '''
-echo maven.repo.user=$MAVEN_REPO_USR> %BUILD_DIR%/local.properties
-echo maven.repo.pass=$MAVEN_REPO_PSW>> %BUILD_DIR%/local.properties
+echo maven.repo.user=%MAVEN_REPO_USR%> %BUILD_DIR%/local.properties
+echo maven.repo.pass=%MAVEN_REPO_PSW%>> %BUILD_DIR%/local.properties
 '''
                             }
                         }
@@ -303,7 +314,7 @@ exit /b %ERRORLEVEL%
                         }
                         stage('Win: Upload test artifacts') {
                             steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
                                         continueOnError: true,
                                         failOnError: false,
@@ -413,6 +424,9 @@ rm *-source.tar.gz
                     environment { MAVEN_REPO = credentials('ProgetApiKey') }
                     steps {
                         script {
+                            env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
+                            env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
+
                             if ("${DISTRO}".toString() == "centos6") {
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
@@ -422,8 +436,8 @@ echo "======== Linux: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                         sh '''#!/bin/bash
-echo 'maven.repo.user=$MAVEN_REPO_USR' > "${BUILD_DIR}/local.properties"
-echo 'maven.repo.pass=$MAVEN_REPO_PSW' >> "${BUILD_DIR}/local.properties"
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
 '''
                     }
                 }
@@ -435,11 +449,11 @@ if [[ "${DISTRO}" == "centos6" ]]; then
     export PATH="${JAVA_HOME}/bin:$PATH"
 fi
 
+cd "${BUILD_DIR}"
+
 echo "======== Linux: Environment"
 javac -version
-env | sort
-
-cd "${BUILD_DIR}"
+env | sort | grep -v 'MAVEN_REPO'
 
 echo "======== Linux: Building in `pwd`"
 ./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?
@@ -448,8 +462,13 @@ echo "======== Linux: Building in `pwd`"
                 }
                 stage('Linux: Test') {
                     steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
 cd "${BUILD_DIR}"
 
 echo "======== Linux: Test"
@@ -464,7 +483,7 @@ mkdir -p "${REPORTS_DIR}"
                 }
                 stage('Linux: Upload test artifacts') {
                     steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sshPublisher(
                                 continueOnError: true,
                                 failOnError: false,
@@ -487,8 +506,13 @@ mkdir -p "${REPORTS_DIR}"
                 }
                 stage('Linux: Publish') {
                     steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
 cd "${BUILD_DIR}"
 
 echo "======== Linux: Publish"
@@ -503,7 +527,7 @@ mkdir -p "${ARTIFACTS_DIR}"
                 }
                 stage('Linux: Upload build artifacts') {
                     steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sshPublisher(
                                 continueOnError: true,
                                 failOnError: false,
