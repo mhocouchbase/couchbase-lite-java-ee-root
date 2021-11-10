@@ -30,6 +30,8 @@ popd > /dev/null
 echo "=== Rebuild core lib"
 pushd "${ROOT_DIR}" > /dev/null
 rm -rf common/lite-core
-common/tools/build_litecore.sh -e EE
+common/tools/fetch_litecore.sh -e EE -n "http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
+common/tools/build_litecore.sh -l mbedcrypto -e EE
+# common/tools/build_litecore.sh -e EE
 popd > /dev/null
 
