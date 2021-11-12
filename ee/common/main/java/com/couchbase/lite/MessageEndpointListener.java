@@ -32,6 +32,7 @@ import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.core.C4ReplicatorListener;
 import com.couchbase.lite.internal.core.C4ReplicatorMode;
 import com.couchbase.lite.internal.core.C4ReplicatorStatus;
+import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.listener.ChangeNotifier;
 import com.couchbase.lite.internal.replicator.MessageSocket;
@@ -104,10 +105,12 @@ public class MessageEndpointListener {
      * @param connection new incoming connection
      */
     public void accept(@NonNull MessageEndpointConnection connection) {
-        Log.d(LogDomain.LISTENER, "Accepting connection: %s", connection);
+        final boolean isStopped = stopped.get();
+
+        Log.d(LogDomain.LISTENER, "Accepting connection (%s): %s", isStopped, connection);
         Preconditions.assertNotNull(connection, "connection");
 
-        if (stopped.get()) { return; }
+        if (isStopped) { return; }
 
         final byte[] options;
         try { options = getOptions(); }
@@ -118,14 +121,23 @@ public class MessageEndpointListener {
         }
 
         final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
+        final ProtocolType protocolType = config.getProtocolType();
         final Database db = config.getDatabase();
-        final C4Replicator replicator;
 
         C4ReplicatorStatus status;
         synchronized (db.getDbLock()) {
+            final C4Socket delegate = C4Socket.createSocketFromURL(
+                "/" + Integer.toHexString(connection.hashCode()),
+                (protocolType == ProtocolType.MESSAGE_STREAM)
+                    ? C4Socket.NO_FRAMING
+                    : C4Socket.WEB_SOCKET_CLIENT_FRAMING);
+
+            final MessageSocket listener = new MessageSocket(delegate, connection, protocolType);
+            delegate.init(listener);
+
             try {
-                replicator = db.createTargetReplicator(
-                    new MessageSocket(connection, config.getProtocolType()),
+                final C4Replicator replicator = db.createTargetReplicator(
+                    delegate,
                     passiveMode,
                     passiveMode,
                     options,
@@ -217,7 +229,9 @@ public class MessageEndpointListener {
     // Package visibility
     //---------------------------------------------
 
-    void statusChanged(@NonNull C4Replicator replicator, @NonNull C4ReplicatorStatus status) {
+    void statusChanged(@Nullable  C4Replicator replicator, @NonNull C4ReplicatorStatus status) {
+        Log.d(LogDomain.LISTENER, "MessageEndpointListener status changed (%s): %s", status, replicator);
+        if (replicator == null) { return; }
         final MessageEndpointConnection connection = (!AbstractReplicator.isStopped(status))
             ? getConnection(replicator)
             : removeConnection(replicator);
@@ -242,7 +256,7 @@ public class MessageEndpointListener {
     // Private
     //---------------------------------------------
 
-    @NonNull
+    @Nullable
     private MessageEndpointConnection getConnection(@NonNull C4Replicator replicator) {
         synchronized (lock) { return replicators.get(replicator); }
     }
@@ -256,7 +270,7 @@ public class MessageEndpointListener {
         }
     }
 
-    @NonNull
+    @Nullable
     private MessageEndpointConnection removeConnection(@NonNull C4Replicator replicator) {
         final boolean mustUnregister;
         final MessageEndpointConnection connection;

@@ -554,12 +554,16 @@ mkdir -p "${ARTIFACTS_DIR}"
     }
 
     post {
-        unsuccessful {
-            script {
-                mail to: 'mobile_dev_java@couchbase.com',
-                    subject: "Java build failure",
-                    body: "Failed building JAVA ${VERSION}-${EDITION}-${BLD_NUM}"
-            }
+        unstable {
+            mail to: 'mobile_dev_java@couchbase.com',
+                subject: "Java build is unstable",
+                body: "JAVA build ${VERSION}-${EDITION}-${BLD_NUM} is unstable"
+        }
+        failure {
+            mail to: 'mobile_dev_java@couchbase.com',
+                subject: "Java build failed",
+                body: "JAVA build ${VERSION}-${EDITION}-${BLD_NUM} faild"
         }
     }
 }
+

@@ -58,4 +58,8 @@ public class MessagingError {
      * @return the recoverable flag identifying whether the error is recoverable or not
      */
     public boolean isRecoverable() { return recoverable; }
+
+    @NonNull
+    @Override
+    public String toString() { return "MessagingError{" + recoverable + ", " + error + '}'; }
 }

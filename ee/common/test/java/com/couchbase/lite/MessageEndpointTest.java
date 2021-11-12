@@ -759,7 +759,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         MessageEndpointListener listener = new MessageEndpointListener(
             new MessageEndpointListenerConfiguration(otherDB, ProtocolType.BYTE_STREAM));
-        ListenerToken token = listener.addChangeListener(c -> statuses.add(c.getStatus().getActivityLevel()));
+        listener.addChangeListener(c -> statuses.add(c.getStatus().getActivityLevel()));
 
         EndpointListenerAwaiter awaiter = new EndpointListenerAwaiter(listener);
 
