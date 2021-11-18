@@ -39,9 +39,9 @@ public class SocketFactory extends AbstractSocketFactory {
     }
 
     @Nullable
-    protected CoreSocketListener createPlatformSocket(@NonNull CoreSocketDelegate delegate) {
+    protected CoreSocketListener createPlatformSocket(@NonNull CoreSocketDelegate coreDelegate) {
         return (!(endpoint instanceof MessageEndpoint))
             ? null
-            : new MessageSocket(delegate, (MessageEndpoint) endpoint);
+            : new MessageSocket(coreDelegate, (MessageEndpoint) endpoint);
     }
 }

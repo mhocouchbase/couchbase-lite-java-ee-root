@@ -221,11 +221,7 @@ public class MessageSocket implements CoreSocketListener, ReplicatorConnection, 
     }
 
     @GuardedBy("delegate.getLock()")
-    private boolean isClosing() {
-        final boolean isC4Closing = delegate.isClosing();
-        Log.d(TAG, "%s#MessageSocket.isClosing: %s, %s", this, closing, isC4Closing);
-        return closing || isC4Closing;
-    }
+    private boolean isClosing() { return closing; }
 
     @GuardedBy("delegate.getLock()")
     private void connectionGotResponse(int httpStatus) {
