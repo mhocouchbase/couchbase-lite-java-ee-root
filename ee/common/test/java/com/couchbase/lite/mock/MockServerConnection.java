@@ -38,7 +38,7 @@ public class MockServerConnection extends MockConnection {
     private MockClientConnection client;
 
     public MockServerConnection(@NonNull String testName, @NonNull MessageEndpointListener listener) {
-        super(testName + ":Server");
+        super("Server(" + testName + ")");
 
         this.listener = listener;
 

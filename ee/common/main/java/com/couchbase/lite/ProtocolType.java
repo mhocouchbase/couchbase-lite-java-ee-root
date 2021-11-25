@@ -14,6 +14,16 @@
 //
 package com.couchbase.lite;
 
+import androidx.annotation.NonNull;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.couchbase.lite.internal.sockets.MessageFraming;
+import com.couchbase.lite.internal.utils.Preconditions;
+
+
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
@@ -34,5 +44,18 @@ public enum ProtocolType {
      * ... we don't use this because that would be too easy, right?
      * OkHTTP also wants to frame the data.
      */
-    BYTE_STREAM
+    BYTE_STREAM;
+
+    private static final Map<ProtocolType, MessageFraming> PROTOCOL_TYPES;
+    static {
+        final Map<ProtocolType, MessageFraming> m = new HashMap<>();
+        m.put(ProtocolType.BYTE_STREAM, MessageFraming.CLIENT_FRAMING);
+        m.put(ProtocolType.MESSAGE_STREAM, MessageFraming.NO_FRAMING);
+        PROTOCOL_TYPES = Collections.unmodifiableMap(m);
+    }
+
+    @NonNull
+    public static MessageFraming getFramingForProtocol(@NonNull ProtocolType protocol) {
+        return Preconditions.assertNotNull(PROTOCOL_TYPES.get(protocol), "protocol");
+    }
 }

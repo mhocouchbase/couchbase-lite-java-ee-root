@@ -102,5 +102,5 @@ public class MessageEndpoint implements Endpoint {
 
     @NonNull
     @Override
-    public String toString() { return "MessageEndpoint{" + uid + "," + protocolType + "," + target + "}"; }
+    public String toString() { return "MessageEndpoint{" + uid + ", " + protocolType + ", " + target + "}"; }
 }

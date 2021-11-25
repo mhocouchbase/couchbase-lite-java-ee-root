@@ -19,7 +19,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.couchbase.lite.internal.core.C4Replicator;
-import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.replicator.NetworkConnectivityManager;
 
 
@@ -45,10 +44,7 @@ public final class Replicator extends AbstractReplicator {
 
         if (target instanceof MessageEndpoint) {
             return getMessageC4Replicator(
-                (((MessageEndpoint) target).getProtocolType() != ProtocolType.BYTE_STREAM)
-                    ? C4Socket.NO_FRAMING
-                    : C4Socket.WEB_SOCKET_CLIENT_FRAMING
-            );
+                ProtocolType.getFramingForProtocol(((MessageEndpoint) target).getProtocolType()));
         }
 
         throw new IllegalStateException("unrecognized endpoint type: " + target);

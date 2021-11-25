@@ -16,6 +16,8 @@ package com.couchbase.lite;
 
 import androidx.annotation.NonNull;
 
+import javax.annotation.Nullable;
+
 
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
@@ -36,16 +38,6 @@ public interface MessageEndpointConnection {
     void open(@NonNull ReplicatorConnection connection, @NonNull MessagingCompletion completion);
 
     /**
-     * Called to close the remote connection with the other peer when the
-     * replicator stops or when the MessageEndpointListener closes the connection.
-     * When the remote connection is closed, call the completion block to acknowledge
-     * the completion.
-     *
-     * @param completion the completion callback
-     */
-    void close(Exception error, @NonNull MessagingCloseCompletion completion);
-
-    /**
      * Called to send the replication data to the other peer. When the replication
      * data is sent, call the completion block to acknowledge the completion.
      *
@@ -53,4 +45,14 @@ public interface MessageEndpointConnection {
      * @param completion the completion callback
      */
     void send(@NonNull Message message, @NonNull MessagingCompletion completion);
+
+    /**
+     * Called to close the remote connection with the other peer when the
+     * replicator stops or when the MessageEndpointListener closes the connection.
+     * When the remote connection is closed, call the completion block to acknowledge
+     * the completion.
+     *
+     * @param completion the completion callback
+     */
+    void close(@Nullable Exception error, @NonNull MessagingCloseCompletion completion);
 }

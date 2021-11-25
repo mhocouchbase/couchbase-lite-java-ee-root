@@ -22,11 +22,12 @@ import java.security.cert.Certificate;
 import java.util.List;
 
 import com.couchbase.lite.MessageEndpoint;
+import com.couchbase.lite.ProtocolType;
 import com.couchbase.lite.ReplicatorConfiguration;
 import com.couchbase.lite.internal.replicator.CBLCookieStore;
 import com.couchbase.lite.internal.replicator.MessageSocket;
-import com.couchbase.lite.internal.sockets.CoreSocketDelegate;
-import com.couchbase.lite.internal.sockets.CoreSocketListener;
+import com.couchbase.lite.internal.sockets.SocketFromCore;
+import com.couchbase.lite.internal.sockets.SocketToCore;
 import com.couchbase.lite.internal.utils.Fn;
 
 
@@ -39,9 +40,12 @@ public class SocketFactory extends AbstractSocketFactory {
     }
 
     @Nullable
-    protected CoreSocketListener createPlatformSocket(@NonNull CoreSocketDelegate coreDelegate) {
-        return (!(endpoint instanceof MessageEndpoint))
-            ? null
-            : new MessageSocket(coreDelegate, (MessageEndpoint) endpoint);
+    protected SocketFromCore createPlatformSocket(@NonNull SocketToCore coreDelegate) {
+        if (!(endpoint instanceof MessageEndpoint)) { return null; }
+        final MessageEndpoint endpt = (MessageEndpoint) endpoint;
+        return MessageSocket.create(
+            coreDelegate,
+            endpt.getDelegate().createConnection(endpt),
+            ProtocolType.getFramingForProtocol(endpt.getProtocolType()));
     }
 }

@@ -14,225 +14,210 @@
 //
 package com.couchbase.lite.internal.replicator;
 
-import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import java.util.concurrent.Executor;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.LogDomain;
 import com.couchbase.lite.Message;
-import com.couchbase.lite.MessageEndpoint;
 import com.couchbase.lite.MessageEndpointConnection;
 import com.couchbase.lite.MessagingError;
-import com.couchbase.lite.ProtocolType;
 import com.couchbase.lite.ReplicatorConnection;
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4Constants;
-import com.couchbase.lite.internal.sockets.CoreSocketDelegate;
-import com.couchbase.lite.internal.sockets.CoreSocketListener;
+import com.couchbase.lite.internal.sockets.MessageFraming;
+import com.couchbase.lite.internal.sockets.SocketFromCore;
+import com.couchbase.lite.internal.sockets.SocketToCore;
 import com.couchbase.lite.internal.support.Log;
+import com.couchbase.lite.internal.utils.ClassUtils;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
-/**
- * This class should be re-implemented using the paradigms described in C4Socket and AbstractCBLWebSocket.
- * It should be re-architected to use a single-threaded executor.
- * It might need to be a state machine.
- */
-public class MessageSocket implements CoreSocketListener, ReplicatorConnection, AutoCloseable {
-    private static final LogDomain TAG = LogDomain.NETWORK;
+public abstract class MessageSocket implements ReplicatorConnection, SocketFromCore, AutoCloseable {
+    private static final LogDomain LOG_DOMAIN = LogDomain.NETWORK;
+
+    private static final class FramedStreamSocket extends MessageSocket {
+        FramedStreamSocket(@NonNull SocketToCore toCore, @NonNull MessageEndpointConnection remote) {
+            super(toCore, remote);
+        }
+
+        @Override
+        public void remoteRequestedClose(@Nullable MessagingError err) {
+            closeRemote(err == null ? null : err.getError(), err);
+        }
+    }
+
+    private static final class UnframedStreamSocket extends MessageSocket {
+        UnframedStreamSocket(@NonNull SocketToCore toCore, @NonNull MessageEndpointConnection remote) {
+            super(toCore, remote);
+        }
+
+        @Override
+        public void remoteRequestedClose(@Nullable MessagingError err) { requestCloseToCore(err); }
+    }
+
+    @NonNull
+    public static MessageSocket create(
+        @NonNull SocketToCore toCore,
+        @NonNull MessageEndpointConnection remote,
+        @NonNull MessageFraming framing) {
+        final MessageSocket socket;
+        switch (framing) {
+            case NO_FRAMING:
+                socket = new UnframedStreamSocket(toCore, remote);
+                break;
+            case CLIENT_FRAMING:
+                socket = new FramedStreamSocket(toCore, remote);
+                break;
+            default:
+                throw new IllegalStateException("unrecognised protocol: " + framing);
+        }
+        Log.d(LOG_DOMAIN, "%s.created", socket);
+        return socket;
+    }
+
 
     // ---------------------------------------------------------------------------------------------
     // Fields
     // ---------------------------------------------------------------------------------------------;
-    private final Executor finalizer = CouchbaseLiteInternal.getExecutionService().getSerialExecutor();
 
     @NonNull
-    protected final CoreSocketDelegate delegate;
+    private final MessageEndpointConnection remote;
     @NonNull
-    private final MessageEndpointConnection connection;
-    @NonNull
-    private final ProtocolType protocolType;
-
-    @GuardedBy("getPeerLock()")
-    private boolean sendResponseStatus = true;
-    @GuardedBy("getPeerLock()")
-    private boolean closing;
+    protected final SocketToCore toCore;
 
     // ---------------------------------------------------------------------------------------------
     // Constructors
     // ---------------------------------------------------------------------------------------------
 
-    public MessageSocket(@NonNull CoreSocketDelegate delegate, @NonNull MessageEndpoint endpoint) {
-        this(delegate, endpoint.getDelegate().createConnection(endpoint), endpoint.getProtocolType());
+    private MessageSocket(@NonNull SocketToCore toCore, @NonNull MessageEndpointConnection remote) {
+        this.toCore = toCore;
+        this.remote = remote;
     }
 
-    public MessageSocket(
-        @NonNull CoreSocketDelegate delegate,
-        @NonNull MessageEndpointConnection connection,
-        @NonNull ProtocolType protocolType) {
-        this.delegate = delegate;
-        this.connection = connection;
-        this.protocolType = protocolType;
-    }
+    protected abstract void remoteRequestedClose(@Nullable MessagingError err);
 
     @Override
     @NonNull
     public String toString() {
-        return "MessageSocket{@" + super.toString() + ": " + protocolType + ", " + connection + "}";
+        return getClass().getSimpleName() + ClassUtils.objId(this) + "{" + toCore + " <=> " + remote + "}";
     }
 
     // ---------------------------------------------------------------------------------------------
     // Implementation of Autocloseable
     // ---------------------------------------------------------------------------------------------
 
-    public void close() { close(new MessagingError(new Exception("Closed by client"), false)); }
-
-    // ---------------------------------------------------------------------------------------------
-    // Implementation of ReplicatorConnection
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    public final void receive(@NonNull Message message) {
-        Preconditions.assertNotNull(message, "message");
-        Log.d(TAG, "%s#MessageSocket.receive: %s", this, message);
-        synchronized (delegate.getLock()) {
-            if (isClosing()) { return; }
-            delegate.received(message.toData());
-        }
-    }
-
-    @Override
-    public final void close(@Nullable MessagingError error) {
-        Log.d(TAG, "%s#MessageSocket.close: %s", this, error);
-        synchronized (delegate.getLock()) {
-            if (isClosing()) { return; }
-
-            switch (protocolType) {
-                case MESSAGE_STREAM:
-                    delegate.closeRequested(getStatusCode(error), error == null ? "" : error.getError().getMessage());
-                    break;
-
-                case BYTE_STREAM:
-                    closeConnection(error == null ? null : error.getError(), error);
-                    break;
-
-                default:
-                    throw new IllegalStateException("Unrecognized protocol: " + protocolType);
-            }
-        }
-    }
+    public void close() { Log.d(LOG_DOMAIN, "%s.close", this); }
 
     //-------------------------------------------------------------------------
-    // Implementation of CoreSocketListener (Core to Remote)
+    // Implementation of SocketFromCore (Core to Remote)
     //-------------------------------------------------------------------------
 
+    // Core needs a connection to the remote
     @Override
-    public final void onCoreRequestOpen() {
-        Log.d(TAG, "%s#MessageSocket.Core connect", this);
-        connection.open(
+    public void coreRequestedOpen() {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreRequestedOpen", this); }
+        remote.open(
             this,
             (success, error) -> {
-                if (success) { connectionOpened(); }
-                else { connectionClosed(error); }
+                if (success) { ackOpenToCore(); }
+                else { closeCore(error); }
             });
     }
 
     @Override
-    public final void onCoreSend(@NonNull byte[] data) {
+    public void coreWrites(@NonNull byte[] data) {
         final int dLen = data.length;
-        Log.d(TAG, "%s#MessageSocket.Core send: %d", this, dLen);
-        connection.send(
+        Log.d(LOG_DOMAIN, "%s.coreWrites: %d", this, dLen);
+        remote.send(
             Message.fromData(data),
             (success, error) -> {
-                if (success) { messageSent(dLen); }
+                if (success) { ackMessageToCore(dLen); }
                 else { close(error); }
             });
     }
 
     @Override
-    public final void onCoreCompletedReceive(long n) { Log.d(TAG, "%s#Core complete receive: %d", this, n); }
+    public void coreAckReceive(long n) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreAckReceive: %d", this, n); }
+    }
 
     @Override
-    public final void onCoreRequestClose(int code, String msg) {
-        Log.d(TAG, "%s#MessageSocket.Core request close (%d): %s", this, code, msg);
+    public void coreRequestedClose(int code, String msg) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreRequestedClose(%d): %s", this, code, msg); }
         final Exception error = (code == C4Constants.WebSocketError.NORMAL)
             ? null
             : CouchbaseLiteException.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, code, msg, null);
+
         final MessagingError messagingError = (error == null)
             ? null
             : new MessagingError(error, code == C4Constants.WebSocketError.USER_TRANSIENT);
 
-        closeConnection(error, messagingError);
+        closeRemote(error, messagingError);
     }
 
     @Override
-    public final void onCoreClosed() {
-        Log.d(TAG, "%s#MessageSocket.Core closed", this);
-        closeConnection(null, null);
+    public void coreClosed() {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreClosed", this); }
+        closeRemote(null, null);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Implementation of ReplicatorConnection (Remote to Core)
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public void receive(@NonNull Message msg) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.remoteRequestedSend: %s", this, msg); }
+        toCore.sendToCore(Preconditions.assertNotNull(msg, "message").toData());
+    }
+
+    @Override
+    public void close(@Nullable MessagingError err) {
+        if (CouchbaseLiteInternal.debugging()) {
+            Log.d(LOG_DOMAIN, "%s.remoteRequestedClose: %s", (err == null) ? null : err.getError(), this, err);
+        }
+        remoteRequestedClose(err);
+    }
+
+    //-------------------------------------------------------------------------
+    // Protected methods
+    //-------------------------------------------------------------------------
+
+    protected void requestCloseToCore(@Nullable MessagingError err) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.requestCloseToCore: %s", this, err); }
+        toCore.requestCoreClose(getStatusCode(err), (err == null) ? null : err.getError().getMessage());
+    }
+
+    protected void closeRemote(@Nullable Exception error, @Nullable MessagingError err) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.closeRemote (%s): %s", this, error, err); }
+        remote.close(error, () -> closeCore(err));
     }
 
     //-------------------------------------------------------------------------
     // Private methods
     //-------------------------------------------------------------------------
 
-    private void connectionOpened() {
-        Log.d(TAG, "%s#MessageSocket.connectionOpened", this);
-        synchronized (delegate.getLock()) {
-            if (isClosing()) { return; }
-
-            if (sendResponseStatus) { connectionGotResponse(200); }
-
-            delegate.opened();
-        }
+    private void ackOpenToCore() {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.ackOpenToCore", this); }
+        toCore.ackHttpToCore(200, null);
+        toCore.ackOpenToCore();
     }
 
-    private void messageSent(int byteCount) {
-        Log.d(TAG, "%s#MessageSocket.messageSent (%d)", this, byteCount);
-        synchronized (delegate.getLock()) {
-            if (isClosing()) { return; }
-            delegate.completedWrite(byteCount);
-        }
+    private void ackMessageToCore(int byteCount) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.ackMessageToCore (%d)", this, byteCount); }
+        toCore.ackWriteToCore(byteCount);
     }
 
-    private void closeConnection(@Nullable Exception error, @Nullable MessagingError messagingError) {
-        Log.d(TAG, "%s#MessageSocket.closeConnection (%s): %s", this, error, messagingError);
-        connection.close(error, () -> connectionClosed(messagingError));
-    }
-
-    private void connectionClosed(@Nullable MessagingError error) {
-        Log.d(TAG, "%s#MessageSocket.connectionClosed: %s", this, error);
-        synchronized (delegate.getLock()) {
-            if (isClosing()) { return; }
-
-            closing = true;
-
-            final int domain = (error == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET;
-            final int code = (error != null) ? getStatusCode(error) : 0;
-            final String msg = (error != null) ? error.getError().getMessage() : "";
-
-            // I think that this is a weak attempt to guarantee that the actual call
-            // to `closed` happens after any task that the caller might have enqueued.
-            // ... of course, since there's no guess as to where the caller enqueued tasks....
-            finalizer.execute(() -> delegate.closed(domain, code, msg));
-        }
-    }
-
-    @GuardedBy("delegate.getLock()")
-    private boolean isClosing() { return closing; }
-
-    @GuardedBy("delegate.getLock()")
-    private void connectionGotResponse(int httpStatus) {
-        Log.d(TAG, "%s#MessageSocket.connectionGotResponse: %d", this, httpStatus);
-        if (isClosing()) { return; }
-        delegate.gotHTTPResponse(httpStatus, null);
-        sendResponseStatus = false;
+    private void closeCore(@Nullable MessagingError err) {
+        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.closeCore: %s", this, err); }
+        toCore.closeCore(
+            (err == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET,
+            (err == null) ? 0 : getStatusCode(err),
+            (err == null) ? null : err.getError().getMessage());
     }
 
     private int getStatusCode(@Nullable MessagingError error) {
-        Log.d(TAG, "%s#MessageSocket.getStatusCode: %s", this, error);
         if (error == null) { return C4Constants.WebSocketError.NORMAL; }
         return error.isRecoverable()
             ? C4Constants.WebSocketError.USER_TRANSIENT

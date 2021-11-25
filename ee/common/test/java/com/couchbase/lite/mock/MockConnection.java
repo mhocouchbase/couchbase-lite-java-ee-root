@@ -58,7 +58,7 @@ public abstract class MockConnection implements MessageEndpointConnection {
             new LinkedBlockingDeque<>(),
             runnable -> {
                 final Thread thread = new Thread(runnable, logName);
-                Report.log(LogLevel.DEBUG, logPrefix() + " New thread: %s(%d)", thread.getName(), thread.getId());
+                Report.log(LogLevel.DEBUG, logPrefix() + " New thread");
                 thread.setUncaughtExceptionHandler((t, e) ->
                     Report.log(LogLevel.INFO, e, logPrefix() + " Uncaught exception"));
                 return thread;
@@ -164,7 +164,7 @@ public abstract class MockConnection implements MessageEndpointConnection {
 
         Report.log(
             LogLevel.DEBUG,
-            new Exception("DISCONNECT"),
+            new Exception("DISCONNECT#1"),
             logPrefix() + ".disconnect(%s) %s, %s",
             disconnecting,
             error,
@@ -172,7 +172,7 @@ public abstract class MockConnection implements MessageEndpointConnection {
         wire.submit(() -> {
             Report.log(
                 LogLevel.DEBUG,
-                new Exception("DISCONNECT"),
+                new Exception("DISCONNECT#2"),
                 logPrefix() + "deliver disconnect(%s) %s, %s",
                 disconnecting,
                 error,
@@ -187,13 +187,13 @@ public abstract class MockConnection implements MessageEndpointConnection {
     @NonNull
     @Override
     public String toString() {
-        return "[" + ClassUtils.objId(this) + "]" + logName
-            + "(*" + ClassUtils.objId(replicatorConnection) + "," + closing + ")";
+        return "Mock" + logName + ClassUtils.objId(this)
+            + "{" + ClassUtils.objId(replicatorConnection) + "," + closing + "}";
     }
 
     protected String logPrefix() {
         final Thread t = Thread.currentThread();
-        return "MOCK CONNECTION " + t.getName() + "(" + t.getId() + ") " + this;
+        return "MOCK CONNECTION:" + t.getName() + "(" + t.getId() + ") " + this;
     }
 
     private void deliver(@NonNull Message message, @NonNull ReplicatorConnection repl) {

@@ -505,6 +505,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     @FlakyTest(log = {"MacOs: 21/08/17", "MacOs: 21/08/24"})
+    @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError(
@@ -601,7 +602,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
                 baseTestDb,
                 new MessageEndpoint(
                     "p2ptest2",
-                    getServerConnection("CloseDbWithListener", listener),
+                    getServerConnection("CloseDbWithActiveMessageListener", listener),
                     ProtocolType.MESSAGE_STREAM,
                     getConnectionFactory(1)),
                 ReplicatorType.PUSH_AND_PULL,
@@ -636,6 +637,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
     }
 
     @FlakyTest(log = {"MacOs: 21/08/24"})
+    @SlowTest
     @Test
     public void testP2PPassiveCloseAll() throws InterruptedException, CouchbaseLiteException {
         final CountDownLatch idleLatch = new CountDownLatch(2);

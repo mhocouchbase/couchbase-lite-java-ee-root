@@ -36,6 +36,7 @@ import com.couchbase.lite.internal.core.C4Socket;
 import com.couchbase.lite.internal.fleece.FLEncoder;
 import com.couchbase.lite.internal.listener.ChangeNotifier;
 import com.couchbase.lite.internal.replicator.MessageSocket;
+import com.couchbase.lite.internal.sockets.MessageFraming;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
@@ -54,6 +55,7 @@ public class MessageEndpointListener {
             @Nullable C4Replicator repl,
             @Nullable C4ReplicatorStatus status,
             @Nullable Object context) {
+            Log.d(DOMAIN, "ReplicatorListener.statusChanged (%s): %s", status, context);
             if ((!(context instanceof MessageEndpointListener)) || (status == null)) { return; }
             dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
@@ -108,9 +110,10 @@ public class MessageEndpointListener {
         final boolean isStopped = stopped.get();
 
         Log.d(LogDomain.LISTENER, "Accepting connection (%s): %s", isStopped, connection);
-        Preconditions.assertNotNull(connection, "connection");
 
         if (isStopped) { return; }
+
+        Preconditions.assertNotNull(connection, "connection");
 
         final byte[] options;
         try { options = getOptions(); }
@@ -121,23 +124,17 @@ public class MessageEndpointListener {
         }
 
         final int passiveMode = C4ReplicatorMode.C4_PASSIVE.getVal();
-        final ProtocolType protocolType = config.getProtocolType();
+        final MessageFraming framing = ProtocolType.getFramingForProtocol(config.getProtocolType());
         final Database db = config.getDatabase();
 
         C4ReplicatorStatus status;
         synchronized (db.getDbLock()) {
-            final C4Socket delegate = C4Socket.createSocketFromURL(
-                "/" + Integer.toHexString(connection.hashCode()),
-                (protocolType == ProtocolType.MESSAGE_STREAM)
-                    ? C4Socket.NO_FRAMING
-                    : C4Socket.WEB_SOCKET_CLIENT_FRAMING);
+            final C4Socket c4Socket = C4Socket.createSocket(connection.hashCode(), framing);
 
-            final MessageSocket listener = new MessageSocket(delegate, connection, protocolType);
-            delegate.init(listener);
-
+            c4Socket.init(MessageSocket.create(c4Socket, connection, framing));
             try {
                 final C4Replicator replicator = db.createTargetReplicator(
-                    delegate,
+                    c4Socket,
                     passiveMode,
                     passiveMode,
                     options,
@@ -229,7 +226,7 @@ public class MessageEndpointListener {
     // Package visibility
     //---------------------------------------------
 
-    void statusChanged(@Nullable  C4Replicator replicator, @NonNull C4ReplicatorStatus status) {
+    void statusChanged(@Nullable C4Replicator replicator, @NonNull C4ReplicatorStatus status) {
         Log.d(LogDomain.LISTENER, "MessageEndpointListener status changed (%s): %s", status, replicator);
         if (replicator == null) { return; }
         final MessageEndpointConnection connection = (!AbstractReplicator.isStopped(status))

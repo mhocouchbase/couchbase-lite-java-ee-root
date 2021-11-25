@@ -133,7 +133,7 @@ public final class Database extends AbstractDatabase {
 
     @NonNull
     C4Replicator createTargetReplicator(
-        @NonNull C4Socket openSocket,
+        @NonNull C4Socket c4Socket,
         int push,
         int pull,
         @Nullable byte[] options,
@@ -141,7 +141,7 @@ public final class Database extends AbstractDatabase {
         @NonNull Object context)
         throws LiteCoreException {
         synchronized (getDbLock()) {
-            return getOpenC4DbLocked().createTargetReplicator(openSocket, push, pull, options, listener, context);
+            return getOpenC4DbLocked().createTargetReplicator(c4Socket, push, pull, options, listener, context);
         }
     }
 
