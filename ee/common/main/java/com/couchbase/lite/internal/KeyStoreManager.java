@@ -19,14 +19,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.UnrecoverableEntryException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
-import java.security.interfaces.RSAKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -44,7 +44,6 @@ import com.couchbase.lite.internal.core.C4KeyPair;
 import com.couchbase.lite.internal.security.Signature;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Fn;
-
 
 
 public abstract class KeyStoreManager {
@@ -226,25 +225,19 @@ public abstract class KeyStoreManager {
         @NonNull String alias,
         @NonNull KeyStore keyStore,
         @Nullable KeyStore.ProtectionParameter protectionParam) {
-        final KeyStore.Entry entry;
-        try { entry = keyStore.getEntry(alias, protectionParam); }
-        catch (UnrecoverableEntryException | NoSuchAlgorithmException | KeyStoreException e) {
-            Log.w(LogDomain.LISTENER, "Key: no key found for alias: " + alias, e);
-            return null;
+        char[] password = null;
+        if (protectionParam instanceof KeyStore.PasswordProtection) {
+            password = ((KeyStore.PasswordProtection) protectionParam).getPassword();
         }
-
-        if (!(entry instanceof KeyStore.PrivateKeyEntry)) {
-            Log.w(LogDomain.LISTENER, "Key: no private key found for alias " + alias);
-            return null;
+        try {
+            //CBL-1240. Use getKey instead of getEntry to avoid KeyStore exception in Android 9
+            final Key key = keyStore.getKey(alias, password);
+            if (key instanceof PrivateKey) { return (PrivateKey) key; }
         }
-
-        final PrivateKey key = ((KeyStore.PrivateKeyEntry) entry).getPrivateKey();
-        if (!(key instanceof RSAKey)) {
-            Log.w(LogDomain.LISTENER, "Key: unsupported algorithm (%s) for %s ", key.getAlgorithm(), alias);
-            return null;
+        catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            Log.w(LogDomain.LISTENER, "Key: no private key found for alias: " + alias, e);
         }
-
-        return key;
+        return null;
     }
 
     @Nullable
