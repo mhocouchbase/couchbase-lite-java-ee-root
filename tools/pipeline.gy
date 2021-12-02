@@ -2,7 +2,7 @@
 //  Pipeline build for Java product
 //
 
-
+// These three methods set the tags that determine which agent will run a stage
 def static osxNode() {
     return "cbl-java&&macosx_x86_64"
 }
@@ -27,6 +27,7 @@ def static linuxNode(distro) {
     }
 }
 
+// check for pre- or post lithium build
 static boolean isNewWorkspace(version) {
     String[] v = version.split("\\.")
     if (v.length < 2) { throw new IllegalArgumentException("Bad version: ${version}") }
@@ -35,9 +36,6 @@ static boolean isNewWorkspace(version) {
 
     return (majorVersion >= 3) || ((majorVersion == 2) && (v[1].toInteger >= 8))
 }
-
-static String uName(credentials) { return credentials.split(":")[0] }
-static String pwd(credentials) { return credentials.split(":")[1] }
 
 static String getRootDir(ws, version) { return (!isNewWorkspace(version)) ? ws : "${ws}/cbl-java" }
 
@@ -54,7 +52,11 @@ static String getBuildDir(rootDir, version, edition) {
     }
 }
 
+static String uName(credentials) { return credentials.split(":")[0] }
+static String pwd(credentials) { return credentials.split(":")[1] }
+
 pipeline {
+    // Force each stage is to specify an explicit agent
     agent none
     environment {
         LATESTBUILDS = "http://latestbuilds.service.couchbase.com/builds/latestbuilds"
@@ -66,12 +68,112 @@ pipeline {
                 script { currentBuild.displayName = "${VERSION}-${EDITION}-${BLD_NUM}" }
             }
         }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////   STATIC ANALYSIS   ////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        stage('Static analysis') {
+            agent { label linuxNode("${DISTRO}") }
+            environment {
+                CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                DISTRO = "centos6"
+            }
+            options {
+                // ??? Doesn't work
+                // buildDiscarder(logRotator(numToKeepStr: '10'))
+                skipDefaultCheckout(true)
+            }
+            stages {
+                // use cbdep to install jdk 11 on centos6:
+                // rebuilding the centos6 docker iamge is too much of hack.
+                // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
+                stage('Linux Build: Clean Workspace') {
+                    steps { cleanWs(deleteDirs: true) }
+                }
+                stage('Linux Build: Download and explode the source') {
+                    steps {
+                        sh '''#!/bin/bash
+echo "======== Linux: Download source: ${SOURCE}"
+curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
+
+echo "======== Linux: Extract source"
+tar xzf ${SOURCE}
+rm *-source.tar.gz
+'''
+                    }
+                }
+                stage('Linux Build: Prep Workspace') {
+                    steps {
+                        script {
+                            if ("${DISTRO}".toString() == "centos6") {
+                                sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
+                            }
+                        }
+                        sh '''#!/bin/bash
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
+                        sh '''#!/bin/bash
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
+'''
+                    }
+                }
+                stage('Check') {
+                    steps {
+                        sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
+cd "${BUILD_DIR}"
+
+echo "======== Linux: Environment"
+javac -version
+env | sort | grep -v 'MAVEN_REPO'
+
+echo "======== Linux: Chect"
+
+# Everything below this line
+# goes in a file named <root>/(ce|ee)/java/etc/jenkins/check.sh
+
+function usage() {
+    echo "Usage: $0 <build number> <distro>"
+    exit 1
+}
+
+if ["$#" -ne 2]; then
+    usage
+fi
+
+BUILD_NUMBER = "$1"
+if [-z "${BUILD_NUMBER}"]; then
+    usage
+fi
+
+DISTRO = "$2"
+if [-z "${DISTRO}"]; then
+    usage
+fi
+
+echo "======== CHECK Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER} (${DISTRO})"
+touch local.properties
+./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
+'''
+                    }
+                }
+            }
+        }
+
         stage('Parallel Builds for Windows and OSX') {
             parallel {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////// B E G I N:   O S X   B U I L D ///////////////////////////////////////////
+///////////////////////////////////////////////   O S X   B U I L D   /////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 stage('Build OSX') {
                     agent { label osxNode() }
@@ -85,10 +187,10 @@ pipeline {
                         skipDefaultCheckout(true)
                     }
                     stages {
-                        stage('OSX: Clean Workspace') {
+                        stage('OSX Build: Clean Workspace') {
                             steps { cleanWs(deleteDirs: true) }
                         }
-                        stage('OSX: Download and explode the source') {
+                        stage('OSX Build: Download and explode the source') {
                             steps {
                                 sh '''#!/bin/bash
 echo "======== OSX: Download source: ${SOURCE}"
@@ -100,7 +202,7 @@ rm *-source.tar.gz
 '''
                             }
                         }
-                        stage('OSX: Prep Workspace') {
+                        stage('OSX Build: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -131,46 +233,7 @@ echo "======== OSX: Building in `pwd`"
 '''
                             }
                         }
-                        stage('OSX: Test') {
-                            steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                    sh '''#!/bin/bash
-cd "${BUILD_DIR}"
-
-echo "======== OSX: Test"
-REPORTS_DIR="$WORKSPACE/reports"
-rm -rf "${REPORTS_DIR}"
-mkdir -p "${REPORTS_DIR}"
-
-./etc/jenkins/test_macos.sh ${BLD_NUM} "${REPORTS_DIR}" || exit $?
-'''
-                                }
-                            }
-                        }
-                        stage('OSX: Upload test artifacts') {
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sshPublisher(
-                                        continueOnError: true,
-                                        failOnError: false,
-                                        publishers: [
-                                            sshPublisherDesc(
-                                                configName: "latestbuilds",
-                                                verbose: true,
-                                                transfers: [
-                                                    sshTransfer(
-                                                        sourceFiles: "reports/*.zip",
-                                                        removePrefix: "reports",
-                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
-                                                        execCommand: ""
-                                                    )
-                                                ])
-                                        ]
-                                    )
-                                }
-                            }
-                        }
-                        stage('OSX: Publish') {
+                        stage('OSX: Publish to ciMaven') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
@@ -215,7 +278,7 @@ mkdir -p "${ARTIFACTS_DIR}"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////// B E G I N:   W I N D O W S   B U I L D ///////////////////////////////////////
+//////////////////////////////////////////   W I N D O W S   B U I L D    /////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 stage('Build Windows') {
                     agent { label windowsNode("${VERSION}") }
@@ -229,7 +292,7 @@ mkdir -p "${ARTIFACTS_DIR}"
                         skipDefaultCheckout(true)
                     }
                     stages {
-                        stage('Win: Clean Workspace') {
+                        stage('Win Build: Clean Workspace') {
                             steps { cleanWs(deleteDirs: true) }
                         }
                         stage('Win: Download and explode the source') {
@@ -246,11 +309,11 @@ goto :eof
 
 :error
 echo Failed with error %ERRORLEVEL%.
-exit /b %ERRORLEVEL% 
+exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Win: Prep Workspace') {
+                        stage('Win Build: Prep Workspace') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -290,52 +353,7 @@ exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Win: Test') {
-                            steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                    bat '''
-SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
-SET BLD_SYS=2017
-
-cd %BUILD_DIR% || goto error
-
-echo ======== Windows: Test
-mkdir %WORKSPACE%\\reports
-call %BUILD_DIR%\\etc\\jenkins\\test_windows.bat %BLD_NUM% %WORKSPACE%\\reports || exit 5
-
-exit
-
-:error
-echo Failed with error %ERRORLEVEL%.
-exit /b %ERRORLEVEL%
-'''
-                                }
-                            }
-                        }
-                        stage('Win: Upload test artifacts') {
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sshPublisher(
-                                        continueOnError: true,
-                                        failOnError: false,
-                                        publishers: [
-                                            sshPublisherDesc(
-                                                configName: "latestbuilds",
-                                                verbose: true,
-                                                transfers: [
-                                                    sshTransfer(
-                                                        sourceFiles: "reports/*.zip",
-                                                        removePrefix: "reports",
-                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
-                                                        execCommand: ""
-                                                    )
-                                                ])
-                                        ]
-                                    )
-                                }
-                            }
-                        }
-                        stage('Win: Publish') {
+                        stage('Win: Publish to ciMaven') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     bat '''
@@ -388,9 +406,11 @@ exit /b %ERRORLEVEL%
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////// B E G I N:   L I N U X   B U I L D /////////////////////////////////////////
+//////////////////////////////////////////////   L I N U X   B U I L D   //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         stage('Build Linux') {
+            // It is a real shame that we have to do all this stuff again...
+            // ... it is quite possible that we don't...
             agent { label linuxNode("${DISTRO}") }
             environment {
                 CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
@@ -402,13 +422,13 @@ exit /b %ERRORLEVEL%
                 skipDefaultCheckout(true)
             }
             stages {
-                // use cbdep to install jdk 11 on centos6: rebuilding the centos6 docker iamge is too much of
-                // hack.
+                 // use cbdep to install jdk 11 on centos6:
+                // rebuilding the centos6 docker iamge is too much of hack.
                 // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
-                stage('Linux: Clean Workspace') {
+                stage('Linux Build: Clean Workspace') {
                     steps { cleanWs(deleteDirs: true) }
                 }
-                stage('Linux: Download and explode the source') {
+                stage('Linux Build: Download and explode the source') {
                     steps {
                         sh '''#!/bin/bash
 echo "======== Linux: Download source: ${SOURCE}"
@@ -420,7 +440,7 @@ rm *-source.tar.gz
 '''
                     }
                 }
-                stage('Linux: Prep Workspace') {
+                stage('Linux Build: Prep Workspace') {
                     environment { MAVEN_REPO = credentials('ProgetApiKey') }
                     steps {
                         script {
@@ -460,10 +480,84 @@ echo "======== Linux: Building in `pwd`"
 '''
                     }
                 }
-                stage('Linux: Test') {
+                stage('Linux: Publish to ciMaven') {
                     steps {
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
+cd "${BUILD_DIR}"
+
+echo "======== Linux: Publish to ciMaven"
+ARTIFACTS_DIR="$WORKSPACE/artifacts"
+rm -rf "${ARTIFACTS_DIR}"
+mkdir -p "${ARTIFACTS_DIR}"
+
+./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" || exit $?
+'''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Parallel Tests for Linux, Windows and OSX') {
+            parallel {
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////   L I N U X   T E S T   //////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                stage('Test Linux') {
+                    agent { label linuxNode("${DISTRO}") }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
+                    options {
+                        // ??? Doesn't work
+                        // buildDiscarder(logRotator(numToKeepStr: '10'))
+                        skipDefaultCheckout(true)
+                    }
+                    stages {
+                        // use cbdep to install jdk 11 on centos6:
+                        // rebuilding the centos6 docker iamge is too much of hack.
+                        // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
+                        stage('Linux: Clean Workspace') {
+                            steps { cleanWs(deleteDirs: true) }
+                        }
+                        stage('Linux Test: Download and explode the source') {
+                            steps {
+                                sh '''#!/bin/bash
+echo "======== Linux: Download source: ${SOURCE}"
+curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
+
+echo "======== Linux: Extract source"
+tar xzf ${SOURCE}
+rm *-source.tar.gz
+'''
+                            }
+                        }
+                        stage('Linux Test: Prep Workspace') {
+                            steps {
+                                script {
+                                    if ("${DISTRO}".toString() == "centos6") {
+                                        sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
+                                    }
+                                }
+                                sh '''#!/bin/bash
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
+                            }
+                        }
+                        stage('Linux: Test') {
+                            steps {
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                    sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
     export PATH="${JAVA_HOME}/bin:$PATH"
@@ -478,76 +572,252 @@ mkdir -p "${REPORTS_DIR}"
 
 ./etc/jenkins/test_linux.sh "${BLD_NUM}" "${REPORTS_DIR}" || exit $?
 '''
+                                }
+                            }
+                        }
+                        stage('Linux: Upload test artifacts') {
+                            steps {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sshPublisher(
+                                        continueOnError: true,
+                                        failOnError: false,
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: "latestbuilds",
+                                                verbose: true,
+                                                transfers: [
+                                                    sshTransfer(
+                                                        sourceFiles: "reports/*.zip",
+                                                        removePrefix: "reports",
+                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
+                                                        execCommand: ""
+                                                    )
+                                                ])
+                                        ]
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-                stage('Linux: Upload test artifacts') {
-                    steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            sshPublisher(
-                                continueOnError: true,
-                                failOnError: false,
-                                publishers: [
-                                    sshPublisherDesc(
-                                        configName: "latestbuilds",
-                                        verbose: true,
-                                        transfers: [
-                                            sshTransfer(
-                                                sourceFiles: "reports/*.zip",
-                                                removePrefix: "reports",
-                                                remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
-                                                execCommand: ""
-                                            )
-                                        ])
-                                ]
-                            )
-                        }
-                    }
-                }
-                stage('Linux: Publish') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh '''#!/bin/bash
-if [[ "${DISTRO}" == "centos6" ]]; then
-    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
-    export PATH="${JAVA_HOME}/bin:$PATH"
-fi
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////   O S X   T E S T   //////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                stage('Test OSX') {
+                    agent { label osxNode() }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
+                    options {
+                        // ??? Doesn't work
+                        // buildDiscarder(logRotator(numToKeepStr: '10'))
+                        skipDefaultCheckout(true)
+                    }
+                    stages {
+                        stage('OSX Test: Clean Workspace') {
+                            steps { cleanWs(deleteDirs: true) }
+                        }
+                        stage('OSX Test: Download and explode the source') {
+                            steps {
+                                sh '''#!/bin/bash
+echo "======== OSX: Download source: ${SOURCE}"
+curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
+
+echo "======== OSX: Extract source"
+tar xzf ${SOURCE}
+rm *-source.tar.gz
+'''
+                            }
+                        }
+                        stage('OSX: Prep Workspace') {
+                            steps {
+                                sh '''#!/bin/bash
+echo "======== OSX: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
+                            }
+                        }
+                        stage('OSX: Test') {
+                            steps {
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                    sh '''#!/bin/bash
 cd "${BUILD_DIR}"
 
-echo "======== Linux: Publish"
+echo "======== OSX: Test"
+REPORTS_DIR="$WORKSPACE/reports"
+rm -rf "${REPORTS_DIR}"
+mkdir -p "${REPORTS_DIR}"
+
+./etc/jenkins/test_macos.sh ${BLD_NUM} "${REPORTS_DIR}" || exit $?
+'''
+                                }
+                            }
+                        }
+                        stage('OSX: Upload test artifacts') {
+                            steps {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sshPublisher(
+                                        continueOnError: true,
+                                        failOnError: false,
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: "latestbuilds",
+                                                verbose: true,
+                                                transfers: [
+                                                    sshTransfer(
+                                                        sourceFiles: "reports/*.zip",
+                                                        removePrefix: "reports",
+                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
+                                                        execCommand: ""
+                                                    )
+                                                ])
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////   W I N D O W S   T E S T   //////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                stage('Test Windows') {
+                    agent { label windowsNode("${VERSION}") }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
+                    options {
+                        // ??? Doesn't work
+                        // buildDiscarder(logRotator(numToKeepStr: '10'))
+                        skipDefaultCheckout(true)
+                    }
+                    stages {
+                        stage('Win Test: Clean Workspace') {
+                            steps { cleanWs(deleteDirs: true) }
+                        }
+                        stage('Win: Download and explode the source') {
+                            steps {
+                                bat '''
+echo "======== Windows: Download source"
+set SITE=%LATESTBUILDS%/couchbase-lite-java/%RELEASE%/%BLD_NUM%/%SOURCE%
+powershell -command "& { (New-Object Net.WebClient).DownloadFile('%SITE%', '%SOURCE%') }" || goto error
+
+echo "======== Windows: Extract source"
+cmake -E tar xzf %SOURCE% || goto error
+
+goto :eof
+
+:error
+echo Failed with error %ERRORLEVEL%.
+exit /b %ERRORLEVEL%
+'''
+                            }
+                        }
+                        stage('Win Test: Prep Workspace') {
+                            steps {
+                                bat '''
+curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
+cbdep.exe install -d %WORKSPACE% java 11.0.3
+'''
+                                bat '''
+echo "======== Windows: Force version "%VERSION%
+echo %VERSION% > %CBL_ROOT%/version.txt
+'''
+                            }
+                        }
+                        stage('Win: Test') {
+                            steps {
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                    bat '''
+SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
+SET BLD_SYS=2017
+
+cd %BUILD_DIR% || goto error
+
+echo ======== Windows: Test
+mkdir %WORKSPACE%\\reports
+call %BUILD_DIR%\\etc\\jenkins\\test_windows.bat %BLD_NUM% %WORKSPACE%\\reports || exit 5
+
+exit
+
+:error
+echo Failed with error %ERRORLEVEL%.
+exit /b %ERRORLEVEL%
+'''
+                                }
+                            }
+                        }
+                        stage('Win: Upload test artifacts') {
+                            steps {
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sshPublisher(
+                                        continueOnError: true,
+                                        failOnError: false,
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: "latestbuilds",
+                                                verbose: true,
+                                                transfers: [
+                                                    sshTransfer(
+                                                        sourceFiles: "reports/*.zip",
+                                                        removePrefix: "reports",
+                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
+                                                        execCommand: ""
+                                                    )
+                                                ])
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        stage('Publish to internalmaven') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''#!/bin/bash
+echo "======== Linux: Publish to internalmaven"
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
 rm -rf "${ARTIFACTS_DIR}"
 mkdir -p "${ARTIFACTS_DIR}"
 
-./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" || exit $?
+./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" internalmaven|| exit $?
 '''
-                        }
-                    }
                 }
-                stage('Linux: Upload build artifacts') {
-                    steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sshPublisher(
-                                continueOnError: true,
-                                failOnError: false,
-                                publishers: [
-                                    sshPublisherDesc(
-                                        configName: "latestbuilds",
-                                        verbose: true,
-                                        transfers: [
-                                            sshTransfer(
-                                                sourceFiles: "artifacts/*.*",
-                                                removePrefix: "artifacts",
-                                                remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
-                                                execCommand: ""
-                                            )
-                                        ]
+            }
+        }
+
+        stage('Upload build artifacts') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sshPublisher(
+                        continueOnError: true,
+                        failOnError: false,
+                        publishers: [
+                            sshPublisherDesc(
+                                configName: "latestbuilds",
+                                verbose: true,
+                                transfers: [
+                                    sshTransfer(
+                                        sourceFiles: "artifacts/*.*",
+                                        removePrefix: "artifacts",
+                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
+                                        execCommand: ""
                                     )
                                 ]
                             )
-                        }
-                    }
+                        ]
+                    )
                 }
             }
         }
@@ -566,4 +836,5 @@ mkdir -p "${ARTIFACTS_DIR}"
         }
     }
 }
+
 

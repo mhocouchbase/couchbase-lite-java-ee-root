@@ -5,7 +5,7 @@
 PRODUCT='couchbase-lite-android-ee-ktx'
 EDITION='enterprise'
 
-MAVEN_URL="http://proget.build.couchbase.com/maven2/internalmaven"
+MAVEN_URL="http://proget.build.couchbase.com/maven2/cimaven"
 
 COMMON_ETC="`pwd`/../../common/etc"
 

@@ -3,7 +3,7 @@
 # Publish Couchbase Lite Java, Enterprise Edition
 #
 PRODUCT='couchbase-lite-java-ee'
-MAVEN_URL="http://proget.build.couchbase.com/maven2/internalmaven"
+MAVEN_URL="http://proget.build.couchbase.com/maven2/cimaven"
 STATUS=0
 
 function usage() {
