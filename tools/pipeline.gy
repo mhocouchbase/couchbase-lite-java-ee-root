@@ -78,7 +78,6 @@ pipeline {
             environment {
                 CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
                 BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                DISTRO = "centos6"
             }
             options {
                 // ??? Doesn't work
@@ -86,9 +85,6 @@ pipeline {
                 skipDefaultCheckout(true)
             }
             stages {
-                // use cbdep to install jdk 11 on centos6:
-                // rebuilding the centos6 docker iamge is too much of hack.
-                // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                 stage('Linux Build: Clean Workspace') {
                     steps { cleanWs(deleteDirs: true) }
                 }
@@ -107,6 +103,9 @@ rm *-source.tar.gz
                 stage('Linux Build: Prep Workspace') {
                     steps {
                         script {
+                            // use cbdep to install jdk 11 on centos6:
+                            // rebuilding the centos6 docker iamge is too much of hack.
+                            // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                             if ("${DISTRO}".toString() == "centos6") {
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
@@ -135,33 +134,8 @@ echo "======== Linux: Environment"
 javac -version
 env | sort | grep -v 'MAVEN_REPO'
 
-echo "======== Linux: Chect"
-
-# Everything below this line
-# goes in a file named <root>/(ce|ee)/java/etc/jenkins/check.sh
-
-function usage() {
-    echo "Usage: $0 <build number> <distro>"
-    exit 1
-}
-
-if ["$#" -ne 2]; then
-    usage
-fi
-
-BUILD_NUMBER = "$1"
-if [-z "${BUILD_NUMBER}"]; then
-    usage
-fi
-
-DISTRO = "$2"
-if [-z "${DISTRO}"]; then
-    usage
-fi
-
-echo "======== CHECK Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER} (${DISTRO})"
-touch local.properties
-./gradlew ciCheck -PbuildNumber="${BUILD_NUMBER}" || exit 1
+echo "======== Linux: Check"
+./etc/jenkins/check.sh ${BLD_NUM} || exit $?
 '''
                     }
                 }
@@ -422,9 +396,6 @@ exit /b %ERRORLEVEL%
                 skipDefaultCheckout(true)
             }
             stages {
-                 // use cbdep to install jdk 11 on centos6:
-                // rebuilding the centos6 docker iamge is too much of hack.
-                // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                 stage('Linux Build: Clean Workspace') {
                     steps { cleanWs(deleteDirs: true) }
                 }
@@ -447,6 +418,9 @@ rm *-source.tar.gz
                             env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
                             env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
 
+                            // use cbdep to install jdk 11 on centos6:
+                            // rebuilding the centos6 docker iamge is too much of hack.
+                            // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                             if ("${DISTRO}".toString() == "centos6") {
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
@@ -523,9 +497,6 @@ mkdir -p "${ARTIFACTS_DIR}"
                         skipDefaultCheckout(true)
                     }
                     stages {
-                        // use cbdep to install jdk 11 on centos6:
-                        // rebuilding the centos6 docker iamge is too much of hack.
-                        // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                         stage('Linux: Clean Workspace') {
                             steps { cleanWs(deleteDirs: true) }
                         }
@@ -544,6 +515,9 @@ rm *-source.tar.gz
                         stage('Linux Test: Prep Workspace') {
                             steps {
                                 script {
+                                    // use cbdep to install jdk 11 on centos6:
+                                    // rebuilding the centos6 docker iamge is too much of hack.
+                                    // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
                                     if ("${DISTRO}".toString() == "centos6") {
                                         sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                                     }
@@ -551,6 +525,9 @@ rm *-source.tar.gz
                                 sh '''#!/bin/bash
 echo "======== Linux: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
+                                sh '''#!/bin/bash
+touch local.properties
 '''
                             }
                         }
@@ -637,6 +614,9 @@ rm *-source.tar.gz
                                 sh '''#!/bin/bash
 echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
+                                sh '''#!/bin/bash
+touch local.properties
 '''
                             }
                         }
@@ -729,6 +709,9 @@ cbdep.exe install -d %WORKSPACE% java 11.0.3
 echo "======== Windows: Force version "%VERSION%
 echo %VERSION% > %CBL_ROOT%/version.txt
 '''
+                                bat '''
+echo ""> %BUILD_DIR%/local.properties
+'''
                             }
                         }
                         stage('Win: Test') {
@@ -781,6 +764,10 @@ exit /b %ERRORLEVEL%
             }
         }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////   P U B L I S H   ////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         stage('Publish to internalmaven') {
             steps {
