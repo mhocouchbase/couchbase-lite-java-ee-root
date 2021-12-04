@@ -115,8 +115,7 @@ echo "======== Linux: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                         sh '''#!/bin/bash
-echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
-echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
+touch "${BUILD_DIR}/local.properties"
 '''
                     }
                 }
@@ -527,7 +526,7 @@ echo "======== Linux: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                                 sh '''#!/bin/bash
-touch local.properties
+touch "${BUILD_DIR}/local.properties"
 '''
                             }
                         }
@@ -616,7 +615,7 @@ echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                                 sh '''#!/bin/bash
-touch local.properties
+touch "${BUILD_DIR}/local.properties"
 '''
                             }
                         }
