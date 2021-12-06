@@ -10,7 +10,7 @@ test_core() {
    SHA=$3
    SUFFIX=$4
    echo -n "${OS} ${EDITION}: "
-   curl -s -f "${NEXUS_URL}/couchbase-litecore-${OS}/${SHA}/couchbase-litecore-${OS}-${SHA}.${SUFFIX}" -o "${OS}-${EDITION}.${SUFFIX}"
+   curl -I -s -f -o /dev/null "${NEXUS_URL}/couchbase-litecore-${OS}/${SHA}/couchbase-litecore-${OS}-${SHA}.${SUFFIX}" -o "${OS}-${EDITION}.${SUFFIX}"
    status=$?
    if [ $status -eq 0 ]; then
       echo "Succeeded"
@@ -31,13 +31,13 @@ echo -n "EE SHA: "
 "${TOOLS_DIR}/litecore_sha.sh" -e EE -o .core-sha
 EE_SHA=`cat .core-sha`
 
+test_core "centos6" "CE" "${CE_SHA}" "tar.gz"
+test_core "centos6" "EE" "${EE_SHA}" "tar.gz"
+
 for OS in macosx windows-win64; do
    test_core "${OS}" "CE" "${CE_SHA}" "zip"
    test_core "${OS}" "EE" "${EE_SHA}" "zip"
 done
-
-test_core "centos6" "CE" "${CE_SHA}" "tar.gz"
-test_core "centos6" "EE" "${EE_SHA}" "tar.gz"
 
 popd > /dev/null
 rm -rf .core-tmp

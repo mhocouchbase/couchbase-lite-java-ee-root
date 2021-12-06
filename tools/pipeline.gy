@@ -133,7 +133,7 @@ javac -version
 env | sort | grep -v 'MAVEN_REPO'
 
 echo "======== Linux: Check in `pwd`"
-./etc/jenkins/check.sh ${BLD_NUM} || exit $?
+./etc/jenkins/check.sh ${BLD_NUM} ${DISTRO} || exit $?
 '''
                     }
                 }
