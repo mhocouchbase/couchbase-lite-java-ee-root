@@ -46,7 +46,7 @@ fi
 DIST_NAME="${PRODUCT}-${VERSION}-${BUILD_NUMBER}"
 
 echo "======== PUBLISH Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
-./gradlew ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL} || STATUS=5
+./gradlew --debug ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL} || STATUS=5
 
 echo "======== Copy artifacts to staging directory"
 cp "lib/build/distributions/${DIST_NAME}.zip" "${ARTIFACTS}/"

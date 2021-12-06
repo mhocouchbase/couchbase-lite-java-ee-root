@@ -53,6 +53,7 @@ static String getBuildDir(rootDir, version, edition) {
 }
 
 static String uName(credentials) { return credentials.split(":")[0] }
+
 static String pwd(credentials) { return credentials.split(":")[1] }
 
 pipeline {
@@ -85,10 +86,10 @@ pipeline {
                 skipDefaultCheckout(true)
             }
             stages {
-                stage('Linux Build: Clean Workspace') {
+                stage('Check: Clean Workspace') {
                     steps { cleanWs(deleteDirs: true) }
                 }
-                stage('Linux Build: Download and explode the source') {
+                stage('Check: Download and explode the source') {
                     steps {
                         sh '''#!/bin/bash
 echo "======== Linux: Download source: ${SOURCE}"
@@ -100,7 +101,7 @@ rm *-source.tar.gz
 '''
                     }
                 }
-                stage('Linux Build: Prep Workspace') {
+                stage('Check: Install Java 11') {
                     steps {
                         script {
                             // use cbdep to install jdk 11 on centos6:
@@ -110,13 +111,6 @@ rm *-source.tar.gz
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
                         }
-                        sh '''#!/bin/bash
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-'''
-                        sh '''#!/bin/bash
-touch "${BUILD_DIR}/local.properties"
-'''
                     }
                 }
                 stage('Check') {
@@ -129,11 +123,16 @@ fi
 
 cd "${BUILD_DIR}"
 
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "version.txt"
+
+touch "local.properties"
+
 echo "======== Linux: Environment"
 javac -version
 env | sort | grep -v 'MAVEN_REPO'
 
-echo "======== Linux: Check"
+echo "======== Linux: Check in `pwd`"
 ./etc/jenkins/check.sh ${BLD_NUM} || exit $?
 '''
                     }
@@ -175,7 +174,7 @@ rm *-source.tar.gz
 '''
                             }
                         }
-                        stage('OSX Build: Prep Workspace') {
+                        stage('OSX: Build') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -183,19 +182,13 @@ rm *-source.tar.gz
                                     env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
                                 }
                                 sh '''#!/bin/bash
+cd "${BUILD_DIR}"
+
 echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-'''
-                                sh '''#!/bin/bash
-echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
-echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
-'''
-                            }
-                        }
-                        stage('OSX: Build') {
-                            steps {
-                                sh '''#!/bin/bash
-cd "${BUILD_DIR}"
+
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== OSX: Environment"
 javac -version
@@ -286,7 +279,15 @@ exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Win Build: Prep Workspace') {
+                        stage('Win Build: Install Java 11') {
+                            steps {
+                                bat '''
+curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
+cbdep.exe install -d %WORKSPACE% java 11.0.3
+'''
+                            }
+                        }
+                        stage('Win: Build') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -294,26 +295,16 @@ exit /b %ERRORLEVEL%
                                     env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
                                 }
                                 bat '''
-curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
-cbdep.exe install -d %WORKSPACE% java 11.0.3
-'''
-                                bat '''
-echo "======== Windows: Force version "%VERSION%
-echo %VERSION% > %CBL_ROOT%/version.txt
-'''
-                                bat '''
-echo maven.repo.user=%MAVEN_REPO_USR%> %BUILD_DIR%/local.properties
-echo maven.repo.pass=%MAVEN_REPO_PSW%>> %BUILD_DIR%/local.properties
-'''
-                            }
-                        }
-                        stage('Win: Build') {
-                            steps {
-                                bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
 SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
+
+echo "======== Windows: Force version "%VERSION%
+echo %VERSION% > %CBL_ROOT%/version.txt
+
+echo maven.repo.user=%MAVEN_REPO_USR%> local.properties
+echo maven.repo.pass=%MAVEN_REPO_PSW%>> local.properties
 
 echo ======== Windows: Building in %BUILD_DIR%
 call %BUILD_DIR%\\etc\\jenkins\\build_windows.bat %BLD_SYS% %BLD_NUM% || goto error
@@ -410,13 +401,9 @@ rm *-source.tar.gz
 '''
                     }
                 }
-                stage('Linux Build: Prep Workspace') {
-                    environment { MAVEN_REPO = credentials('ProgetApiKey') }
+                stage('Linux Build: Install Java 11') {
                     steps {
                         script {
-                            env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
-                            env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
-
                             // use cbdep to install jdk 11 on centos6:
                             // rebuilding the centos6 docker iamge is too much of hack.
                             // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
@@ -424,18 +411,15 @@ rm *-source.tar.gz
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
                         }
-                        sh '''#!/bin/bash
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-'''
-                        sh '''#!/bin/bash
-echo "maven.repo.user=${MAVEN_REPO_USR}" > "${BUILD_DIR}/local.properties"
-echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "${BUILD_DIR}/local.properties"
-'''
                     }
                 }
                 stage('Linux: Build') {
+                    environment { MAVEN_REPO = credentials('ProgetApiKey') }
                     steps {
+                        script {
+                            env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
+                            env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
+                        }
                         sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
@@ -443,6 +427,12 @@ if [[ "${DISTRO}" == "centos6" ]]; then
 fi
 
 cd "${BUILD_DIR}"
+
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "version.txt"
+
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== Linux: Environment"
 javac -version
@@ -455,14 +445,14 @@ echo "======== Linux: Building in `pwd`"
                 }
                 stage('Linux: Publish to ciMaven') {
                     steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh '''#!/bin/bash
+                        sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
     export PATH="${JAVA_HOME}/bin:$PATH"
 fi
 
 cd "${BUILD_DIR}"
+env | sort
 
 echo "======== Linux: Publish to ciMaven"
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
@@ -471,7 +461,6 @@ mkdir -p "${ARTIFACTS_DIR}"
 
 ./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" || exit $?
 '''
-                        }
                     }
                 }
             }
@@ -511,7 +500,7 @@ rm *-source.tar.gz
 '''
                             }
                         }
-                        stage('Linux Test: Prep Workspace') {
+                        stage('Linux Test: Install Java 11') {
                             steps {
                                 script {
                                     // use cbdep to install jdk 11 on centos6:
@@ -521,13 +510,6 @@ rm *-source.tar.gz
                                         sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                                     }
                                 }
-                                sh '''#!/bin/bash
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-'''
-                                sh '''#!/bin/bash
-touch "${BUILD_DIR}/local.properties"
-'''
                             }
                         }
                         stage('Linux: Test') {
@@ -540,6 +522,11 @@ if [[ "${DISTRO}" == "centos6" ]]; then
 fi
 
 cd "${BUILD_DIR}"
+
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "version.txt"
+
+touch "local.properties"
 
 echo "======== Linux: Test"
 REPORTS_DIR="$WORKSPACE/reports"
@@ -608,22 +595,16 @@ rm *-source.tar.gz
 '''
                             }
                         }
-                        stage('OSX: Prep Workspace') {
-                            steps {
-                                sh '''#!/bin/bash
-echo "======== OSX: Force version ${VERSION}"
-echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-'''
-                                sh '''#!/bin/bash
-touch "${BUILD_DIR}/local.properties"
-'''
-                            }
-                        }
                         stage('OSX: Test') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
 cd "${BUILD_DIR}"
+
+echo "======== OSX: Force version ${VERSION}"
+echo "${VERSION}" > "version.txt"
+
+touch "local.properties"
 
 echo "======== OSX: Test"
 REPORTS_DIR="$WORKSPACE/reports"
@@ -698,18 +679,11 @@ exit /b %ERRORLEVEL%
 '''
                             }
                         }
-                        stage('Win Test: Prep Workspace') {
+                        stage('Win Test: Install Java 11') {
                             steps {
                                 bat '''
 curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
 cbdep.exe install -d %WORKSPACE% java 11.0.3
-'''
-                                bat '''
-echo "======== Windows: Force version "%VERSION%
-echo %VERSION% > %CBL_ROOT%/version.txt
-'''
-                                bat '''
-echo ""> %BUILD_DIR%/local.properties
 '''
                             }
                         }
@@ -721,6 +695,11 @@ SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
 SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
+
+echo "======== Windows: Force version "%VERSION%
+echo %VERSION% > %CBL_ROOT%/version.txt
+
+echo ""> %BUILD_DIR%/local.properties
 
 echo ======== Windows: Test
 mkdir %WORKSPACE%\\reports
