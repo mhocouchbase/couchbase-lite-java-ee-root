@@ -130,7 +130,7 @@ touch "local.properties"
 
 echo "======== Linux: Environment"
 javac -version
-env | sort | grep -v 'MAVEN_REPO'
+env | sort
 
 echo "======== Linux: Check in `pwd`"
 ./etc/jenkins/check.sh ${BLD_NUM} ${DISTRO} || exit $?
@@ -192,7 +192,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== OSX: Environment"
 javac -version
-env | sort | grep -v 'MAVEN_REPO'
+env | sort
 
 echo "======== OSX: Building in `pwd`"
 ./etc/jenkins/build_macos.sh ${BLD_NUM} || exit $?
@@ -436,7 +436,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== Linux: Environment"
 javac -version
-env | sort | grep -v 'MAVEN_REPO'
+env | sort
 
 echo "======== Linux: Building in `pwd`"
 ./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?

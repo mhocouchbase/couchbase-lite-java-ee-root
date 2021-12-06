@@ -45,7 +45,7 @@ echo "======== BUILD Couchbase Lite Java, Enterprise Edition v`cat ../../version
 echo "======== Clean up ..." 
 "${TOOLS_DIR}/clean_litecore.sh" -p "${DISTRO}"
 
-echo "======== Download platform artifiacts ..."
+echo "======== Download platform artifacts ..."
 for PLATFORM in macos windows; do
    ARTIFACT="${PRODUCT}-${VERSION}-${BUILD_NUMBER}-${PLATFORM}.zip"
    ARTIFACT_URL="${LATESTBUILDS_URL}/couchbase-lite-java/${VERSION}/${BUILD_NUMBER}"
