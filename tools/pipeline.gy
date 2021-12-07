@@ -383,15 +383,8 @@ fi
 
 cd "${BUILD_DIR}"
 
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "version.txt"
-
 echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
 echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
-
-echo "======== Linux: Environment"
-javac -version
-env | sort | grep -v MAVEN_REPO
 
 echo "======== Linux: Building in `pwd`"
 ./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?
@@ -419,108 +412,14 @@ mkdir -p "${ARTIFACTS_DIR}"
             }
         }
 
-        stage('Parallel Tests for Linux, Windows and OSX') {
+        stage('Parallel Tests for Windows and OSX') {
             parallel {
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////   L I N U X   T E S T   //////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-                stage('Test Linux') {
-                    agent { label linuxNode("${DISTRO}") }
-                    environment {
-                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                    }
-                    stages {
-                        stage('Linux: Clean Workspace') {
-                            steps { cleanWs(deleteDirs: true) }
-                        }
-
-                        stage('Linux Test: Download and explode the source') {
-                            steps {
-                                sh '''#!/bin/bash
-echo "======== Linux: Download source: ${SOURCE}"
-curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
-
-echo "======== Linux: Extract source"
-tar xzf ${SOURCE}
-rm *-source.tar.gz
-'''
-                            }
-                        }
-
-                        stage('Linux Test: Install Java 11') {
-                            steps {
-                                script {
-                                    // use cbdep to install jdk 11 on centos6:
-                                    // rebuilding the centos6 docker image is too much of hack.
-                                    // there's already a jdk 11 on the ubuntu18 image so no need to download it there.
-                                    if ("${DISTRO}".toString() == "centos6") {
-                                        sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
-                                    }
-                                }
-                            }
-                        }
-
-                        stage('Linux: Test') {
-                            steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                    sh '''#!/bin/bash
-if [[ "${DISTRO}" == "centos6" ]]; then
-    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
-    export PATH="${JAVA_HOME}/bin:$PATH"
-fi
-
-cd "${BUILD_DIR}"
-
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "version.txt"
-
-touch "local.properties"
-
-echo "======== Linux: Test"
-REPORTS_DIR="$WORKSPACE/reports"
-rm -rf "${REPORTS_DIR}"
-mkdir -p "${REPORTS_DIR}"
-
-./etc/jenkins/test_linux.sh "${BLD_NUM}" "${REPORTS_DIR}" || exit $?
-'''
-                                }
-                            }
-                        }
-
-                        stage('Linux: Upload test artifacts') {
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                    sshPublisher(
-                                        continueOnError: true,
-                                        failOnError: false,
-                                        publishers: [
-                                            sshPublisherDesc(
-                                                configName: "latestbuilds",
-                                                verbose: true,
-                                                transfers: [
-                                                    sshTransfer(
-                                                        sourceFiles: "reports/*.zip",
-                                                        removePrefix: "reports",
-                                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
-                                                        execCommand: ""
-                                                    )
-                                                ])
-                                        ]
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////   O S X   T E S T   //////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
                 stage('Test OSX') {
                     agent { label osxNode() }
                     environment {
@@ -688,6 +587,57 @@ exit /b %ERRORLEVEL%
                             }
                         }
                     }
+                }
+            }
+        }
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////   L I N U X   T E S T   //////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        stage('Linux: Test') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
+cd "${BUILD_DIR}"
+
+echo "======== Linux: Test"
+REPORTS_DIR="$WORKSPACE/reports"
+rm -rf "${REPORTS_DIR}"
+mkdir -p "${REPORTS_DIR}"
+
+./etc/jenkins/test_linux.sh "${BLD_NUM}" "${REPORTS_DIR}" || exit $?
+'''
+                }
+            }
+        }
+
+        stage('Linux: Upload test artifacts') {
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sshPublisher(
+                        continueOnError: true,
+                        failOnError: false,
+                        publishers: [
+                            sshPublisherDesc(
+                                configName: "latestbuilds",
+                                verbose: true,
+                                transfers: [
+                                    sshTransfer(
+                                        sourceFiles: "reports/*.zip",
+                                        removePrefix: "reports",
+                                        remoteDirectory: "couchbase-lite-java/${RELEASE}/${BLD_NUM}",
+                                        execCommand: ""
+                                    )
+                                ])
+                        ]
+                    )
                 }
             }
         }
