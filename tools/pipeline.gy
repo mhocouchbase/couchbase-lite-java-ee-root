@@ -44,7 +44,6 @@ static String getBuildDir(rootDir, version, edition) {
     switch (edition) {
         case 'enterprise':
             return (isNewWs) ? "${rootDir}/ee/java" : "${rootDir}/couchbase-lite-java-ee"
-
         case 'community':
             return (isNewWs) ? "${rootDir}/ce/java" : "${rootDir}/couchbase-lite-java"
         default:
@@ -105,8 +104,8 @@ rm *-source.tar.gz
                     steps {
                         script {
                             // use cbdep to install jdk 11 on centos6:
-                            // rebuilding the centos6 docker iamge is too much of hack.
-                            // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
+                            // rebuilding the centos6 docker image is too much of hack.
+                            // there's already a jdk 11 on the ubuntu18 image so no need to download it there.
                             if ("${DISTRO}".toString() == "centos6") {
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
@@ -192,7 +191,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== OSX: Environment"
 javac -version
-env | sort
+env | sort | grep -v MAVEN_REPO
 
 echo "======== OSX: Building in `pwd`"
 ./etc/jenkins/build_macos.sh ${BLD_NUM} || exit $?
@@ -405,8 +404,8 @@ rm *-source.tar.gz
                     steps {
                         script {
                             // use cbdep to install jdk 11 on centos6:
-                            // rebuilding the centos6 docker iamge is too much of hack.
-                            // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
+                            // rebuilding the centos6 docker image is too much of hack.
+                            // there's already a jdk 11 on the ubuntu18 image so no need to download it there.
                             if ("${DISTRO}".toString() == "centos6") {
                                 sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                             }
@@ -436,7 +435,7 @@ echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== Linux: Environment"
 javac -version
-env | sort
+env | sort | grep -v MAVEN_REPO
 
 echo "======== Linux: Building in `pwd`"
 ./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?
@@ -452,7 +451,6 @@ if [[ "${DISTRO}" == "centos6" ]]; then
 fi
 
 cd "${BUILD_DIR}"
-env | sort
 
 echo "======== Linux: Publish to ciMaven"
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
@@ -504,8 +502,8 @@ rm *-source.tar.gz
                             steps {
                                 script {
                                     // use cbdep to install jdk 11 on centos6:
-                                    // rebuilding the centos6 docker iamge is too much of hack.
-                                    // there's already a jdk 11 on the ubnuntu18 image so no need to download it there.
+                                    // rebuilding the centos6 docker image is too much of hack.
+                                    // there's already a jdk 11 on the ubuntu18 image so no need to download it there.
                                     if ("${DISTRO}".toString() == "centos6") {
                                         sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                                     }
