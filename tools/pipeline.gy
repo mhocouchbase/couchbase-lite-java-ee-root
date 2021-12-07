@@ -745,23 +745,44 @@ exit /b %ERRORLEVEL%
 ////////////////////////////////////////////////   P U B L I S H   ////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        stage('Publish to internalmaven') {
+        stage('Publish the build') {
+            agent { label linuxNode("${DISTRO}") }
+            environment {
+                CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+            }
+            options {
+                // ??? Doesn't work
+                // buildDiscarder(logRotator(numToKeepStr: '10'))
+                skipDefaultCheckout(true)
+            }
             steps {
+                // This *MUST* republish the same bits that were
+                // published above, in the Linux: Publish to ciMaven
+                // step.  This really should just promote the ciMaven
+                // bits to internalMaven but, apparently, we can't
+                // afford a real version of proget.
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
+cd "${BUILD_DIR}"
+
 echo "======== Linux: Publish to internalmaven"
+echo "${VERSION}" > "version.txt"
+
+touch "local.properties"
+
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
 rm -rf "${ARTIFACTS_DIR}"
 mkdir -p "${ARTIFACTS_DIR}"
 
-./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" internalmaven|| exit $?
+./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" internalmaven || exit $?
 '''
                 }
-            }
-        }
-
-        stage('Upload build artifacts') {
-            steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sshPublisher(
                         continueOnError: true,
@@ -785,6 +806,7 @@ mkdir -p "${ARTIFACTS_DIR}"
             }
         }
     }
+
 
     post {
         unstable {
