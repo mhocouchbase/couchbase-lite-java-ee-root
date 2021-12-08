@@ -55,13 +55,15 @@ static String uName(credentials) { return credentials.split(":")[0] }
 
 static String pwd(credentials) { return credentials.split(":")[1] }
 
+
+// PIPELINE
 pipeline {
     agent { label linuxNode("${DISTRO}") }
     environment {
-        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
         LATESTBUILDS = "http://latestbuilds.service.couchbase.com/builds/latestbuilds"
         SOURCE = "couchbase-lite-java-${VERSION}-${BLD_NUM}-source.tar.gz"
+        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
     }
     options {
         // ??? Doesn't work
@@ -75,25 +77,12 @@ pipeline {
             }
         }
 
-        stage('Check: Clean Workspace') {
-            steps { cleanWs(deleteDirs: true) }
-        }
-
-        stage('Check: Download and explode the source') {
+        stage('Linux: Setup Workspace') {
             steps {
-                sh '''#!/bin/bash
-echo "======== Linux: Download source: ${SOURCE}"
-curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
+                // Clean the workspace
+                cleanWs(deleteDirs: true)
 
-echo "======== Linux: Extract source"
-tar xzf ${SOURCE}
-rm *-source.tar.gz
-'''
-            }
-        }
-
-        stage('Check: Install Java 11') {
-            steps {
+                // Install Java 11 on Centos 6
                 script {
                     // use cbdep to install jdk 11 on centos6:
                     // rebuilding the centos6 docker image is too much of hack.
@@ -102,9 +91,21 @@ rm *-source.tar.gz
                         sh '''cbdep install -d "${WORKSPACE}" java 11.0.3'''
                     }
                 }
+
+                // Download the source
+                sh '''#!/bin/bash
+echo "======== Linux: Download source: ${SOURCE}"
+curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
+
+echo "======== Linux: Extract source"
+tar xzf ${SOURCE}
+rm *-source.tar.gz
+
+echo "======== Linux: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
+'''
             }
         }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////   STATIC ANALYSIS   ////////////////////////////////////////////
@@ -119,9 +120,6 @@ if [[ "${DISTRO}" == "centos6" ]]; then
 fi
 
 cd "${BUILD_DIR}"
-
-echo "======== Linux: Force version ${VERSION}"
-echo "${VERSION}" > "version.txt"
 
 touch "local.properties"
 
@@ -145,17 +143,13 @@ echo "======== Linux: Check in `pwd`"
 
                 stage('Build OSX') {
                     agent { label osxNode() }
-                    environment {
-                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                    }
                     stages {
-                        stage('OSX Build: Clean Workspace') {
-                            steps { cleanWs(deleteDirs: true) }
-                        }
-
-                        stage('OSX Build: Download and explode the source') {
+                        stage('OSX Build: Setup Workspace') {
                             steps {
+                                // Clean the workspace
+                                cleanWs(deleteDirs: true)
+
+                                // Download the source
                                 sh '''#!/bin/bash
 echo "======== OSX: Download source: ${SOURCE}"
 curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
@@ -163,41 +157,46 @@ curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
 echo "======== OSX: Extract source"
 tar xzf ${SOURCE}
 rm *-source.tar.gz
+
+echo "======== OSX: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                             }
                         }
 
+                        // Build
                         stage('OSX: Build') {
+                            steps {
+                                sh '''#!/bin/bash
+cd "${BUILD_DIR}"
+
+echo "======== OSX: Environment"
+javac -version
+env | sort
+
+touch "local.properties"
+
+echo "======== OSX: Build in `pwd`"
+./etc/jenkins/build_macos.sh ${BLD_NUM} || exit $?
+'''
+                            }
+                        }
+
+                        // Publish to maven
+                        stage('OSX: Publish intermediate artifacts') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
                                     env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
                                     env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
                                 }
-                                sh '''#!/bin/bash
-cd "${BUILD_DIR}"
 
-echo "======== OSX: Force version ${VERSION}"
-echo "${VERSION}" > "${CBL_ROOT}/version.txt"
-
-echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
-echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
-
-echo "======== OSX: Environment"
-javac -version
-env | sort | grep -v MAVEN_REPO
-
-echo "======== OSX: Building in `pwd`"
-./etc/jenkins/build_macos.sh ${BLD_NUM} || exit $?
-'''
-                            }
-                        }
-
-                        stage('OSX: Publish to ciMaven') {
-                            steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
 cd "${BUILD_DIR}"
+
+echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
+echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
 echo "======== OSX: Publish"
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
@@ -207,11 +206,8 @@ mkdir -p "${ARTIFACTS_DIR}"
 ./etc/jenkins/publish_macos.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" || exit $?
 '''
                                 }
-                            }
-                        }
 
-                        stage('OSX: Upload build artifacts') {
-                            steps {
+                                // Publish to latestbuilds
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
                                         continueOnError: true,
@@ -244,17 +240,19 @@ mkdir -p "${ARTIFACTS_DIR}"
 
                 stage('Build Windows') {
                     agent { label windowsNode("${VERSION}") }
-                    environment {
-                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                    }
                     stages {
-                        stage('Win Build: Clean Workspace') {
-                            steps { cleanWs(deleteDirs: true) }
-                        }
-
-                        stage('Win: Download and explode the source') {
+                        stage('Win Build: Setup Workspace') {
                             steps {
+                                // Clean the workspace
+                                cleanWs(deleteDirs: true)
+
+                                // Install Java 11
+                                bat '''
+curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
+cbdep.exe install -d %WORKSPACE% java 11.0.3
+'''
+
+                                // Download the source
                                 bat '''
 echo "======== Windows: Download source"
 set SITE=%LATESTBUILDS%/couchbase-lite-java/%RELEASE%/%BLD_NUM%/%SOURCE%
@@ -262,6 +260,9 @@ powershell -command "& { (New-Object Net.WebClient).DownloadFile('%SITE%', '%SOU
 
 echo "======== Windows: Extract source"
 cmake -E tar xzf %SOURCE% || goto error
+
+echo "======== Windows: Force version "%VERSION%
+echo %VERSION% > %CBL_ROOT%\\version.txt
 
 goto :eof
 
@@ -272,38 +273,21 @@ exit /b %ERRORLEVEL%
                             }
                         }
 
-                        stage('Win Build: Install Java 11') {
-                            steps {
-                                bat '''
-curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
-cbdep.exe install -d %WORKSPACE% java 11.0.3
-'''
-                            }
-                        }
-
+                        // Build
                         stage('Win: Build') {
-                            environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
-                                script {
-                                    env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
-                                    env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
-                                }
                                 bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
 SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
-echo "======== Windows: Force version "%VERSION%
-echo %VERSION% > %CBL_ROOT%/version.txt
-
-echo maven.repo.user=%MAVEN_REPO_USR%> local.properties
-echo maven.repo.pass=%MAVEN_REPO_PSW%>> local.properties
+echo ""> local.properties
 
 echo ======== Windows: Building in %BUILD_DIR%
 call %BUILD_DIR%\\etc\\jenkins\\build_windows.bat %BLD_SYS% %BLD_NUM% || goto error
 
-exit
+goto :eof
 
 :error
 echo Failed with error %ERRORLEVEL%.
@@ -312,8 +296,15 @@ exit /b %ERRORLEVEL%
                             }
                         }
 
-                        stage('Win: Publish to ciMaven') {
+                        // Publish to maven
+                        stage('Win: Publish intermediate artifacts') {
+                            environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
+                                script {
+                                    env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
+                                    env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
+                                }
+
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
@@ -321,22 +312,22 @@ SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
+echo maven.repo.user=%MAVEN_REPO_USR%> local.properties
+echo maven.repo.pass=%MAVEN_REPO_PSW%>> local.properties
+
 echo ======== Windows: Publish
 mkdir %WORKSPACE%\\artifacts
 call %BUILD_DIR%\\etc\\jenkins\\publish_windows.bat %VERSION% %BLD_NUM% %WORKSPACE%\\artifacts || goto error
 
-exit
+goto :eof
 
 :error
 echo Failed with error %ERRORLEVEL%.
 exit /b %ERRORLEVEL%
 '''
                                 }
-                            }
-                        }
 
-                        stage('Win: Upload build artifacts') {
-                            steps {
+                                // Publish to latestbuilds
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     sshPublisher(
                                         continueOnError: true,
@@ -368,13 +359,32 @@ exit /b %ERRORLEVEL%
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////   L I N U X   B U I L D   //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         stage('Linux: Build') {
+            steps {
+                sh '''#!/bin/bash
+if [[ "${DISTRO}" == "centos6" ]]; then
+    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
+    export PATH="${JAVA_HOME}/bin:$PATH"
+fi
+
+cd "${BUILD_DIR}"
+
+echo "======== Linux: Build in `pwd`"
+./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?
+'''
+            }
+        }
+
+        /// Publish to maven
+        stage('Linux: Publish intermediate artifacts') {
             environment { MAVEN_REPO = credentials('ProgetApiKey') }
             steps {
                 script {
                     env.MAVEN_REPO_USR = uName(env.MAVEN_REPO)
                     env.MAVEN_REPO_PSW = pwd(MAVEN_REPO)
                 }
+
                 sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
@@ -386,23 +396,7 @@ cd "${BUILD_DIR}"
 echo "maven.repo.user=${MAVEN_REPO_USR}" > "local.properties"
 echo "maven.repo.pass=${MAVEN_REPO_PSW}" >> "local.properties"
 
-echo "======== Linux: Building in `pwd`"
-./etc/jenkins/build_linux.sh "${VERSION}" "${BLD_NUM}" "${WORKSPACE}" "${DISTRO}" || exit $?
-'''
-            }
-        }
-
-        stage('Linux: Publish to ciMaven') {
-            steps {
-                sh '''#!/bin/bash
-if [[ "${DISTRO}" == "centos6" ]]; then
-    export JAVA_HOME="${WORKSPACE}/java-11.0.3"
-    export PATH="${JAVA_HOME}/bin:$PATH"
-fi
-
-cd "${BUILD_DIR}"
-
-echo "======== Linux: Publish to ciMaven"
+echo "======== Linux: Publish"
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
 rm -rf "${ARTIFACTS_DIR}"
 mkdir -p "${ARTIFACTS_DIR}"
@@ -410,6 +404,8 @@ mkdir -p "${ARTIFACTS_DIR}"
 ./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" || exit $?
 '''
             }
+
+            // Should we be publishing Linux intermediates?
         }
 
         stage('Parallel Tests for Windows and OSX') {
@@ -422,17 +418,13 @@ mkdir -p "${ARTIFACTS_DIR}"
 
                 stage('Test OSX') {
                     agent { label osxNode() }
-                    environment {
-                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                    }
                     stages {
-                        stage('OSX Test: Clean Workspace') {
-                            steps { cleanWs(deleteDirs: true) }
-                        }
-
-                        stage('OSX Test: Download and explode the source') {
+                        stage('OSX Test: Setup Workspace') {
                             steps {
+                                // Clean the workspace
+                                cleanWs(deleteDirs: true)
+
+                                // Download the source
                                 sh '''#!/bin/bash
 echo "======== OSX: Download source: ${SOURCE}"
 curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
@@ -440,22 +432,23 @@ curl -LO "${LATESTBUILDS}/couchbase-lite-java/${RELEASE}/${BLD_NUM}/${SOURCE}"
 echo "======== OSX: Extract source"
 tar xzf ${SOURCE}
 rm *-source.tar.gz
+
+echo "======== OSX: Force version ${VERSION}"
+echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
                             }
                         }
 
+                        // Test
                         stage('OSX: Test') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                     sh '''#!/bin/bash
 cd "${BUILD_DIR}"
 
-echo "======== OSX: Force version ${VERSION}"
-echo "${VERSION}" > "version.txt"
-
 touch "local.properties"
 
-echo "======== OSX: Test"
+echo "======== OSX: Test in `pwd`"
 REPORTS_DIR="$WORKSPACE/reports"
 rm -rf "${REPORTS_DIR}"
 mkdir -p "${REPORTS_DIR}"
@@ -466,6 +459,7 @@ mkdir -p "${REPORTS_DIR}"
                             }
                         }
 
+                        // Push test artifacts to latestbuilds
                         stage('OSX: Upload test artifacts') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -496,19 +490,22 @@ mkdir -p "${REPORTS_DIR}"
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////   W I N D O W S   T E S T   //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
                 stage('Test Windows') {
                     agent { label windowsNode("${VERSION}") }
-                    environment {
-                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
-                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
-                    }
                     stages {
-                        stage('Win Test: Clean Workspace') {
-                            steps { cleanWs(deleteDirs: true) }
-                        }
-
-                        stage('Win: Download and explode the source') {
+                        stage('Win Test: Setup Workspace') {
                             steps {
+                                // Clean the workspace
+                                cleanWs(deleteDirs: true)
+
+                                // Install Java 11
+                                bat '''
+curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
+cbdep.exe install -d %WORKSPACE% java 11.0.3
+'''
+
+                                // Download the source
                                 bat '''
 echo "======== Windows: Download source"
 set SITE=%LATESTBUILDS%/couchbase-lite-java/%RELEASE%/%BLD_NUM%/%SOURCE%
@@ -516,6 +513,9 @@ powershell -command "& { (New-Object Net.WebClient).DownloadFile('%SITE%', '%SOU
 
 echo "======== Windows: Extract source"
 cmake -E tar xzf %SOURCE% || goto error
+
+echo "======== Windows: Force version "%VERSION%
+echo %VERSION% > %CBL_ROOT%\\version.txt
 
 goto :eof
 
@@ -526,15 +526,7 @@ exit /b %ERRORLEVEL%
                             }
                         }
 
-                        stage('Win Test: Install Java 11') {
-                            steps {
-                                bat '''
-curl -o cbdep.exe http://downloads.build.couchbase.com/cbdep/cbdep.windows-x86_64.exe
-cbdep.exe install -d %WORKSPACE% java 11.0.3
-'''
-                            }
-                        }
-
+                        // Test
                         stage('Win: Test') {
                             steps {
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -544,16 +536,13 @@ SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
-echo "======== Windows: Force version "%VERSION%
-echo %VERSION% > %CBL_ROOT%/version.txt
-
-echo ""> %BUILD_DIR%/local.properties
+echo ""> local.properties
 
 echo ======== Windows: Test
 mkdir %WORKSPACE%\\reports
 call %BUILD_DIR%\\etc\\jenkins\\test_windows.bat %BLD_NUM% %WORKSPACE%\\reports || exit 5
 
-exit
+goto :eof
 
 :error
 echo Failed with error %ERRORLEVEL%.
@@ -563,6 +552,7 @@ exit /b %ERRORLEVEL%
                             }
                         }
 
+                        // Push test artifacts to latestbuilds
                         stage('Win: Upload test artifacts') {
                             steps {
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -596,6 +586,10 @@ exit /b %ERRORLEVEL%
 ////////////////////////////////////////////   L I N U X   T E S T   //////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+        // It would be great if we could run this stage in parallel.
+        // If it explicitly requests an agent, it deadlocks this job.
+        // I wonder if it were in the parallel clause, but didn't have
+        // an agent specifier, it would run on the current agent...
         stage('Linux: Test') {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -607,7 +601,7 @@ fi
 
 cd "${BUILD_DIR}"
 
-echo "======== Linux: Test"
+echo "======== Linux: Test in `pwd`"
 REPORTS_DIR="$WORKSPACE/reports"
 rm -rf "${REPORTS_DIR}"
 mkdir -p "${REPORTS_DIR}"
@@ -618,6 +612,7 @@ mkdir -p "${REPORTS_DIR}"
             }
         }
 
+        // Push test artifacts to latestbuilds
         stage('Linux: Upload test artifacts') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -662,11 +657,6 @@ if [[ "${DISTRO}" == "centos6" ]]; then
 fi
 
 cd "${BUILD_DIR}"
-
-echo "======== Linux: Publish to internalmaven"
-echo "${VERSION}" > "version.txt"
-
-touch "local.properties"
 
 ARTIFACTS_DIR="$WORKSPACE/artifacts"
 rm -rf "${ARTIFACTS_DIR}"
