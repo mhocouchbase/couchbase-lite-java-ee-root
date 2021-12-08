@@ -77,7 +77,12 @@ pipeline {
             }
         }
 
-        stage('Linux: Setup Workspace') {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////   STATIC ANALYSIS   ////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        stage('Check') {
             steps {
                 // Clean the workspace
                 cleanWs(deleteDirs: true)
@@ -104,15 +109,8 @@ rm *-source.tar.gz
 echo "======== Linux: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
-            }
-        }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////   STATIC ANALYSIS   ////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        stage('Static analysis') {
-            steps {
+                // Run checks
                 sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
@@ -133,7 +131,7 @@ echo "======== Linux: Check in `pwd`"
             }
         }
 
-        stage('Parallel Builds for Windows and OSX') {
+        stage {
             parallel {
 
 
@@ -141,10 +139,14 @@ echo "======== Linux: Check in `pwd`"
 ///////////////////////////////////////////////   O S X   B U I L D   /////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                stage('Build OSX') {
+                stage {
                     agent { label osxNode() }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
                     stages {
-                        stage('OSX Build: Setup Workspace') {
+                        stage('OSX: Build') {
                             steps {
                                 // Clean the workspace
                                 cleanWs(deleteDirs: true)
@@ -161,12 +163,8 @@ rm *-source.tar.gz
 echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
-                            }
-                        }
 
-                        // Build
-                        stage('OSX: Build') {
-                            steps {
+                                // Run the build
                                 sh '''#!/bin/bash
 cd "${BUILD_DIR}"
 
@@ -183,7 +181,7 @@ echo "======== OSX: Build in `pwd`"
                         }
 
                         // Publish to maven
-                        stage('OSX: Publish intermediate artifacts') {
+                        stage('OSX: Publish phase I artifacts') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -238,10 +236,14 @@ mkdir -p "${ARTIFACTS_DIR}"
 //////////////////////////////////////////   W I N D O W S   B U I L D    /////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                stage('Build Windows') {
+                stage {
                     agent { label windowsNode("${VERSION}") }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
                     stages {
-                        stage('Win Build: Setup Workspace') {
+                        stage('Win: Build') {
                             steps {
                                 // Clean the workspace
                                 cleanWs(deleteDirs: true)
@@ -270,12 +272,8 @@ goto :eof
 echo Failed with error %ERRORLEVEL%.
 exit /b %ERRORLEVEL%
 '''
-                            }
-                        }
 
-                        // Build
-                        stage('Win: Build') {
-                            steps {
+                                // Run the build
                                 bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
 SET BLD_SYS=2017
@@ -297,7 +295,7 @@ exit /b %ERRORLEVEL%
                         }
 
                         // Publish to maven
-                        stage('Win: Publish intermediate artifacts') {
+                        stage('Win: Publish phase I artifacts') {
                             environment { MAVEN_REPO = credentials('ProgetApiKey') }
                             steps {
                                 script {
@@ -377,7 +375,7 @@ echo "======== Linux: Build in `pwd`"
         }
 
         /// Publish to maven
-        stage('Linux: Publish intermediate artifacts') {
+        stage('Linux: Publish Phase II artifacts') {
             environment { MAVEN_REPO = credentials('ProgetApiKey') }
             steps {
                 script {
@@ -408,7 +406,7 @@ mkdir -p "${ARTIFACTS_DIR}"
             // Should we be publishing Linux intermediates?
         }
 
-        stage('Parallel Tests for Windows and OSX') {
+        stage {
             parallel {
 
 
@@ -416,10 +414,14 @@ mkdir -p "${ARTIFACTS_DIR}"
 ////////////////////////////////////////////////   O S X   T E S T   //////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                stage('Test OSX') {
+                stage {
                     agent { label osxNode() }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
                     stages {
-                        stage('OSX Test: Setup Workspace') {
+                        stage('OSX: Test') {
                             steps {
                                 // Clean the workspace
                                 cleanWs(deleteDirs: true)
@@ -436,13 +438,9 @@ rm *-source.tar.gz
 echo "======== OSX: Force version ${VERSION}"
 echo "${VERSION}" > "${CBL_ROOT}/version.txt"
 '''
-                            }
-                        }
 
-                        // Test
-                        stage('OSX: Test') {
-                            steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                // Run the tests
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                                     sh '''#!/bin/bash
 cd "${BUILD_DIR}"
 
@@ -456,13 +454,9 @@ mkdir -p "${REPORTS_DIR}"
 ./etc/jenkins/test_macos.sh ${BLD_NUM} "${REPORTS_DIR}" || exit $?
 '''
                                 }
-                            }
-                        }
 
-                        // Push test artifacts to latestbuilds
-                        stage('OSX: Upload test artifacts') {
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                // Upload test logs
+                                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                     sshPublisher(
                                         continueOnError: true,
                                         failOnError: false,
@@ -491,10 +485,14 @@ mkdir -p "${REPORTS_DIR}"
 ////////////////////////////////////////////   W I N D O W S   T E S T   //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                stage('Test Windows') {
+                stage {
                     agent { label windowsNode("${VERSION}") }
+                    environment {
+                        CBL_ROOT = getRootDir("${WORKSPACE}", "${VERSION}")
+                        BUILD_DIR = getBuildDir("${CBL_ROOT}", "${VERSION}", "${EDITION}")
+                    }
                     stages {
-                        stage('Win Test: Setup Workspace') {
+                        stage('Win: Test') {
                             steps {
                                 // Clean the workspace
                                 cleanWs(deleteDirs: true)
@@ -523,13 +521,9 @@ goto :eof
 echo Failed with error %ERRORLEVEL%.
 exit /b %ERRORLEVEL%
 '''
-                            }
-                        }
 
-                        // Test
-                        stage('Win: Test') {
-                            steps {
-                                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                // Run the tests
+                                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                                     bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
 SET BLD_SYS=2017
@@ -549,13 +543,9 @@ echo Failed with error %ERRORLEVEL%.
 exit /b %ERRORLEVEL%
 '''
                                 }
-                            }
-                        }
 
-                        // Push test artifacts to latestbuilds
-                        stage('Win: Upload test artifacts') {
-                            steps {
-                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                // Upload test logs
+                                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                                     sshPublisher(
                                         continueOnError: true,
                                         failOnError: false,
@@ -592,7 +582,8 @@ exit /b %ERRORLEVEL%
         // an agent specifier, it would run on the current agent...
         stage('Linux: Test') {
             steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                // Run the tests
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
@@ -609,13 +600,9 @@ mkdir -p "${REPORTS_DIR}"
 ./etc/jenkins/test_linux.sh "${BLD_NUM}" "${REPORTS_DIR}" || exit $?
 '''
                 }
-            }
-        }
 
-        // Push test artifacts to latestbuilds
-        stage('Linux: Upload test artifacts') {
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                // Upload test logs
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     sshPublisher(
                         continueOnError: true,
                         failOnError: false,
@@ -649,7 +636,9 @@ mkdir -p "${REPORTS_DIR}"
                 // step.  This really should just promote the ciMaven
                 // bits to internalMaven but, apparently, we can't
                 // afford a real version of proget.
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+
+                // Publish to Maven
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sh '''#!/bin/bash
 if [[ "${DISTRO}" == "centos6" ]]; then
     export JAVA_HOME="${WORKSPACE}/java-11.0.3"
@@ -665,7 +654,9 @@ mkdir -p "${ARTIFACTS_DIR}"
 ./etc/jenkins/publish_linux.sh "${VERSION}" "${BLD_NUM}" "${ARTIFACTS_DIR}" "${WORKSPACE}" internalmaven || exit $?
 '''
                 }
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+
+                // Publish Zip
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     sshPublisher(
                         continueOnError: true,
                         failOnError: false,
@@ -702,5 +693,3 @@ mkdir -p "${ARTIFACTS_DIR}"
         }
     }
 }
-
-
