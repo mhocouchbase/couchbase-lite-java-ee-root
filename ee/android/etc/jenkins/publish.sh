@@ -5,7 +5,7 @@
 PRODUCT='couchbase-lite-android-ee'
 EDITION='enterprise'
 
-MAVEN_URL="http://proget.build.couchbase.com/maven2/cimaven"
+MAVEN_URL="http://proget.build.couchbase.com/maven2/internalmaven"
 
 
 function usage() {
