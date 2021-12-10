@@ -28,8 +28,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
- * PredictionFunction that allows to create an expression that
- * refers to one of the properties of the prediction result dictionary.
+ * Create an expression that refers to one of the properties of the prediction results dictionary.
  */
 public final class PredictionFunction extends Expression {
 

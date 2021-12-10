@@ -24,12 +24,15 @@ import com.couchbase.lite.internal.ImmutableReplicatorConfiguration;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
+/**
+ * Configuration for a Replicator
+ */
 public final class ReplicatorConfiguration extends AbstractReplicatorConfiguration {
 
     //---------------------------------------------
     // Data Members
     //---------------------------------------------
-    private boolean acceptOnlySelfSignedServerCertificate;
+    private boolean selfSignedOnly;
 
     //---------------------------------------------
     // Constructors
@@ -40,12 +43,12 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
 
     public ReplicatorConfiguration(@NonNull ReplicatorConfiguration config) {
         super(config);
-        this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
+        this.selfSignedOnly = config.isAcceptOnlySelfSignedServerCertificate();
     }
 
     ReplicatorConfiguration(@NonNull ImmutableReplicatorConfiguration config) {
         super(config);
-        this.acceptOnlySelfSignedServerCertificate = config.isAcceptOnlySelfSignedServerCertificate();
+        this.selfSignedOnly = config.isAcceptOnlySelfSignedServerCertificate();
     }
 
     // for Kotlin
@@ -85,29 +88,28 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
             verifyHeartbeat(heartbeat),
             enableAutoPurge,
             Preconditions.assertNotNull(target, "target"));
-        this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
+        this.selfSignedOnly = acceptOnlySelfSignedServerCertificate;
     }
 
     /**
-     * Specify whether the replicator will accept any and only self-signed certificates.
-     * Any non-self-signed certificates will be rejected to avoid accidentally using
-     * this mode with the non-self-signed certs in production. The default value is false.
+     * Specify whether the replicator will accept only self-signed certificates.
+     * If set true, the replicator will accept any self-signed but <b>NO</b> not self-signed certificates
+     * This guards against using this mode accidentally, in production.
+     * The default value is false.
      *
-     * @param acceptOnlySelfSignedServerCertificate Whether the replicator will accept
-     *                                              any and only self-signed certificates.
+     * @param selfSignedOnly Whether the replicator will accept any and only self-signed certificates.
      * @return this.
      */
     @NonNull
-    public ReplicatorConfiguration setAcceptOnlySelfSignedServerCertificate(
-        boolean acceptOnlySelfSignedServerCertificate) {
-        this.acceptOnlySelfSignedServerCertificate = acceptOnlySelfSignedServerCertificate;
+    public ReplicatorConfiguration setAcceptOnlySelfSignedServerCertificate(boolean selfSignedOnly) {
+        this.selfSignedOnly = selfSignedOnly;
         return getReplicatorConfiguration();
     }
 
     /**
      * Return whether the replicator will accept any and only self-signed server certificates.
      */
-    public boolean isAcceptOnlySelfSignedServerCertificate() { return acceptOnlySelfSignedServerCertificate; }
+    public boolean isAcceptOnlySelfSignedServerCertificate() { return selfSignedOnly; }
 
     @NonNull
     @Override

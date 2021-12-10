@@ -23,7 +23,7 @@ import com.couchbase.lite.internal.utils.Preconditions;
 /**
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
- * Message endpoint.
+ * Replication Message endpoint.
  */
 public class MessageEndpoint implements Endpoint {
     // Unique ID required for calculating remote checkpoint id

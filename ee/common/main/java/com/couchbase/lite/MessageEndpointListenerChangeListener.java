@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
 
 
 /**
- * A change listener protocol.
+ * The {@link MessageEndpointListener} change listener protocol.
  */
 @FunctionalInterface
 public interface MessageEndpointListenerChangeListener extends ChangeListener<MessageEndpointListenerChange> {

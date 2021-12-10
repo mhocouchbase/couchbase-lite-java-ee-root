@@ -85,7 +85,7 @@ public final class Database extends AbstractDatabase {
     public Database(@NonNull String name) throws CouchbaseLiteException { super(name); }
 
     /**
-     * Construct a  AbstractDatabase with a given name and database config.
+     * Construct a Database with a given name and database config.
      * If the database does not yet exist, it will be created, unless the `readOnly` option is used.
      *
      * @param name   The name of the database: May NOT contain capital letters!

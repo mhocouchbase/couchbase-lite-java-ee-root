@@ -15,4 +15,8 @@
 //
 package com.couchbase.lite;
 
+
+/**
+ * Opaque interface for the authenticator used by a URLEndpointListener
+ */
 public interface ListenerAuthenticator {}

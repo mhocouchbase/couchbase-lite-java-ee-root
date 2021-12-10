@@ -23,8 +23,9 @@ import java.util.List;
 
 
 /**
- * IndexBuilder used for building database index objects.
- * Use Database.createIndex(IndexConfiguration, String)
+ * IndexBuilder used for building database indices.
+ *
+ * Use Database.createIndex(IndexConfiguration, String) instead.
  */
 public final class IndexBuilder extends AbstractIndexBuilder {
     private IndexBuilder() { } // Utility class

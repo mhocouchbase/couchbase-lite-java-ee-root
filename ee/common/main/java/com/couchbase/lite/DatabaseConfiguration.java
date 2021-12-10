@@ -36,6 +36,11 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
 
     public DatabaseConfiguration() { }
 
+    /**
+     * Copy constructor
+     *
+     * @param config the configuration to duplicate.
+     */
     public DatabaseConfiguration(@Nullable DatabaseConfiguration config) {
         super(config);
         this.encryptionKey = (config == null) ? null : config.encryptionKey;
@@ -63,7 +68,7 @@ public final class DatabaseConfiguration extends AbstractDatabaseConfiguration {
      * it will use this key, and the same key must be given every time it's opened
      *
      * @param encryptionKey the key
-     * @return The self object.
+     * @return this.
      */
     @NonNull
     public DatabaseConfiguration setEncryptionKey(@Nullable EncryptionKey encryptionKey) {
