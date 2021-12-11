@@ -44,15 +44,15 @@ import com.couchbase.lite.internal.utils.Preconditions;
  * <b>ENTERPRISE EDITION API</b><br><br>
  * <p>
  * TLSIdentity provides the identity information obtained from the given KeyStore,
- * including a private key and X.509 certificate chain. Please note that the private key
- * data will be not extracted out of the KeyStore. The TLSIdentity is used by
- * URLEndpointListener to setup the TLS communication or by the Replicator to setup
+ * including a private key and X.509 certificate chain.  TLSIdentities are backed by the
+ * {@link KeyStore} and do not extract private key materials. The TLSIdentity is used by
+ * {@link URLEndpointListener} to setup the TLS communication or by the Replicator to setup
  * the client certificate authentication.
  */
 public final class TLSIdentity extends BaseTLSIdentity {
     /**
-     * Get a TLSIdentity object from the give KeyStore, key alias, and key password.
-     * The KeyStore must contain the private key along with the certificate chain at
+     * Get a TLSIdentity using a KeyStore, and a key alias, and key password for a key it contains.
+     * The KeyStore must contain the both the private key and the certificate chain at
      * the given key alias and password, otherwise null will be returned.
      *
      * @param keyStore    KeyStore
@@ -96,7 +96,7 @@ public final class TLSIdentity extends BaseTLSIdentity {
     }
 
     /**
-     * Create a self-signed certificate TLSIdentity object. The generated private key
+     * Create a self-signed certificate TLSIdentity. The generated private key
      * will be stored in the KeyStore along with its self-signed certificate.
      *
      * @param isServer    The flag indicating that the certificate is for server or client.

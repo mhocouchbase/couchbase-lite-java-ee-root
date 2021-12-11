@@ -18,8 +18,10 @@ package com.couchbase.lite
 
 /**
  * Configuration factory for new DatabaseConfigurations
+ *
  * Usage:
- *     val dbConfig = DatabaseConfigurationFactory.create(...)
+ *
+ *      val dbConfig = DatabaseConfigurationFactory.create(...)
  */
 val DatabaseConfigurationFactory: DatabaseConfiguration? = null
 
@@ -42,8 +44,10 @@ fun DatabaseConfiguration?.create(
 
 /**
  * Configuration factory for new ReplicatorConfigurations
+ *
  * Usage:
- *     val replConfig = ReplicatorConfigurationFactory.create(...)
+ *
+ *      val replConfig = ReplicatorConfigurationFactory.create(...)
  */
 val ReplicatorConfigurationFactory: ReplicatorConfiguration? = null
 
@@ -111,7 +115,9 @@ fun ReplicatorConfiguration?.create(
 
 /**
  * Configuration factory for new MessageEndpointListenerConfigurations
+ *
  * Usage:
+ *
  *     val endpointListenerConfig = MessageEndpointListenerConfigurationFactory.create(...)
  */
 val MessageEndpointListenerConfigurationFactory: MessageEndpointListenerConfiguration? = null
@@ -135,7 +141,9 @@ fun MessageEndpointListenerConfiguration?.create(
 
 /**
  * Configuration factory for new URLEndpointListenerConfigurations
+ *
  * Usage:
+ *
  *     val endpointListenerConfig = URLEndpointListenerConfigurationFactory.create(...)
  */
 val URLEndpointListenerConfigurationFactory: URLEndpointListenerConfiguration? = null

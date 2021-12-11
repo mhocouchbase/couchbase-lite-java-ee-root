@@ -33,6 +33,9 @@ import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.Preconditions;
 
 
+/**
+ * A listener to which remote replicators can connect.
+ */
 public class URLEndpointListener {
 
     @NonNull

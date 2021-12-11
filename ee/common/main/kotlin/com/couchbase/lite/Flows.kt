@@ -23,7 +23,7 @@ import java.util.concurrent.Executor
 /**
  * A Flow of message endpoint state changes.
  *
- * @param executor Optional executor on which to run the change listener: default is the main executor
+ * @param executor Optional executor on which to run the change listener: default is the main thread
  *
  * @see com.couchbase.lite.MessageEndpointListener.addChangeListener
  */
