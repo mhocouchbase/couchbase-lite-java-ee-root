@@ -3,6 +3,7 @@
 NEXUS_URL="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 TOOLS_DIR="${SCRIPT_DIR}/../common/tools"
+STATUS=0
 
 test_core() {
    OS=$1
@@ -11,11 +12,11 @@ test_core() {
    SUFFIX=$4
    echo -n "${OS} ${EDITION}: "
    curl -I -s -f -o /dev/null "${NEXUS_URL}/couchbase-litecore-${OS}/${SHA}/couchbase-litecore-${OS}-${SHA}.${SUFFIX}" -o "${OS}-${EDITION}.${SUFFIX}"
-   status=$?
-   if [ $status -eq 0 ]; then
+   if [ $? -eq 0 ]; then
       echo "Succeeded"
    else
       echo "Failed"
+      STATUS=67
    fi
 }
 
@@ -41,4 +42,6 @@ done
 
 popd > /dev/null
 rm -rf .core-tmp
+
+exit $STATUS
 
