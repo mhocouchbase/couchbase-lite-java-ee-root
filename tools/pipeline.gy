@@ -279,14 +279,13 @@ exit /b %ERRORLEVEL%
                                 // Run the build
                                 bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
-SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
 echo ""> local.properties
 
 echo ======== Windows: Building in %BUILD_DIR%
-call %BUILD_DIR%\\etc\\jenkins\\build_windows.bat %BLD_SYS% %BLD_NUM% || goto error
+call %BUILD_DIR%\\etc\\jenkins\\build_windows.bat 2017 %BLD_NUM% || goto error
 
 goto :eof
 
@@ -309,7 +308,6 @@ exit /b %ERRORLEVEL%
                                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                     bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
-SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
@@ -529,7 +527,6 @@ exit /b %ERRORLEVEL%
                                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                                     bat '''
 SET PATH=%WORKSPACE%\\java-11.0.3\\bin;%PATH%
-SET BLD_SYS=2017
 
 cd %BUILD_DIR% || goto error
 
