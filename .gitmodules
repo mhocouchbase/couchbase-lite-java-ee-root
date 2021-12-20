@@ -23,3 +23,6 @@
 	master = master
 [ce "ce"]
 	master = master
+[submodule "tools"]
+	path = tools
+	url = https://github.com/couchbaselabs/couchbase-lite-java-tools

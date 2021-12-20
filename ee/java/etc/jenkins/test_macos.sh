@@ -24,7 +24,7 @@ fi
 STATUS=0
 
 echo "======== TEST Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
-./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" || STATUS=5
+./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}"  > "${REPORTS}/test.log" 2>&1 || STATUS=5
 
 echo "======== Publish reports"
 pushd test/build > /dev/null

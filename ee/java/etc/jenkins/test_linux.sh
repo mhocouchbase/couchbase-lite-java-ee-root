@@ -32,7 +32,7 @@ export LD_LIBRARY_PATH="${SUPPORT_DIR}/libz:${LD_LIBRARY_PATH}"
 echo $LD_LIBRARY_PATH
 find "${SUPPORT_DIR}/../../.."
 
-./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" || STATUS=5
+./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" > "${REPORTS}/test.log" 2>&1 || STATUS=5
 
 echo "======== Publish reports"
 pushd test/build
