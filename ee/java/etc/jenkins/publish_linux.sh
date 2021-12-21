@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Publish Couchbase Lite Java, Enterprise Edition
+# Publish Couchbase Lite Java for Linux, Enterprise Edition
 #
 PRODUCT='couchbase-lite-java-ee'
 MAVEN_URL="http://proget.build.couchbase.com/maven2"
@@ -42,10 +42,9 @@ else
     MAVEN_URL="${MAVEN_URL}/$FEED"
 fi
 
-
 DIST_NAME="${PRODUCT}-${VERSION}-${BUILD_NUMBER}"
 
-echo "======== PUBLISH Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
+echo "======== PUBLISH Couchbase Lite Java for Linux, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}" 
 ./gradlew ciPublish -PbuildNumber=${BUILD_NUMBER} -PmavenUrl=${MAVEN_URL} || STATUS=5
 
 echo "======== Copy artifacts to staging directory"

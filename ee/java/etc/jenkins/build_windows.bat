@@ -1,7 +1,7 @@
 
 echo on
 
-rem Build Couchbase Lite Java, Enterprise Edition for Windows
+rem Build Couchbase Lite Java for Windows, Enterprise Edition
 
 set liteCoreRepoUrl="http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore"
 
@@ -18,7 +18,7 @@ set scriptDir=%CD%
 popd
 set toolsDir=%scriptDir%\..\..\..\..\common\tools
 
-echo ======== BUILD Couchbase Lite Java, Enterprise Edition
+echo ======== BUILD Couchbase Lite Java for Windows, Enterprise Edition
 
 echo ======== Clean up
 call %toolsDir%\clean_litecore.bat

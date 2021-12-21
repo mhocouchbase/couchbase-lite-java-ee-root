@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test Couchbase Lite Java, Enterprise Edition for MacOS
+# Test Couchbase Lite Java for MacOS, Enterprise Edition
 #
 function usage() {
     echo "Usage: $0 <build number> <reports path>"
@@ -23,8 +23,9 @@ fi
 
 STATUS=0
 
-echo "======== TEST Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
-./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}"  > "${REPORTS}/test.log" 2>&1 || STATUS=5
+echo "======== TEST Couchbase Lite Java for MacOS, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
+./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" > test.log 2>&1 || STATUS=5
+zip -r "${REPORTS}/test-log-macos-ee" test.log
 
 echo "======== Publish reports"
 pushd test/build > /dev/null

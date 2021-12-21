@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test Couchbase Lite Java, Enterprise Edition
+# Test Couchbase Lite Java for Linux, Enterprise Edition
 #
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 SUPPORT_DIR="${SCRIPT_DIR}/../../../../common/lite-core/support/linux/x86_64"
@@ -25,14 +25,15 @@ if [ -z "${REPORTS}" ]; then
     usage
 fi
 
-echo "======== TEST Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
+echo "======== TEST Couchbase Lite Java for Linux, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER}"
 export LD_LIBRARY_PATH="${SUPPORT_DIR}/libc++:${LD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${SUPPORT_DIR}/libicu:${LD_LIBRARY_PATH}"
 export LD_LIBRARY_PATH="${SUPPORT_DIR}/libz:${LD_LIBRARY_PATH}"
 echo $LD_LIBRARY_PATH
 find "${SUPPORT_DIR}/../../.."
 
-./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" > "${REPORTS}/test.log" 2>&1 || STATUS=5
+./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" > test.log 2>&1 || STATUS=5
+zip -r "${REPORTS}/test-log-linux-ee" test.log
 
 echo "======== Publish reports"
 pushd test/build

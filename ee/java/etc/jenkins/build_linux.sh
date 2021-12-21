@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Build Couchbase Lite Java, Enterprise Edition for MacOS, Windows, Linux
+# Build Couchbase Lite Java for Linux, MacOS, Windows, Enterprise Edition
 # This script assumes the the OSX and Windows builds are available on latestbuilds
 #
 PRODUCT="couchbase-lite-java-ee"
@@ -39,7 +39,7 @@ if [ -z "${DISTRO}" ]; then
    usage
 fi
 
-echo "======== BUILD Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER} (${DISTRO})"
+echo "======== BUILD Couchbase Lite Java for Linux, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER} (${DISTRO})"
 
 echo "======== Clean up ..." 
 "${TOOLS_DIR}/clean_litecore.sh" -p "${DISTRO}"
