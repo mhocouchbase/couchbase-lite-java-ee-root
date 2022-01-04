@@ -24,5 +24,5 @@
 [ce "ce"]
 	master = master
 [submodule "tools"]
-	path = tools
+	path = etc
 	url = https://github.com/couchbaselabs/couchbase-lite-java-tools
