@@ -70,7 +70,7 @@ abstract class SecurityBaseTest : BaseTest() {
         }
 
         fun deleteTestAliases() {
-            PlatformSecurityTest.deleteEntries { it!!.startsWith(BASE_KEY_ALIAS) }
+            PlatformSecurityTest.deleteEntries { it.startsWith(BASE_KEY_ALIAS) }
         }
 
         fun loadTestKeyStore(): KeyStore {

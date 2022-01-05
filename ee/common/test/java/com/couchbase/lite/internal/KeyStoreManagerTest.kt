@@ -29,7 +29,7 @@ class KeyStoreManagerTest : PlatformSecurityTest() {
     @After
     fun tearDownKeyStoreManagerTest() {
         KeyStoreManager.getInstance()
-            .deleteEntries(loadPlatformKeyStore()) { it!!.startsWith(BASE_KEY_ALIAS) }
+            .deleteEntries(loadPlatformKeyStore()) { it.startsWith(BASE_KEY_ALIAS) }
     }
 
     @Test

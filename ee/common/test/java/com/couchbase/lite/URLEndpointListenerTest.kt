@@ -684,7 +684,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         var token: ListenerToken? = null
         val repl = run(makeReplConfig(listener.endpoint(), otherDB)) {
-            token = it!!.addChangeListener {
+            token = it.addChangeListener {
                 listener.status?.run {
                     // on Android < 24, we cannot use AtomicInteger.getAndAccumulate
                     synchronized(maxVals) {
@@ -720,7 +720,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         var busyIdentity: TLSIdentity? = null
         var token: ListenerToken? = null
         val repl = run(makeReplConfig(listener.endpoint())) {
-            token = it!!.addChangeListener { change ->
+            token = it.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
                         if (busyIdentity == null) {
@@ -748,7 +748,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         var token: ListenerToken? = null
         val repl = run(makeReplConfig(listener.endpoint())) {
-            assertNull(it!!.serverCertificates)
+            assertNull(it.serverCertificates)
             token = it.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
@@ -779,7 +779,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
         var token: ListenerToken? = null
         val repl = run(makeReplConfig(listener.endpoint(), baseTestDb, cert, false)) {
-            assertNull(it!!.serverCertificates)
+            assertNull(it.serverCertificates)
             token = it.addChangeListener { change ->
                 when (change.status.activityLevel) {
                     ReplicatorActivityLevel.BUSY ->
@@ -810,7 +810,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             CBLError.Domain.CBLITE,
             false
         ) {
-            assertNull(it!!.serverCertificates)
+            assertNull(it.serverCertificates)
         }
 
         assertTrue(

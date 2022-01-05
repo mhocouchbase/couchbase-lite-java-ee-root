@@ -469,7 +469,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
         val replicator = run(pullConfigWitResolver(TestConflictResolver { doc2 })) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -501,7 +501,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException?>()
         val replicator = run(pullConfigWitResolver(TestConflictResolver { doc3 })) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -532,7 +532,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         val errors = mutableListOf<CouchbaseLiteException>()
         val replicator =
             run(pullConfigWitResolver(TestConflictResolver { otherDB.getNonNullDoc(DOC1) })) { repl ->
-                token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+                token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                     docRepl.documents[0].error?.let { errors.add(it) }
                 }
             }
@@ -569,7 +569,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
         val replicator = run(pullConfig) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -896,7 +896,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
         val replicator = run(pullConfig) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -931,7 +931,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
         val replicator = run(pullConfig) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -968,7 +968,7 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
         val replicator = run(pullConfig) { repl ->
-            token = repl!!.addDocumentReplicationListener { docRepl: DocumentReplication ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -1168,8 +1168,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
 
         var token: ListenerToken? = null
         val errors = mutableListOf<CouchbaseLiteException>()
-        var replicator = run(pullConfig) { repl ->
-            token = repl?.addDocumentReplicationListener { docRepl: DocumentReplication ->
+        val replicator = run(pullConfig) { repl ->
+            token = repl.addDocumentReplicationListener { docRepl: DocumentReplication ->
                 docRepl.documents[0].error?.let { errors.add(it) }
             }
         }
@@ -1354,8 +1354,8 @@ class ReplicatorConflictResolutionTest : BaseEEReplicatorTest() {
         var token: ListenerToken? = null
 
         val docIds = mutableListOf<String>()
-        var replicator = run(config) {
-            token = it!!.addDocumentReplicationListener { docRepl ->
+        val replicator = run(config) {
+            token = it.addDocumentReplicationListener { docRepl ->
                 for (replDoc in docRepl.documents) {
                     docIds.add(replDoc.id)
                 }
