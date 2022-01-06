@@ -326,6 +326,7 @@ class ReplicatorPendingDocIdTest : BaseEEReplicatorTest() {
         var pendingIdAfter: Set<String>? = null
 
         val token = replicator.addChangeListener { change ->
+            Report.log("Change: %s", change)
             try {
                 val ids = change.replicator.pendingDocumentIds
 
