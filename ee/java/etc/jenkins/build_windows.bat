@@ -24,7 +24,7 @@ echo ======== Clean up
 call %toolsDir%\clean_litecore.bat
 
 echo ======== Download Lite Core
-powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\fetch_litecore.ps1" %liteCoreRepoUrl% EE
+powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\fetch_litecore.ps1" %liteCoreRepoUrl% EE -DebugLib
 
 echo ======== Build mbedcrypto
 call %toolsDir%\build_litecore.bat %vsGen% EE mbedcrypto
