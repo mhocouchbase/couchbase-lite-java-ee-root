@@ -24,6 +24,7 @@ echo ======== Clean up
 call %toolsDir%\clean_litecore.bat
 
 echo ======== Download Lite Core
+rem DEBUG!!!  USING A DEBUG CORE WHILE HOPING TO CATCH THE CRASH IN C4SocketImpl::onClose
 powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\fetch_litecore.ps1" %liteCoreRepoUrl% EE -DebugLib
 
 echo ======== Build mbedcrypto

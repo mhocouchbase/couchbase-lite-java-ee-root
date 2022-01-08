@@ -378,8 +378,6 @@ spotbugs { toolVersion = SPOTBUGS_VERSION }
         description "Spotbugs with ${reportType} report"
         group 'verification'
 
-        // outputs.upToDateWhen { false }
-
         afterEvaluate {
             dependsOn tasks.find { t -> t.name.endsWith 'compileDebugSources' }
         }
