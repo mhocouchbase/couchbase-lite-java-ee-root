@@ -323,7 +323,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     // A client with a pinned certificate
     // should refuse a server that presents a non-matching certificate (explicit, self signed)
     // this is a redundant test...
-    @FlakyTest(log = ["Android: 21/11/04"])
     @Test
     fun testTLSPinnedCertClientAuthenticatorWithNonMatchingSelfSignedServerCredentials() {
         val serverIdentity = createIdentity()
@@ -516,7 +515,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents pinned credentials
-    @FlakyTest(log = ["Linux: 21/06/18", "Linux: 21/07/30"])
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingClientCredentials() {
         val clientIdentity = createIdentity()
@@ -536,7 +534,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a client authenticator pinning certificates
     // should accept a client that presents a cert chain whose root is pinned
-    @FlakyTest(log = ["Linux: 21/06/11", "MacOS: 21/08/17"])
     @Test
     fun testTLSPinnedCertificateListenerAuthenticatorWithMatchingChainClientCredentials() {
         val clientIdentity = getTestChainIdentity()
@@ -574,7 +571,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     // A listener with TLS enabled and a callback client authenticator
     // should accept a client that presents credentials that cause the authenticator to return true.
-    @FlakyTest(log = ["Windows: 21/07/30"])
     @Test
     fun testCertAuthenticatorWithCallbackSucceeds() {
         val clientIdentity = createIdentity(false)
@@ -1000,7 +996,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         assertOneDoc(docId, baseTestDb)
     }
 
-    @FlakyTest(log = ["MacOS: 21/11/3", "Android: 21/11/4"])
     @Test
     fun testMultipleReplicatorsToListener() {
         // A filter can actually hang the replication
@@ -1098,7 +1093,6 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         db1.close()
     }
 
-    @FlakyTest(log = ["Windows: 21/06/11"])
     @Test
     fun testReplicatorAndListenerOnSameDatabase() {
         var shouldWait = true

@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
@@ -50,7 +49,6 @@ import static org.junit.Assert.assertTrue;
 @SuppressWarnings("ConstantConditions")
 public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
-    @FlakyTest(log = {"Android: 21/11/04", "Linux: 21/06/18"})
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -115,7 +113,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNull(baseTestDb.getDocument("doc2"));
     }
 
-    @FlakyTest(log = {"Android: 21/08/17"})
     @Test
     public void testRestartPullFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -196,7 +193,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
-    @FlakyTest(log = {"Android: 21/08/17"})
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();

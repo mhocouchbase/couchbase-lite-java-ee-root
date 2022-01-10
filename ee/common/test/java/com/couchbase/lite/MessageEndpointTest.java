@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.Report;
 import com.couchbase.lite.internal.utils.SlowTest;
 import com.couchbase.lite.mock.MockClientConnection;
@@ -367,7 +366,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest(log = {"Windows: 21/08/24"})
     @Test
     public void testPushPullDocWithMessage() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -461,7 +459,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals("Cat", baseTestDb.getDocument("doc2").getString("name"));
     }
 
-    @FlakyTest(log = {"MacOs: 21/11/04"})
     @Test
     public void testPushPullDocContinuousWithStream() throws CouchbaseLiteException {
         MutableDocument doc1 = new MutableDocument("doc1");
@@ -498,13 +495,11 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PRecoverableFailInOpen", MockClientConnection.ErrorLogic.LifecycleLocation.CONNECT, true);
     }
 
-    @FlakyTest(log = {"MacOs: 21/08/17"})
     @Test
     public void testP2PRecoverableFailureDuringSend() throws CouchbaseLiteException {
         testP2PError("P2PRecoverableFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, true);
     }
 
-    @FlakyTest(log = {"MacOs: 21/08/17", "MacOs: 21/08/24"})
     @SlowTest
     @Test
     public void testP2PRecoverableFailureDuringReceive() throws CouchbaseLiteException {
@@ -524,13 +519,11 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         testP2PError("P2PPermanentFailInSend", MockClientConnection.ErrorLogic.LifecycleLocation.SEND, false);
     }
 
-    @FlakyTest(log = {"MacOs: 21/06/11"})
     @Test
     public void testP2PPermanentFailureDuringReceive() throws CouchbaseLiteException {
         testP2PError("P2PPermanentFailInReceive", MockClientConnection.ErrorLogic.LifecycleLocation.RECEIVE, false);
     }
 
-    @FlakyTest(log = {"MacOs: 21/11/04"})
     @SlowTest
     @Test
     public void testP2PPassiveClose() throws InterruptedException {
@@ -636,7 +629,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals(CBLError.Code.WEB_SOCKET_GOING_AWAY, err.getCode());
     }
 
-    @FlakyTest(log = {"MacOs: 21/08/24"})
     @SlowTest
     @Test
     public void testP2PPassiveCloseAll() throws InterruptedException, CouchbaseLiteException {
@@ -782,7 +774,6 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertTrue(statuses.size() > 1);
     }
 
-    @FlakyTest(log = {"MacOs: 21/11/04"})
     @Test
     public void testRemoveChangeListener() throws InterruptedException {
         final ArrayList<ReplicatorActivityLevel> statuses = new ArrayList<>();
