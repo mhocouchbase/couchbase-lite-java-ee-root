@@ -1029,7 +1029,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val listener = listenTls(serverIdentity)
 
         // Replicator#1 (DB#1 <-> Listener(otherDB))
-        val config1 = makeReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
+        val config1 = makePullReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
         config1.pullFilter = DelayFilter("Repl #1", barrier)
         val repl1 = testReplicator(config1)
         val token1 = repl1.addChangeListener { c ->
@@ -1041,7 +1041,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         }
 
         // Replicator#2 (DB#2 <-> Listener(otherDB))
-        val config2 = makeReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
+        val config2 = makePullReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
         config2.pullFilter = DelayFilter("Repl #2", barrier)
         val repl2 = testReplicator(config2)
         val token2 = repl2.addChangeListener { c ->
@@ -1071,26 +1071,23 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
             repl2.removeChangeListener(token2)
         }
 
-        assertFalse(barrier.isBroken)
+        try {
+            assertFalse(barrier.isBroken)
 
-        assertEquals(2, db1.count)
-        assertNotNull(db1.getDocument(docId))
-        assertNotNull(db1.getDocument(docId1))
+            assertEquals(2, db1.count)
+            assertNotNull(db1.getDocument(docId))
+            assertNotNull(db1.getDocument(docId1))
 
-        assertEquals(2, db2.count)
-        assertNotNull(db2.getDocument(docId))
-        assertNotNull(db2.getDocument(docId2))
+            assertEquals(2, db2.count)
+            assertNotNull(db2.getDocument(docId))
+            assertNotNull(db2.getDocument(docId2))
 
-        assertEquals(3, otherDB.count)
-        assertNotNull(otherDB.getDocument(docId))
-        assertNotNull(otherDB.getDocument(docId1))
-        assertNotNull(otherDB.getDocument(docId2))
-
-        repl1.removeChangeListener(token1)
-        repl2.removeChangeListener(token2)
-
-        db2.close()
-        db1.close()
+            assertEquals(1, otherDB.count)
+            assertNotNull(otherDB.getDocument(docId))
+        } finally {
+            db2.close()
+            db1.close()
+        }
     }
 
     @Test
@@ -1238,6 +1235,35 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         continuous: Boolean = true
     ): ReplicatorConfiguration {
         return makeReplConfig(target, source, null, pinnedServerCert, continuous)
+    }
+
+    private fun makePullReplConfig(
+        target: Endpoint,
+        source: Database = baseTestDb,
+        pinnedServerCert: Certificate? = null,
+        continuous: Boolean = true
+    ): ReplicatorConfiguration {
+        return makePullReplConfig(target, source, null, pinnedServerCert, continuous)
+    }
+    private fun makePullReplConfig(
+        target: Endpoint,
+        source: Database,
+        auth: Authenticator?,
+        pinnedServerCert: Certificate?,
+        continuous: Boolean
+    ): ReplicatorConfiguration {
+        val config = makeConfig(
+            source,
+            target,
+            ReplicatorType.PULL,
+            continuous,
+            pinnedServerCert
+        )
+        config.isAcceptOnlySelfSignedServerCertificate = true
+        if (auth != null) {
+            config.setAuthenticator(auth)
+        }
+        return config
     }
 
     private fun makeReplConfig(
