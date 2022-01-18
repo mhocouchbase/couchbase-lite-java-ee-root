@@ -328,7 +328,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @Test
     public void testPushDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        Database anotherDB = createDb("push-cont-db");
+        Database anotherDB = createDb("push_cont_db");
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -386,7 +386,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullDocContinuous() throws CouchbaseLiteException, InterruptedException {
-        Database anotherDB = createDb("pull-cont-db");
+        Database anotherDB = createDb("pull_cont_db");
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");
@@ -592,7 +592,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPushBlob() throws CouchbaseLiteException, IOException {
-        Database anotherDB = createDb("push-blob-db");
+        Database anotherDB = createDb("push_blob_db");
         try {
             try (InputStream is = PlatformUtils.getAsset("image.jpg")) {
                 assertNotNull(is);
@@ -622,7 +622,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
      */
     @Test
     public void testPullBlob() throws CouchbaseLiteException, IOException {
-        Database anotherDB = createDb("pull-blob-db");
+        Database anotherDB = createDb("pull_blob_db");
         try {
             MutableDocument doc1 = new MutableDocument("doc1");
             doc1.setValue("name", "Tiger");

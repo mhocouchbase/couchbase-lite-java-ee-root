@@ -181,7 +181,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     public void testCopyEncryptedDatabase() throws CouchbaseLiteException {
         // Create encrypted database:
         final DatabaseConfiguration config = new DatabaseConfiguration().setEncryptionKey(getEncryptionKey(TEST_PWD));
-        encryptionTestDb = createDb("copy-encrypted-1-db", config);
+        encryptionTestDb = createDb("copy_encrypted_1_db", config);
         assertNotNull(encryptionTestDb);
 
         final File dbDir = encryptionTestDb.getFilePath();
@@ -193,7 +193,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         encryptionTestDb.close();
 
         // Copy
-        final String newName = getUniqueName("copy-encrypted-2-db");
+        final String newName = getUniqueName("copy_encrypted_2_db");
         Database.copy(dbDir, newName, config);
         Database newDb = null;
         try {
@@ -231,7 +231,7 @@ public class DatabaseEncryptionTest extends BaseTest {
         final DatabaseConfiguration config
             = new DatabaseConfiguration().setEncryptionKey(new EncryptionKey(C4Key.getCoreKey(pwd)));
 
-        encryptionTestDb = createDb("key-gen-db", config);
+        encryptionTestDb = createDb("key_gen_db", config);
 
         final Document doc = createDocInTestDb();
 
@@ -279,7 +279,7 @@ public class DatabaseEncryptionTest extends BaseTest {
 
     @Test
     public void testReOpenExistingEncrypted2Dot8DotOhDb() throws CouchbaseLiteException {
-        final String dbName = getUniqueName("test-db");
+        final String dbName = getUniqueName("test_db");
         final String twoDot8DotOhDirPath = CouchbaseLiteInternal.getDefaultDbDir() + "/.couchbase";
 
         Database db = null;
@@ -335,7 +335,7 @@ public class DatabaseEncryptionTest extends BaseTest {
     }
 
     private void createTestDbWithConfig(DatabaseConfiguration config) throws CouchbaseLiteException {
-        encryptionTestDb = createDb("test-w-config", config);
+        encryptionTestDb = createDb("test_w_config", config);
         assertNotNull(encryptionTestDb);
     }
 

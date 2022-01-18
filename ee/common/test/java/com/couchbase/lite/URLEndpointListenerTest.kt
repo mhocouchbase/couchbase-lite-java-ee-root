@@ -16,7 +16,10 @@ package com.couchbase.lite
 
 import com.couchbase.lite.internal.BaseTLSIdentity
 import com.couchbase.lite.internal.SecurityBaseTest
-import com.couchbase.lite.internal.utils.*
+import com.couchbase.lite.internal.utils.Fn
+import com.couchbase.lite.internal.utils.PlatformUtils
+import com.couchbase.lite.internal.utils.Report
+import com.couchbase.lite.internal.utils.SlowTest
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
@@ -1019,59 +1022,62 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
         val docId = makeOneDoc("multi-repl", otherDB)
 
         val db1 = createDb("db1")
-        val docId1 = makeOneDoc("db1", db1)
-
         val db2 = createDb("db2")
-        val docId2 = makeOneDoc("db2", db2)
-
-        val serverIdentity = createIdentity()
-        // listens for otherDB
-        val listener = listenTls(serverIdentity)
-
-        // Replicator#1 (DB#1 <-> Listener(otherDB))
-        val config1 = makePullReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
-        config1.pullFilter = DelayFilter("Repl #1", barrier)
-        val repl1 = testReplicator(config1)
-        val token1 = repl1.addChangeListener { c ->
-            val level = c.status.activityLevel
-            Report.log("Repl #1: %s", level)
-            if ((level == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped1.getAndSet(true))) {
-                stopLatch.countDown()
-            }
-        }
-
-        // Replicator#2 (DB#2 <-> Listener(otherDB))
-        val config2 = makePullReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
-        config2.pullFilter = DelayFilter("Repl #2", barrier)
-        val repl2 = testReplicator(config2)
-        val token2 = repl2.addChangeListener { c ->
-            val level = c.status.activityLevel
-            Report.log("Repl #2: %s", level)
-            if ((level == ReplicatorActivityLevel.STOPPED) && (!alreadyStopped2.getAndSet(true))) {
-                stopLatch.countDown()
-            }
-        }
-
-        assertEquals(1, db1.count)
-        assertEquals(1, db2.count)
-        assertEquals(1, otherDB.count)
-
         try {
-            repl1.start(false)
-            Report.log("Repl #1 started")
-            repl2.start(false)
-            Report.log("Repl #2 started")
-            assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
-            Report.log("Repls stopped")
-        } finally {
-            repl1.stop()
-            repl1.removeChangeListener(token1)
+            val docId1 = makeOneDoc("db1", db1)
+            val docId2 = makeOneDoc("db2", db2)
 
-            repl2.stop()
-            repl2.removeChangeListener(token2)
-        }
+            val serverIdentity = createIdentity()
+            // listens for otherDB
+            val listener = listenTls(serverIdentity)
 
-        try {
+            // Replicator#1 (DB#1 <-> Listener(otherDB))
+            val config1 =
+                makePullReplConfig(listener.endpoint(), db1, serverIdentity.certs[0], false)
+            config1.pullFilter = DelayFilter("Repl #1", barrier)
+            val repl1 = testReplicator(config1)
+            val token1 = repl1.addChangeListener { c ->
+                val level = c.status.activityLevel
+                Report.log("Repl #1: %s", level)
+                if ((level == ReplicatorActivityLevel.STOPPED)
+                    && (!alreadyStopped1.getAndSet(true))) {
+                    stopLatch.countDown()
+                }
+            }
+
+            // Replicator#2 (DB#2 <-> Listener(otherDB))
+            val config2 =
+                makePullReplConfig(listener.endpoint(), db2, serverIdentity.certs[0], false)
+            config2.pullFilter = DelayFilter("Repl #2", barrier)
+            val repl2 = testReplicator(config2)
+            val token2 = repl2.addChangeListener { c ->
+                val level = c.status.activityLevel
+                Report.log("Repl #2: %s", level)
+                if ((level == ReplicatorActivityLevel.STOPPED)
+                    && (!alreadyStopped2.getAndSet(true))) {
+                    stopLatch.countDown()
+                }
+            }
+
+            assertEquals(1, db1.count)
+            assertEquals(1, db2.count)
+            assertEquals(1, otherDB.count)
+
+            try {
+                repl1.start(false)
+                Report.log("Repl #1 started")
+                repl2.start(false)
+                Report.log("Repl #2 started")
+                assertTrue(stopLatch.await(STD_TIMEOUT_SEC, TimeUnit.SECONDS))
+                Report.log("Repls stopped")
+            } finally {
+                repl1.stop()
+                repl1.removeChangeListener(token1)
+
+                repl2.stop()
+                repl2.removeChangeListener(token2)
+            }
+
             assertFalse(barrier.isBroken)
 
             assertEquals(2, db1.count)
@@ -1245,6 +1251,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
     ): ReplicatorConfiguration {
         return makePullReplConfig(target, source, null, pinnedServerCert, continuous)
     }
+
     private fun makePullReplConfig(
         target: Endpoint,
         source: Database,
