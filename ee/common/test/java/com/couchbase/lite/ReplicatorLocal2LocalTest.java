@@ -33,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.couchbase.lite.internal.utils.PlatformUtils;
@@ -193,6 +194,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
+    @Ignore("CBL-2734")
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
@@ -227,7 +229,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             revIds.add(document.getRevisionID());
 
             boolean isDeleted = flags.contains(DocumentFlag.DELETED);
-            if (!isDeleted) {
+            if (isDeleted) { assertEquals(document.getContent(), new Dictionary()); }
+            else {
                 // Check content
                 assertNotNull(document.getString("pattern"));
                 assertEquals(document.getString("species"), "Tiger");
@@ -236,9 +239,6 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
                 Blob photo = document.getBlob("photo");
                 assertNotNull(photo);
                 Assert.assertArrayEquals(photo.getContent(), blob.getContent());
-            }
-            else {
-                assertEquals(document.getContent(), new Dictionary());
             }
 
             return !docId.equals("doc2") && !(docId.equals("doc3") && isDeleted);
@@ -278,14 +278,9 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertEquals(2, docIds.size());
 
         // Check documents
-        assertNotNull(
-            "Push to delete doc3 is rejected.",
-            otherDB.getDocument("doc3"));
-        assertNull(
-            "Push to delete doc1 is passed.",
-            otherDB.getDocument("doc1"));
-
-        assertNull("Never received doc2", otherDB.getDocument("doc2"));
+        assertNotNull("doc3 should have been pushed but was not", otherDB.getDocument("doc3"));
+        assertNull("doc2 should have been pushed but was not", otherDB.getDocument("doc2"));
+        assertNull("doc1 should have been filtered but was not", otherDB.getDocument("doc1"));
     }
 
     @Test

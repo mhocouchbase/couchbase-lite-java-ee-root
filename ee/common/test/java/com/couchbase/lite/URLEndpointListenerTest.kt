@@ -24,6 +24,7 @@ import org.junit.After
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import java.net.NetworkInterface
 import java.net.URI
@@ -612,6 +613,7 @@ class URLEndpointListenerTest : BaseReplicatorTest() {
 
     ////////////////  C O N N E C T E D   F U N C T I O N A L I T Y   ////////////////
 
+    @Ignore("CBL-2734")
     @Test(expected = CouchbaseLiteException::class)
     fun testReadOnlyListener() {
         val config = URLEndpointListenerConfiguration(otherDB)
