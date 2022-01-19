@@ -211,6 +211,7 @@ android {
             res.srcDirs = [
                 "${CBL_COMMON_ANDROID_DIR}/main/res",            // Common resources
             ]
+            jniLibs.srcDirs = [ "${CBL_COMMON_ROOT_DIR}/lite-core/android" ]
         }
         debug {
             manifest.srcFile "${CBL_COMMON_ANDROID_DIR}/debug/AndroidManifest.xml"
@@ -605,7 +606,7 @@ project.afterEvaluate {
 }
 
 // Clean
-// delete .externalNativeBuild and .cxx directories to force rerun of cmake.
+// delete .cxx directory to force rerun of cmake.
 // This is necessary because 'clean' deletes the file 'zconf.h' which is in
 // .../build/intermediates, causing subsequent builds to fail.
 clean.doLast { project.delete "${projectDir}/.cxx" }
