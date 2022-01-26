@@ -14,9 +14,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.Report;
 import com.couchbase.lite.internal.utils.SlowTest;
 import com.couchbase.lite.mock.MockClientConnection;
@@ -630,7 +630,7 @@ public class MessageEndpointTest extends BaseReplicatorTest {
         assertEquals(CBLError.Code.WEB_SOCKET_GOING_AWAY, err.getCode());
     }
 
-    @Ignore("CBL-2734")
+    @FlakyTest
     @SlowTest
     @Test
     public void testP2PPassiveCloseAll() throws InterruptedException, CouchbaseLiteException {

@@ -176,6 +176,7 @@ public class URLEndpointListener {
             listener = c4Listener;
             c4Listener = null;
         }
+        Log.i(LogDomain.LISTENER, "%s: URLEndpointListener is stopping (%s)", this, listener);
 
         if (listener == null) { return; }
 
@@ -269,11 +270,7 @@ public class URLEndpointListener {
         return port;
     }
 
-    @Nullable
-    private String getDbUuid() {
-        final String uuid = config.getDatabase().getUuid();
-        Preconditions.assertNotNull(uuid, "uuid");
-        return uuid;
-    }
+    @NonNull
+    private String getDbUuid() { return Preconditions.assertNotNull(config.getDatabase().getUuid(), "uuid"); }
 }
 

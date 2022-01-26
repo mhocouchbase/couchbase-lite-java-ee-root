@@ -242,6 +242,7 @@ public class MessageEndpointListener {
 
     void stop() {
         stopped.set(true);
+        Log.i(LogDomain.NETWORK, "%s: MessageEndpointListeer is stopping", this);
         closeAll();
     }
 

@@ -33,9 +33,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
@@ -194,7 +194,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
-    @Ignore("CBL-2734")
+    @FlakyTest
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();
