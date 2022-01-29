@@ -37,61 +37,7 @@ $ cd couchbase-lite-java-ee
 $ touch local.properties
 ```
 
-### 2. Get couchbase-lite-core shared library
-
-
-#### 2.1 Option 1: Build couchbase-lite-core
-
-**MacOS / Linux**
-
-```
-$ ../../common/tools/build_litecore.sh -e EE 
-```
-
-**Windows**
-
-```
-$ ..\couchbase-lite-java\scripts\build_litecore.bat 2019 EE
-```
-** Assuming that the Visual Studio 2019 with C++ development libraries was installed.
-
-#### 2.2 Option 2: Download couchbase-lite-core
-
-#### 2.2.1 Download LiteCore
-
-**MacOS**
-
-```
-$ ../couchbase-lite-java/scripts/fetch_litecore.sh -n http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore -v macos -e EE
-```
-
-**Linux**
-
-```
-$ ../couchbase-lite-java/scripts/fetch_litecore.sh -n http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore -v linux -e EE
-```
-
-**Windows**
-
-```
-$ ..\couchbase-lite-java\scripts\fetch_litecore.ps1 http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore EE
-```
-
-#### 2.2.2 Build mbedcrypto required by couchbase-lie-java's JNI
-
-**MacOS / Linux**
-
-```
-$ ../couchbase-lite-java/scripts/build_litecore.sh -e EE -l mbedcrypto
-```
-
-**Windows**
-
-Assuming that the Visual Studio 2019 with C++ development libraries was installed.
-
-```
-$ ..\couchbase-lite-java\scripts\build_litecore.bat 2019 EE mbedcrypto
-```
+### 2. Get the couchbase-lite-core shared library
 
 ### 3. Build couchbase-lite-java
 
@@ -108,3 +54,4 @@ $ ./gradlew distZip
 ```
 
 The generated zip file will located at `build/distribution` directory.
+

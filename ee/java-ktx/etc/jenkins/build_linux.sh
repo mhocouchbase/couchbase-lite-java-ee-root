@@ -43,7 +43,7 @@ fi
 echo "======== BUILD Couchbase Lite Java, Enterprise Edition v`cat ../../version.txt`-${BUILD_NUMBER} (${DISTRO})"
 
 echo "======== Clean up ..." 
-"${TOOLS_DIR}/clean_litecore.sh" -p "${DISTRO}"
+"${TOOLS_DIR}/clean_litecore.sh"
 
 echo "======== Download platform artifacts ..."
 for PLATFORM in macos windows; do
@@ -54,9 +54,6 @@ done
 
 echo "======== Download Lite Core ..."
 "${TOOLS_DIR}/fetch_litecore.sh" -p "${DISTRO}" -e EE -n "${NEXUS_URL}"
-
-echo "======== Build mbedcrypto ..."
-"${TOOLS_DIR}/build_litecore.sh" -l mbedcrypto -e EE
 
 echo "======== Build Java"
 ./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}" || exit 1

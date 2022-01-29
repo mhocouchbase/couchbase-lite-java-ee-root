@@ -50,6 +50,9 @@ ${SDK_MGR} --install "build-tools;${BUILD_TOOLS_VERSION}"
 ${SDK_MGR} --install "cmake;${CMAKE_VERSION}"
 ${SDK_MGR} --install "ndk;${NDK_VERSION}"
 
+echo "======== Clean up ..."
+"${TOOLS_DIR}/clean_litecore.sh"
+
 echo "======== Download Lite Core ..."
 "${TOOLS_DIR}/fetch_android_litecore.sh" -e EE -n "${NEXUS_URL}"
 
@@ -59,6 +62,7 @@ echo "======== Check"
 if  [ $STATUS -eq 0 ]; then
     echo "======== Build"
     ./gradlew ciBuild -PbuildNumber="${BUILD_NUMBER}" || STATUS=6
+    find lib/build # !!! DEBUGGING
 fi
 
 if  [ $STATUS -eq 0 ]; then

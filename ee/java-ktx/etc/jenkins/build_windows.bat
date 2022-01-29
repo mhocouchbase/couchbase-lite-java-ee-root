@@ -21,13 +21,10 @@ set toolsDir=%scriptDir%\..\..\..\..\common\tools
 echo ======== BUILD Couchbase Lite Java, Enterprise Edition
 
 echo ======== Clean up
-call %toolsDir%\clean_litecore.bat
+powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\clean_litecore.ps1"
 
 echo ======== Download Lite Core
 powershell.exe -ExecutionPolicy Bypass -Command "%toolsDir%\fetch_litecore.ps1" %liteCoreRepoUrl% EE
-
-echo ======== Build mbedcrypto
-call %toolsDir%\build_litecore.bat %vsGen% EE mbedcrypto
 
 echo ======== Build Java
 call gradlew.bat ciBuild -PbuildNumber=%buildNumber% || goto error
