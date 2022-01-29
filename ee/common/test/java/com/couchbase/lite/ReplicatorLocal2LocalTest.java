@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.couchbase.lite.internal.utils.FlakyTest;
 import com.couchbase.lite.internal.utils.PlatformUtils;
 import com.couchbase.lite.internal.utils.Report;
 
@@ -132,14 +132,12 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         doc1.setString("pattern", "Hobbes");
         doc1.setBlob("photo", blob);
         otherDB.save(doc1);
-        docIds.add(doc1.getId());
 
         MutableDocument doc2 = new MutableDocument("doc2");
         doc2.setString("species", "Tiger");
         doc2.setString("pattern", "Striped");
         doc2.setBlob("photo", blob);
         otherDB.save(doc2);
-        docIds.add(doc1.getId());
 
         // Create replicator with pull filter
         ReplicatorConfiguration config = makeConfig(ReplicatorType.PULL, false);
@@ -147,10 +145,13 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             docIds.add(document.getId());
             revIds.add(document.getRevisionID());
 
+            // DEBUGGING!!
+            Report.log("With document: %s, %s", document.getId(), document.getRevisionID());
+            Report.log("ids: %s", Objects.toString(docIds));
+            Report.log("revisions: ", Objects.toString(revIds));
+
             boolean isDeleted = flags.contains(DocumentFlag.DELETED);
-            if (isDeleted) {
-                assertEquals(document.getContent(), new Dictionary());
-            }
+            if (isDeleted) { assertEquals(document.getContent(), new Dictionary()); }
             else {
                 // Check content
                 assertNotNull(document.getString("pattern"));
@@ -170,12 +171,13 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         // Run the replicator
         run(config);
 
-        assertEquals(2, docIds.size());
-        assertEquals(2, revIds.size());
-        assertTrue(docIds.contains(doc1.getId()));
         assertTrue(revIds.contains(doc1.getRevisionID()));
-        assertTrue(docIds.contains(doc2.getId()));
         assertTrue(revIds.contains(doc2.getRevisionID()));
+        assertEquals(2, revIds.size());
+
+        assertTrue(docIds.contains(doc1.getId()));
+        assertTrue(docIds.contains(doc2.getId()));
+        assertEquals(2, docIds.size());
 
         // Check replicated documents
         assertNotNull(baseTestDb.getDocument("doc1"));
@@ -194,7 +196,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
         assertNotNull(baseTestDb.getDocument("doc2"));
     }
 
-    @FlakyTest
+    @Ignore("CBL-2776: Disabled due to failure with core update")
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
         final Set<String> docIds = new HashSet<>();

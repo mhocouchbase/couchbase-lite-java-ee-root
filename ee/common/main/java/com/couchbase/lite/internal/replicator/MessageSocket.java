@@ -139,12 +139,12 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
 
     @Override
     public void coreAckReceive(long n) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreAckReceive: %d", this, n); }
+        Log.d(LOG_DOMAIN, "%s.coreAckReceive: %d", this, n);
     }
 
     @Override
     public void coreRequestedClose(int code, String msg) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreRequestedClose(%d): %s", this, code, msg); }
+        Log.d(LOG_DOMAIN, "%s.coreRequestedClose(%d): %s", this, code, msg);
         final Exception error = (code == C4Constants.WebSocketError.NORMAL)
             ? null
             : CouchbaseLiteException.toCouchbaseLiteException(C4Constants.ErrorDomain.WEB_SOCKET, code, msg, null);
@@ -158,7 +158,7 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
 
     @Override
     public void coreClosed() {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.coreClosed", this); }
+        Log.d(LOG_DOMAIN, "%s.coreClosed", this);
         closeRemote(null, null);
     }
 
@@ -168,15 +168,13 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
 
     @Override
     public void receive(@NonNull Message msg) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.remoteRequestedSend: %s", this, msg); }
+        Log.d(LOG_DOMAIN, "%s.remoteRequestedSend: %s", this, msg);
         toCore.sendToCore(Preconditions.assertNotNull(msg, "message").toData());
     }
 
     @Override
     public void close(@Nullable MessagingError err) {
-        if (CouchbaseLiteInternal.debugging()) {
-            Log.d(LOG_DOMAIN, "%s.remoteRequestedClose: %s", (err == null) ? null : err.getError(), this, err);
-        }
+        Log.d(LOG_DOMAIN, "%s.remoteRequestedClose: %s", (err == null) ? null : err.getError(), this, err);
         remoteRequestedClose(err);
     }
 
@@ -185,12 +183,12 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
     //-------------------------------------------------------------------------
 
     protected void requestCloseToCore(@Nullable MessagingError err) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.requestCloseToCore: %s", this, err); }
+        Log.d(LOG_DOMAIN, "%s.requestCloseToCore: %s", this, err);
         toCore.requestCoreClose(getStatusCode(err), (err == null) ? null : err.getError().getMessage());
     }
 
     protected void closeRemote(@Nullable Exception error, @Nullable MessagingError err) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.closeRemote (%s): %s", this, error, err); }
+        Log.d(LOG_DOMAIN, "%s.closeRemote (%s): %s", this, error, err);
         remote.close(error, () -> closeCore(err));
     }
 
@@ -199,18 +197,18 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
     //-------------------------------------------------------------------------
 
     private void ackOpenToCore() {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.ackOpenToCore", this); }
+        Log.d(LOG_DOMAIN, "%s.ackOpenToCore", this);
         toCore.ackHttpToCore(200, null);
         toCore.ackOpenToCore();
     }
 
     private void ackMessageToCore(int byteCount) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.ackMessageToCore (%d)", this, byteCount); }
+        Log.d(LOG_DOMAIN, "%s.ackMessageToCore (%d)", this, byteCount);
         toCore.ackWriteToCore(byteCount);
     }
 
     private void closeCore(@Nullable MessagingError err) {
-        if (CouchbaseLiteInternal.debugging()) { Log.d(LOG_DOMAIN, "%s.closeCore: %s", this, err); }
+        Log.d(LOG_DOMAIN, "%s.closeCore: %s", this, err);
         toCore.closeCore(
             (err == null) ? 0 : C4Constants.ErrorDomain.WEB_SOCKET,
             (err == null) ? 0 : getStatusCode(err),
