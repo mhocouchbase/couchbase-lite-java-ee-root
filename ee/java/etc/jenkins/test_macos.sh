@@ -29,7 +29,12 @@ zip -r "${REPORTS}/test-log-macos-ee" test.log
 
 echo "======== Publish reports"
 pushd test/build > /dev/null
-zip -r "${REPORTS}/test-reports-macos-ee" reports
+rm -rf test-results/test/binary
+cp -a test-results/test reports/tests/test/raw
+cd reports/tests
+# ??? DEBUG
+find .
+zip -r "${REPORTS}/test-reports-macos-ee" test
 popd > /dev/null
 
 echo "======== TEST COMPLETE ${STATUS}"

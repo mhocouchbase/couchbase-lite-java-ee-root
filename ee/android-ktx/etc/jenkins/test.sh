@@ -43,9 +43,9 @@ ${SDK_MGR} --install "build-tools;${BUILD_TOOLS_VERSION}"
 echo "======== Test"
 ./gradlew ciTest --console=plain -PautomatedTests=true -PbuildNumber="${BUILD_NUMBER}" || STATUS=5
 
-echo "======== Archive reports"
+echo "======== Publish reports"
 pushd test/build
-cp outputs/androidTest-results/connected/* reports/androidTests/connected
+cp -a outputs/androidTest-results/connected reports/androidTests/connected/raw
 cd reports/androidTests
 zip -r "${REPORTS}/test-reports-android-ee" connected
 find "${REPORTS}"
