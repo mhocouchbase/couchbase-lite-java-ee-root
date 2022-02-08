@@ -16,18 +16,11 @@
 //
 buildscript {
     ext {
-        KOTLIN_VERSION = '1.5.31'
+        KOTLIN_VERSION = '1.6.10'
 
-        // !!!
-        // Do not attempt to update the tool chain, until something here changes.
-        // Currently:
-        //   Build SDK 31 Requires Java 11, not available on Jenkins
-        //   sourceVersion, targetVersion = 11 requires Java 11
-        //   BuildTools 31.0.0 is corrupted (and, oddly, not withdrawn)
-        //   BuildTools 32.0.0 is corrupted (and, oddly, not withdrawn)
-        //   NDK 21.1.717... requires CMake 3.19 which is not yet available as an SDK tool
+        // !!! Tool Chain Conflicts
+        //   NDK 22.1.717... requires CMake 3.19 which is not yet available as an SDK tool
         //   NDK 23.x Requires freeifaddrs which requires Android v >= 24
-        //   Kotlin 1.6.x requires a beta coroutines library
 
         PROPS_FILE = "${projectDir}/local.properties"
      }
@@ -41,7 +34,7 @@ buildscript {
     // Android has to be here or gradle thows a fit.
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$KOTLIN_VERSION"
-        classpath 'com.android.tools.build:gradle:4.2.2'
+        classpath 'com.android.tools.build:gradle:7.1.0'
     }
 }
 

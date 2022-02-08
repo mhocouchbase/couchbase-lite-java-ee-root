@@ -175,7 +175,10 @@ android {
 
 repositories {
     if (USE_LOCAL_MAVEN) { mavenLocal() }
-    maven { url "http://proget.build.couchbase.com/maven2/cimaven" }
+    maven {
+        url "http://proget.build.couchbase.com/maven2/cimaven"
+        allowInsecureProtocol = true
+    }
     google()
     mavenCentral()
 }
@@ -194,10 +197,6 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.4.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
-
-/////// Static Analysis
-
-/////// Documentation
 
 
 // ----------------------------------------------------------------
@@ -296,6 +295,7 @@ publishing {
                 username mavenRepoUser
                 password mavenRepoPass
             }
+            allowInsecureProtocol = true
         }
     }
 }
@@ -313,8 +313,8 @@ project.afterEvaluate {
                 version BUILD_VERSION
 
                 artifact bundleReleaseAar
-                artifact sourcesJar
                 artifact dokkaJar
+                artifact sourcesJar
 
                 // include dependencies
                 pom.withXml {
@@ -337,8 +337,8 @@ project.afterEvaluate {
                 version BUILD_VERSION
 
                 artifact bundleDebugAar
-                artifact sourcesJar
                 artifact dokkaJar
+                artifact sourcesJar
 
                 // include dependencies
                 pom.withXml {

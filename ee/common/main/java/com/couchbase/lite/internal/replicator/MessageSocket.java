@@ -30,7 +30,6 @@ import com.couchbase.lite.internal.sockets.SocketFromCore;
 import com.couchbase.lite.internal.sockets.SocketToCore;
 import com.couchbase.lite.internal.support.Log;
 import com.couchbase.lite.internal.utils.ClassUtils;
-import com.couchbase.lite.internal.utils.Preconditions;
 
 
 public abstract class MessageSocket implements ReplicatorConnection, SocketFromCore, AutoCloseable {
@@ -169,7 +168,8 @@ public abstract class MessageSocket implements ReplicatorConnection, SocketFromC
     @Override
     public void receive(@NonNull Message msg) {
         Log.d(LOG_DOMAIN, "%s.remoteRequestedSend: %s", this, msg);
-        toCore.sendToCore(Preconditions.assertNotNull(msg, "message").toData());
+        if (msg == null) { return; }
+        toCore.sendToCore(msg.toData());
     }
 
     @Override
