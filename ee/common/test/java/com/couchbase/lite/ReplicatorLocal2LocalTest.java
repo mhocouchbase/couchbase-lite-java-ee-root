@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -52,8 +53,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @Test
     public void testPullRemovedDocWithFilter() throws CouchbaseLiteException {
-        final Set<String> docIds = new HashSet<>();
-        final Set<String> revIds = new HashSet<>();
+        final Set<String> docIds = Collections.synchronizedSet(new HashSet<>());
+        final Set<String> revIds = Collections.synchronizedSet(new HashSet<>());
 
         // Make a blob
         final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -116,8 +117,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @Test
     public void testRestartPullFilter() throws CouchbaseLiteException {
-        final Set<String> docIds = new HashSet<>();
-        final Set<String> revIds = new HashSet<>();
+        final Set<String> docIds = Collections.synchronizedSet(new HashSet<>());
+        final Set<String> revIds = Collections.synchronizedSet(new HashSet<>());
 
         // Add a document to db database so that it can pull the deleted docs from
         MutableDocument doc0 = new MutableDocument("doc0");
@@ -148,7 +149,7 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
             // DEBUGGING!!
             Report.log("With document: %s, %s", document.getId(), document.getRevisionID());
             Report.log("ids: %s", Objects.toString(docIds));
-            Report.log("revisions: ", Objects.toString(revIds));
+            Report.log("revisions: %s", Objects.toString(revIds));
 
             boolean isDeleted = flags.contains(DocumentFlag.DELETED);
             if (isDeleted) { assertEquals(document.getContent(), new Dictionary()); }
@@ -198,8 +199,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
 
     @Test
     public void testRestartPushFilter() throws CouchbaseLiteException {
-        final Set<String> docIds = new HashSet<>();
-        final Set<String> revIds = new HashSet<>();
+        final Set<String> docIds = Collections.synchronizedSet(new HashSet<>());
+        final Set<String> revIds = Collections.synchronizedSet(new HashSet<>());
 
         // Create documents
         final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -1162,8 +1163,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     }
 
     private void testPushFilter(boolean continuous) throws CouchbaseLiteException, InterruptedException {
-        final Set<String> docIds = new HashSet<>();
-        final Set<String> revIds = new HashSet<>();
+        final Set<String> docIds = Collections.synchronizedSet(new HashSet<>());
+        final Set<String> revIds = Collections.synchronizedSet(new HashSet<>());
 
         // Create documents
         final Blob blob = new Blob("text/plain", BLOB_CONTENT.getBytes(StandardCharsets.UTF_8));
@@ -1235,8 +1236,8 @@ public class ReplicatorLocal2LocalTest extends BaseEEReplicatorTest {
     }
 
     private void testPullFilter(final boolean continuous) throws CouchbaseLiteException, InterruptedException {
-        final Set<String> docIds = new HashSet<>();
-        final Set<String> revIds = new HashSet<>();
+        final Set<String> docIds = Collections.synchronizedSet(new HashSet<>());
+        final Set<String> revIds = Collections.synchronizedSet(new HashSet<>());
 
         // Add a document to db database so that it can pull the deleted docs from
         MutableDocument doc0 = new MutableDocument("doc0");
