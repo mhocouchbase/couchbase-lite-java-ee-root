@@ -47,15 +47,15 @@ import com.couchbase.lite.internal.utils.Preconditions;
 public class MessageEndpointListener {
     private static final LogDomain DOMAIN = LogDomain.NETWORK;
 
-    private class ReplicatorListener implements C4ReplicatorListener {
-        ReplicatorListener() {}
+    private class MessageEndpointReplicatorListener implements C4ReplicatorListener {
+        MessageEndpointReplicatorListener() {}
 
         @Override
         public void statusChanged(
             @Nullable C4Replicator repl,
             @Nullable C4ReplicatorStatus status,
             @Nullable Object context) {
-            Log.d(DOMAIN, "ReplicatorListener.statusChanged (%s): %s", status, context);
+            Log.d(DOMAIN, "MessageEndpointReplicatorListener.statusChanged (%s): %s", status, context);
             if ((!(context instanceof MessageEndpointListener)) || (status == null)) { return; }
             dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
@@ -129,7 +129,7 @@ public class MessageEndpointListener {
 
         C4ReplicatorStatus status;
         synchronized (db.getDbLock()) {
-            final C4Socket c4Socket = C4Socket.createSocket(connection.hashCode(), framing);
+            final C4Socket c4Socket = C4Socket.createPassiveSocket(connection.hashCode(), framing);
 
             c4Socket.init(MessageSocket.create(c4Socket, connection, framing));
             try {
@@ -138,7 +138,7 @@ public class MessageEndpointListener {
                     passiveMode,
                     passiveMode,
                     options,
-                    new ReplicatorListener(),
+                    new MessageEndpointReplicatorListener(),
                     this);
 
                 if (addConnection(replicator, connection)) { db.registerMessageListener(this); }

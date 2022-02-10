@@ -724,9 +724,9 @@ public class MessageEndpointTest extends BaseReplicatorTest {
 
         try {
             replicator1.start(false);
-            Report.log("Repl #1 started");
+            Report.log("Repl #1 (%s): started", replicator1);
             replicator2.start(false);
-            Report.log("Repl #1 started");
+            Report.log("Repl #2 (%s): started", replicator2);
 
             // wait for botth replicators to go idle.
             assertTrue(idleLatch.await(LONG_TIMEOUT_SEC, TimeUnit.SECONDS));
