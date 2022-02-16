@@ -17,6 +17,7 @@
 // Please try to keep this build file as similar to the other family build files
 // as is possible.
 //
+import org.gradle.internal.os.OperatingSystem
 
 
 // ----------------------------------------------------------------
