@@ -137,7 +137,7 @@ test {
 
         events = ["failed", "skipped"]
 
-        // showStandardStreams = true
+        showStandardStreams = OperatingSystem.current().isWindows()
 
         showCauses = true
         showExceptions = true
