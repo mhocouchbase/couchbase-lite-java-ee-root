@@ -15,6 +15,8 @@
 //
 package com.couchbase.lite
 
+import java.security.cert.X509Certificate
+
 
 /**
  * Configuration factory for new DatabaseConfigurations
@@ -82,7 +84,7 @@ fun ReplicatorConfiguration?.create(
     continuous: Boolean? = null,
     authenticator: Authenticator? = null,
     headers: Map<String, String>? = null,
-    pinnedServerCertificate: ByteArray? = null,
+    pinnedServerCertificate: X509Certificate? = null,
     channels: List<String>? = null,
     documentIDs: List<String>? = null,
     pushFilter: ReplicationFilter? = null,
@@ -99,7 +101,7 @@ fun ReplicatorConfiguration?.create(
     continuous ?: this?.isContinuous ?: false,
     authenticator ?: this?.authenticator,
     headers ?: this?.headers,
-    pinnedServerCertificate ?: this?.pinnedServerCertificate,
+    pinnedServerCertificate ?: this?.pinnedServerX509Certificate,
     channels ?: this?.channels,
     documentIDs ?: this?.documentIDs,
     pushFilter ?: this?.pushFilter,

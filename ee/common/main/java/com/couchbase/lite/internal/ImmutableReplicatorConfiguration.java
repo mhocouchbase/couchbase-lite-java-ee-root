@@ -46,8 +46,10 @@ public class ImmutableReplicatorConfiguration extends BaseImmutableReplicatorCon
     // Public methods
     //-------------------------------------------------------------------------
     @Override
-    public void addConnectionOptions(@NonNull Map<String, Object> options) {
-        super.addConnectionOptions(options);
+    @NonNull
+    public Map<String, Object> getConnectionOptions() {
+        final Map<String, Object> options = super.getConnectionOptions();
         options.put(C4Replicator.REPLICATOR_OPTION_SELF_SIGNED_SERVER_CERT, acceptOnlySelfSignedServerCertificate);
+        return options;
     }
 }

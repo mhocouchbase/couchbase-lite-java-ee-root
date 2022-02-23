@@ -17,6 +17,7 @@ package com.couchbase.lite;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +60,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
         boolean continuous,
         @Nullable Authenticator authenticator,
         @Nullable Map<String, String> headers,
-        @Nullable byte[] pinnedServerCertificate,
+        @Nullable X509Certificate pinnedServerCertificate,
         @Nullable List<String> channels,
         @Nullable List<String> documentIDs,
         @Nullable ReplicationFilter pushFilter,
@@ -77,7 +78,7 @@ public final class ReplicatorConfiguration extends AbstractReplicatorConfigurati
             continuous,
             authenticator,
             headers,
-            copyCert(pinnedServerCertificate),
+            pinnedServerCertificate,
             channels,
             documentIDs,
             pushFilter,

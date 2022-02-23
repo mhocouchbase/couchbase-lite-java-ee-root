@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.couchbase.lite.internal.BaseAuthenticator;
 import com.couchbase.lite.internal.core.C4Replicator;
 import com.couchbase.lite.internal.replicator.AbstractCBLWebSocket;
 import com.couchbase.lite.internal.replicator.CBLKeyManager;
@@ -37,7 +38,7 @@ import com.couchbase.lite.internal.replicator.CBLKeyManager;
  * must be configured with a ListenerCertificateAuthenticator to verify client
  * certificates.
  */
-public final class ClientCertificateAuthenticator extends Authenticator {
+public final class ClientCertificateAuthenticator extends BaseAuthenticator {
     @NonNull
     private final TLSIdentity identity;
 
@@ -59,7 +60,7 @@ public final class ClientCertificateAuthenticator extends Authenticator {
     public TLSIdentity getIdentity() { return identity; }
 
     @Override
-    void authenticate(@NonNull Map<String, Object> options) {
+    protected void authenticate(@NonNull Map<String, Object> options) {
         final Map<String, Object> auth = new HashMap<>();
         auth.put(C4Replicator.REPLICATOR_AUTH_TYPE, C4Replicator.AUTH_TYPE_CLIENT_CERT);
         auth.put(

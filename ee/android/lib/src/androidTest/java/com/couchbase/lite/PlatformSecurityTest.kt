@@ -41,7 +41,9 @@ open class PlatformSecurityTest : SecurityBaseTest() {
             val internalStore = loadDefaultKeyStore()
             internalStore.setEntry(
                 dstAlias,
-                externalStore.getEntry(srcAlias, KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())),
+                externalStore.getEntry(
+                    srcAlias,
+                    KeyStore.PasswordProtection(EXTERNAL_KEY_PASSWORD.toCharArray())),
                 null
             )
         }
