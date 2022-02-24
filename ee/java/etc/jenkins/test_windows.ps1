@@ -1,6 +1,3 @@
-Set-PSDebug -Trace 1
-
-#Build Couchbase Lite Java for Windows, Enterprise Edition
 param(
     [Parameter(Mandatory=$true)]
     [string]$buildNumber,
@@ -9,6 +6,9 @@ param(
     [string]$reportsDir
 )
 
+Set-PSDebug -Trace 1
+
+#Build Couchbase Lite Java for Windows, Enterprise Edition
 $status = 0
 
 Write-Host "======== TEST Couchbase Lite Java for Windows, Enterprise Edition"

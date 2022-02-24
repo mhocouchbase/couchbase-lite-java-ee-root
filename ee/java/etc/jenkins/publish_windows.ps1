@@ -1,9 +1,3 @@
-Set-PSDebug -Trace 1
-
-#Publish Couchbase Lite Java for Windows, Enterprise Edition
-$product="couchbase-lite-java-ee"
-$mavenUrl= "http://proget.build.couchbase.com/maven2/cimaven"
-
 param (
     [Parameter(Mandatory=$true)]
 	[string]$version,
@@ -15,6 +9,11 @@ param (
     [string]$artifactsDir
 )
 
+Set-PSDebug -Trace 1
+
+#Publish Couchbase Lite Java for Windows, Enterprise Edition
+$product="couchbase-lite-java-ee"
+$mavenUrl= "http://proget.build.couchbase.com/maven2/cimaven"
 $status = 0
 
 Write-Host "======== PUBLISH Couchbase Lite Java for Windows, Enterprise Edition"
