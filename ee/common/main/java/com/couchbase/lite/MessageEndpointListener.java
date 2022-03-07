@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import com.couchbase.lite.internal.CouchbaseLiteInternal;
 import com.couchbase.lite.internal.core.C4DocumentEnded;
 import com.couchbase.lite.internal.core.C4Replicator;
@@ -50,13 +52,15 @@ public class MessageEndpointListener {
     private class MessageEndpointReplicatorListener implements C4ReplicatorListener {
         MessageEndpointReplicatorListener() {}
 
+        // Apparently SpotBugs can't tel that `context` and `status` *are* null-checked
+        @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
         @Override
         public void statusChanged(
             @Nullable C4Replicator repl,
             @Nullable C4ReplicatorStatus status,
             @Nullable Object context) {
             Log.d(DOMAIN, "MessageEndpointReplicatorListener.statusChanged (%s): %s", status, context);
-            if ((!(context instanceof MessageEndpointListener)) || (status == null)) { return; }
+            if ((status == null) || (!(context instanceof MessageEndpointListener))) { return; }
             dispatcher.execute(() -> ((MessageEndpointListener) context).statusChanged(repl, status));
         }
 
