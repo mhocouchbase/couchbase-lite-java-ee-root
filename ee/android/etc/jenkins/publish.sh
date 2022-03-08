@@ -78,6 +78,10 @@ rm -rf "${ZIP_STAGING}"
 mkdir -p "${ZIP_STAGING}"
 pushd "${ZIP_STAGING}"
 mkdir license lib docs
+
+## notices.txt is produced by blackduck detect scan.
+## The scan happends after the source tar is generated; hence, we need to pull it from the url for the most up-to-date file
+curl -o notices.txt  https://raw.githubusercontent.com/couchbase/product-metadata/master/${PRODUCT}/blackduck/${VERSION}/notices.txt
 cp "${WORKSPACE}/cbl-java/legal/mobile/couchbase-lite/license/LICENSE_${EDITION}.txt" license/LICENSE.TXT
 cp "${DEPS_DIR}/target/dependency/"*.jar lib
 cp "${ARTIFACTS}/${PRODUCT}-${VERSION}-${BUILD_NUMBER}-javadoc.jar" "docs/${PRODUCT}-${VERSION}-javadoc.jar"
